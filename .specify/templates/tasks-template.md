@@ -20,10 +20,11 @@ description: "Task list template for feature implementation"
 
 ## Path Conventions
 
-- **Single project**: `src/`, `tests/` at repository root
 - **Web app**: `backend/src/`, `frontend/src/`
-- **Mobile**: `api/src/`, `ios/src/` or `android/src/`
-- Paths shown below assume single project - adjust based on plan.md structure
+- **Backend paths**: `backend/src/models/`, `backend/src/services/`, `backend/src/api/`
+- **Frontend paths**: `frontend/src/components/`, `frontend/src/pages/`, `frontend/src/services/`
+- **Testing paths**: `backend/tests/`, `frontend/tests/`
+- Paths shown below assume web application structure per plan.md
 
 <!-- 
   ============================================================================
@@ -48,9 +49,11 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create project structure per implementation plan
-- [ ] T002 Initialize [language] project with [framework] dependencies
-- [ ] T003 [P] Configure linting and formatting tools
+- [ ] T001 Create web application project structure (backend/, frontend/, and doc/ directories)
+- [ ] T002 Initialize Node.js backend with Express.js and trading-specific dependencies
+- [ ] T003 [P] Initialize Vue.js frontend with trading dashboard components
+- [ ] T004 [P] Configure ESLint and Prettier for JavaScript code formatting
+- [ ] T005 [P] Setup documentation structure in doc/ folder with README templates
 
 ---
 
@@ -60,14 +63,16 @@ description: "Task list template for feature implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-Examples of foundational tasks (adjust based on your project):
+Examples of foundational tasks for stock trading simulator:
 
-- [ ] T004 Setup database schema and migrations framework
-- [ ] T005 [P] Implement authentication/authorization framework
-- [ ] T006 [P] Setup API routing and middleware structure
-- [ ] T007 Create base models/entities that all stories depend on
-- [ ] T008 Configure error handling and logging infrastructure
-- [ ] T009 Setup environment configuration management
+- [ ] T006 Setup database schema for users, portfolios, stocks, and transactions
+- [ ] T007 [P] Implement user authentication and session management
+- [ ] T008 [P] Setup Express.js API routing and WebSocket infrastructure
+- [ ] T009 Create base trading models (User, Portfolio, Stock, Transaction)
+- [ ] T010 Configure error handling and trading operation logging
+- [ ] T011 Setup environment configuration for market data and database connections
+- [ ] T012 [P] Implement real-time market data simulation engine
+- [ ] T013 [P] Setup WebSocket connections for real-time price updates
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -83,17 +88,18 @@ Examples of foundational tasks (adjust based on your project):
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T014 [P] [US1] Contract test for trading API endpoints in backend/tests/integration/test_trading_api.js
+- [ ] T015 [P] [US1] Integration test for buy/sell workflow in frontend/tests/e2e/test_trading_flow.js
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] Create [Entity1] model in src/models/[entity1].py
-- [ ] T013 [P] [US1] Create [Entity2] model in src/models/[entity2].py
-- [ ] T014 [US1] Implement [Service] in src/services/[service].py (depends on T012, T013)
-- [ ] T015 [US1] Implement [endpoint/feature] in src/[location]/[file].py
-- [ ] T016 [US1] Add validation and error handling
-- [ ] T017 [US1] Add logging for user story 1 operations
+- [ ] T016 [P] [US1] Create Portfolio model in backend/src/models/Portfolio.js
+- [ ] T017 [P] [US1] Create Stock model in backend/src/models/Stock.js
+- [ ] T018 [US1] Implement TradingService in backend/src/services/TradingService.js (depends on T016, T017)
+- [ ] T019 [US1] Implement trading API endpoints in backend/src/api/tradingRoutes.js
+- [ ] T020 [US1] Add trading validation and error handling
+- [ ] T021 [US1] Add logging for trading operations and portfolio updates
+- [ ] T022 [US1] Create API documentation in doc/api/ for trading endpoints
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -150,12 +156,13 @@ Examples of foundational tasks (adjust based on your project):
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] TXXX [P] Documentation updates in docs/
+- [ ] TXXX [P] Documentation updates in doc/ folder (API specs, user guides, architecture)
+- [ ] TXXX [P] JSDoc comments for all JavaScript functions and classes
 - [ ] TXXX Code cleanup and refactoring
 - [ ] TXXX Performance optimization across all stories
 - [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
 - [ ] TXXX Security hardening
-- [ ] TXXX Run quickstart.md validation
+- [ ] TXXX Run quickstart.md validation from doc/ folder
 
 ---
 
