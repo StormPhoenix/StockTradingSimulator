@@ -106,6 +106,7 @@ server/dist/
 server/node_modules/
 server/.env
 app/.env
+app/.vite/
 
 # Vue.js specific
 .vuepress/dist/
