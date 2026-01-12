@@ -97,6 +97,7 @@ docker/volumes/
 # Speckit tool directories (as requested)
 .specify/
 .codebuddy/
+specs/
 
 # Vue.js specific
 .vuepress/dist/
