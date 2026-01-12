@@ -18,71 +18,253 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Logging functions
+
+##
+# Log an informational message in blue
+# @param {string} $1 - Message to log
+##
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
 
+##
+# Log a success message in green
+# @param {string} $1 - Message to log
+##
 log_success() {
     echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
+##
+# Log a warning message in yellow
+# @param {string} $1 - Message to log
+##
 log_warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
+##
+# Log an error message in red
+# @param {string} $1 - Message to log
+##
 log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Check dependencies (Docker, docker-compose, files)
+##
+# Check system dependencies and required files
+# Verifies Docker, docker-compose, and configuration files exist
+# @exit 1 if any dependency is missing
+##
 check_dependencies() {
-    # Implementation: Check for Docker, docker-compose, required files
-    # Exit with error if dependencies missing
+    log_info "Checking dependencies..."
+    
+    # Check if Docker is installed and running
+    if ! command -v docker &> /dev/null; then
+        log_error "Docker is not installed. Please install Docker first."
+        log_info "Visit https://docs.docker.com/get-docker/ for installation instructions"
+        exit 1
+    fi
+    
+    # Check if Docker daemon is running
+    if ! docker info &> /dev/null; then
+        log_error "Docker daemon is not running. Please start Docker first."
+        log_info "Try: 'sudo systemctl start docker' (Linux) or start Docker Desktop (Mac/Windows)"
+        exit 1
+    fi
+    
+    # Check for docker-compose availability
+    COMPOSE_CMD=$(get_compose_cmd)
+    if [ -z "$COMPOSE_CMD" ]; then
+        log_error "Neither 'docker compose' nor 'docker-compose' is available."
+        log_info "Please install Docker Compose: https://docs.docker.com/compose/install/"
+        exit 1
+    fi
+    
+    # Check if required files exist
+    if [ ! -f "$COMPOSE_FILE" ]; then
+        log_error "Docker Compose file not found: $COMPOSE_FILE"
+        log_info "Expected file: docker/docker-compose.yml"
+        log_info "Please ensure you're running this script from the project root directory"
+        exit 1
+    fi
+    
+    if [ ! -f "$ENV_FILE" ]; then
+        log_warning "Environment file not found: $ENV_FILE"
+        log_info "Please copy .env.example to docker/.env and configure it:"
+        log_info "  cp .env.example docker/.env"
+        log_info "  nano docker/.env  # Edit with your secure password"
+        exit 1
+    fi
+    
+    log_success "All dependencies are available"
 }
 
-# Get docker-compose command (docker compose vs docker-compose)
+##
+# Detect available docker-compose command
+# @return {string} "docker compose" or "docker-compose" or empty string if neither available
+##
 get_compose_cmd() {
-    # Implementation: Detect available compose command
+    if command -v docker &> /dev/null && docker compose version &> /dev/null; then
+        echo "docker compose"
+    elif command -v docker-compose &> /dev/null; then
+        echo "docker-compose"
+    else
+        echo ""
+    fi
 }
 
-# Health check function for services
+##
+# Wait for a service to become healthy
+# @param {string} $1 - Service name (mongodb or mongo-express)
+# @return {number} 0 if healthy, 1 if timeout
+##
 check_health() {
     local service=$1
-    # Implementation: Wait for service to become healthy
-    # Return 0 on success, 1 on failure
+    local max_attempts=30
+    local attempt=1
+    
+    log_info "Waiting for $service to become healthy..."
+    
+    while [ $attempt -le $max_attempts ]; do
+        # Check if container is running and healthy using docker ps
+        local container_name="stock-simulator-$service"
+        if [ "$service" = "mongo-express" ]; then
+            container_name="stock-simulator-mongo-express"
+        fi
+        
+        local health_status=$(docker ps --filter "name=$container_name" --format "table {{.Status}}" | tail -n +2 | grep -o "healthy\|unhealthy\|starting" || echo "not_running")
+        
+        if [ "$health_status" = "healthy" ]; then
+            log_success "$service is healthy"
+            return 0
+        fi
+        
+        if [ $((attempt % 5)) -eq 0 ]; then
+            log_info "Still waiting for $service... (attempt $attempt/$max_attempts, status: $health_status)"
+        fi
+        
+        sleep 2
+        attempt=$((attempt + 1))
+    done
+    
+    log_error "$service failed to become healthy within expected time"
+    return 1
 }
 
-# Start services in background or foreground mode
+##
+# Start MongoDB services in foreground or background mode
+# @param {string} $1 - Mode: "foreground" or "background"
+# @exit 1 if services fail to start or become healthy
+##
 start_services() {
     local mode=$1
-    # Implementation: Start containers with docker-compose
-    # Handle foreground/background modes
-    # Verify health and show connection info
+    COMPOSE_CMD=$(get_compose_cmd)
+    
+    log_info "Starting MongoDB services in $mode mode..."
+    
+    if [ "$mode" = "foreground" ]; then
+        log_info "Starting services in foreground (Ctrl+C to stop)..."
+        $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up
+    else
+        log_info "Starting services in background..."
+        $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d
+        
+        # Wait for services to become healthy
+        if check_health "mongodb" && check_health "mongo-express"; then
+            log_success "All services are running and healthy!"
+            show_connection_info
+        else
+            log_error "Some services failed to start properly."
+            log_info "Troubleshooting steps:"
+            log_info "  1. Check logs: $0 --logs"
+            log_info "  2. Verify .env configuration: cat docker/.env"
+            log_info "  3. Check port conflicts: lsof -i :27017 -i :8081"
+            log_info "  4. Restart Docker daemon if needed"
+            exit 1
+        fi
+    fi
 }
 
-# Stop all services
+##
+# Stop all MongoDB services gracefully
+##
 stop_services() {
-    # Implementation: Stop containers gracefully
+    COMPOSE_CMD=$(get_compose_cmd)
+    
+    log_info "Stopping MongoDB services..."
+    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down
+    
+    log_success "All services stopped"
 }
 
-# Show service status
+##
+# Display current status of all services
+##
 show_status() {
-    # Implementation: Display container status
+    COMPOSE_CMD=$(get_compose_cmd)
+    
+    log_info "Service Status:"
+    $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
 }
 
-# Show service logs
+##
+# Display logs for services
+# @param {string} $1 - Optional service name (mongodb or mongo-express)
+##
 show_logs() {
     local service=${1:-}
-    # Implementation: Display logs for service or all services
+    COMPOSE_CMD=$(get_compose_cmd)
+    
+    if [ -n "$service" ]; then
+        log_info "Showing logs for $service:"
+        $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" logs -f "$service"
+    else
+        log_info "Showing logs for all services:"
+        $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" logs -f
+    fi
 }
 
-# Show connection information after successful startup
+##
+# Display connection information for MongoDB and Mongo Express
+# Reads configuration from .env file and shows connection details
+##
 show_connection_info() {
-    # Implementation: Display MongoDB and mongo-express connection details
-    # Read from .env file for port and credential information
+    # Read environment variables from .env file
+    if [ -f "$ENV_FILE" ]; then
+        # Source the .env file to get variables
+        set -a
+        source "$ENV_FILE"
+        set +a
+    fi
+    
+    # Use defaults if variables not set
+    MONGO_PORT=${MONGO_PORT:-27017}
+    MONGO_EXPRESS_PORT=${MONGO_EXPRESS_PORT:-8081}
+    MONGO_DATABASE=${MONGO_DATABASE:-stock_trading_simulator}
+    MONGO_ROOT_USERNAME=${MONGO_ROOT_USERNAME:-admin}
+    
+    echo ""
+    log_success "MongoDB services are running!"
+    echo ""
+    echo "Connection Information:"
+    echo "======================="
+    echo "MongoDB:"
+    echo "  - Host: localhost"
+    echo "  - Port: $MONGO_PORT"
+    echo "  - Database: $MONGO_DATABASE"
+    echo "  - Username: $MONGO_ROOT_USERNAME"
+    echo "  - Connection String: mongodb://$MONGO_ROOT_USERNAME:<password>@localhost:$MONGO_PORT/$MONGO_DATABASE?authSource=admin"
+    echo ""
+    echo "Mongo Express (Web UI):"
+    echo "  - URL: http://localhost:$MONGO_EXPRESS_PORT"
+    echo "  - No authentication required"
+    echo ""
 }
 
-# Show help message
+##
+# Display help message with usage instructions
+##
 show_help() {
     cat << EOF
 Stock Trading Simulator - MongoDB Container Management
@@ -106,7 +288,10 @@ Examples:
 EOF
 }
 
-# Main execution function
+##
+# Main execution function - parses command line arguments and executes appropriate action
+# @param {string} $@ - Command line arguments
+##
 main() {
     cd "$PROJECT_ROOT"
     
@@ -136,6 +321,7 @@ main() {
             ;;
         *)
             log_error "Unknown option: $1"
+            log_info "Use --help to see available options"
             show_help
             exit 1
             ;;
