@@ -46,7 +46,7 @@ StockTradeSimulator/
 │   └── .env                 # 环境变量配置
 ├── scripts/
 │   └── run-mongodb.sh       # 数据库管理脚本
-├── doc/
+├── document/
 │   ├── README.md            # 项目文档
 │   └── setup/
 │       └── README.md        # 详细设置指南
@@ -164,13 +164,13 @@ MONGO_EXPRESS_PASSWORD=change_this_secure_password
 
 ### 5. 文档系统
 
-**项目文档 (doc/README.md)**:
+**项目文档 (document/README.md)**:
 - 快速开始指南
 - 项目结构说明
 - 技术栈介绍
 - 开发工作流程
 
-**设置指南 (doc/setup/README.md)**:
+**设置指南 (document/setup/README.md)**:
 - 详细安装步骤
 - 脚本使用说明
 - 故障排除指南

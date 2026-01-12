@@ -99,6 +99,14 @@ docker/volumes/
 .codebuddy/
 specs/
 
+# Frontend-Backend Application specific
+app/dist/
+app/node_modules/
+server/dist/
+server/node_modules/
+server/.env
+app/.env
+
 # Vue.js specific
 .vuepress/dist/
 
