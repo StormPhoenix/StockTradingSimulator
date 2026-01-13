@@ -58,21 +58,21 @@ log_error() {
 ##
 check_dependencies() {
     log_info "Checking dependencies..."
-    
+
     # Check if Docker is installed and running
     if ! command -v docker &> /dev/null; then
         log_error "Docker is not installed. Please install Docker first."
         log_info "Visit https://docs.docker.com/get-docker/ for installation instructions"
         exit 1
     fi
-    
+
     # Check if Docker daemon is running
     if ! docker info &> /dev/null; then
         log_error "Docker daemon is not running. Please start Docker first."
         log_info "Try: 'sudo systemctl start docker' (Linux) or start Docker Desktop (Mac/Windows)"
         exit 1
     fi
-    
+
     # Check for docker-compose availability
     COMPOSE_CMD=$(get_compose_cmd)
     if [ -z "$COMPOSE_CMD" ]; then
@@ -80,7 +80,7 @@ check_dependencies() {
         log_info "Please install Docker Compose: https://docs.docker.com/compose/install/"
         exit 1
     fi
-    
+
     # Check if required files exist
     if [ ! -f "$COMPOSE_FILE" ]; then
         log_error "Docker Compose file not found: $COMPOSE_FILE"
@@ -88,7 +88,7 @@ check_dependencies() {
         log_info "Please ensure you're running this script from the project root directory"
         exit 1
     fi
-    
+
     if [ ! -f "$ENV_FILE" ]; then
         log_warning "Environment file not found: $ENV_FILE"
         log_info "Please copy .env.example to docker/.env and configure it:"
@@ -96,7 +96,7 @@ check_dependencies() {
         log_info "  nano docker/.env  # Edit with your secure password"
         exit 1
     fi
-    
+
     log_success "All dependencies are available"
 }
 
@@ -123,31 +123,31 @@ check_health() {
     local service=$1
     local max_attempts=30
     local attempt=1
-    
+
     log_info "Waiting for $service to become healthy..."
-    
+
     while [ $attempt -le $max_attempts ]; do
         # Check if container is running and healthy using docker ps
         local container_name="stock-simulator-$service"
         if [ "$service" = "mongo-express" ]; then
             container_name="stock-simulator-mongo-express"
         fi
-        
+
         local health_status=$(docker ps --filter "name=$container_name" --format "table {{.Status}}" | tail -n +2 | grep -o "healthy\|unhealthy\|starting" || echo "not_running")
-        
+
         if [ "$health_status" = "healthy" ]; then
             log_success "$service is healthy"
             return 0
         fi
-        
+
         if [ $((attempt % 5)) -eq 0 ]; then
             log_info "Still waiting for $service... (attempt $attempt/$max_attempts, status: $health_status)"
         fi
-        
+
         sleep 2
         attempt=$((attempt + 1))
     done
-    
+
     log_error "$service failed to become healthy within expected time"
     return 1
 }
@@ -160,16 +160,16 @@ check_health() {
 start_services() {
     local mode=$1
     COMPOSE_CMD=$(get_compose_cmd)
-    
+
     log_info "Starting MongoDB services in $mode mode..."
-    
+
     if [ "$mode" = "foreground" ]; then
         log_info "Starting services in foreground (Ctrl+C to stop)..."
         $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up
     else
         log_info "Starting services in background..."
         $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d
-        
+
         # Wait for services to become healthy
         if check_health "mongodb" && check_health "mongo-express"; then
             log_success "All services are running and healthy!"
@@ -191,10 +191,10 @@ start_services() {
 ##
 stop_services() {
     COMPOSE_CMD=$(get_compose_cmd)
-    
+
     log_info "Stopping MongoDB services..."
     $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down
-    
+
     log_success "All services stopped"
 }
 
@@ -203,7 +203,7 @@ stop_services() {
 ##
 show_status() {
     COMPOSE_CMD=$(get_compose_cmd)
-    
+
     log_info "Service Status:"
     $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
 }
@@ -215,7 +215,7 @@ show_status() {
 show_logs() {
     local service=${1:-}
     COMPOSE_CMD=$(get_compose_cmd)
-    
+
     if [ -n "$service" ]; then
         log_info "Showing logs for $service:"
         $COMPOSE_CMD --env-file "$ENV_FILE" -f "$COMPOSE_FILE" logs -f "$service"
@@ -237,13 +237,13 @@ show_connection_info() {
         source "$ENV_FILE"
         set +a
     fi
-    
+
     # Use defaults if variables not set
     MONGO_PORT=${MONGO_PORT:-27017}
     MONGO_EXPRESS_PORT=${MONGO_EXPRESS_PORT:-8081}
-    MONGO_DATABASE=${MONGO_DATABASE:-stock_trading_simulator}
+    MONGO_DATABASE=${MONGO_DATABASE:-stock_simulator}
     MONGO_ROOT_USERNAME=${MONGO_ROOT_USERNAME:-admin}
-    
+
     echo ""
     log_success "MongoDB services are running!"
     echo ""
@@ -277,7 +277,7 @@ Options:
   --stop        Stop all services
   --status      Show service status
   --logs [SERVICE]  Show logs (optionally for specific service)
-  
+
 Default: Start services in background mode
 
 Examples:
@@ -294,7 +294,7 @@ EOF
 ##
 main() {
     cd "$PROJECT_ROOT"
-    
+
     case "${1:-}" in
         --help|-h)
             show_help

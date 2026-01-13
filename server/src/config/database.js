@@ -9,29 +9,29 @@ const MONGODB_HOST = process.env.MONGODB_HOST || 'localhost'
 const MONGODB_PORT = process.env.MONGODB_PORT || '27017'
 const MONGODB_USERNAME = process.env.MONGODB_USERNAME || ''
 const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD || ''
-const MONGODB_DATABASE = process.env.MONGODB_DATABASE || 'stock_trading_simulator'
+const MONGODB_DATABASE = process.env.MONGODB_DATABASE || 'stock_simulator'
 const MONGODB_AUTH_SOURCE = process.env.MONGODB_AUTH_SOURCE || 'admin'
 
 // 动态构建 MongoDB URI
 const buildMongoURI = () => {
   let uri = 'mongodb://'
-  
+
   // 如果有用户名和密码，添加认证信息
   if (MONGODB_USERNAME && MONGODB_PASSWORD) {
     uri += `${encodeURIComponent(MONGODB_USERNAME)}:${encodeURIComponent(MONGODB_PASSWORD)}@`
   }
-  
+
   // 添加主机和端口
   uri += `${MONGODB_HOST}:${MONGODB_PORT}`
-  
+
   // 添加数据库名
   uri += `/${MONGODB_DATABASE}`
-  
+
   // 如果有认证信息，添加认证源参数
   if (MONGODB_USERNAME && MONGODB_PASSWORD) {
     uri += `?authSource=${MONGODB_AUTH_SOURCE}`
   }
-  
+
   return uri
 }
 
@@ -57,13 +57,13 @@ const mongooseOptions = {
 export const connectDatabase = async () => {
   try {
     console.log('🔄 Connecting to MongoDB...')
-    
+
     const connection = await mongoose.connect(MONGODB_URI, mongooseOptions)
-    
+
     console.log(`✅ MongoDB connected successfully`)
     console.log(`📊 Database: ${connection.connection.name}`)
     console.log(`🔗 Host: ${connection.connection.host}:${connection.connection.port}`)
-    
+
     return connection
   } catch (error) {
     console.error('❌ MongoDB connection error:', error.message)
@@ -115,7 +115,7 @@ export const isDatabaseConnected = () => {
 // 获取数据库信息
 export const getDatabaseInfo = () => {
   const connection = mongoose.connection
-  
+
   if (connection.readyState !== 1) {
     return {
       status: 'disconnected',
@@ -123,7 +123,7 @@ export const getDatabaseInfo = () => {
       readyStateText: getReadyStateText(connection.readyState)
     }
   }
-  
+
   return {
     status: 'connected',
     name: connection.name || MONGODB_DATABASE,
