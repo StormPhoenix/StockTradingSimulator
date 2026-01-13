@@ -94,7 +94,7 @@ class MarketUtils {
     }
 
     // 验证随机种子
-    if (config.seed !== undefined && (!Number.isInteger(config.seed) || config.seed < 0)) {
+    if (config.seed !== undefined && config.seed !== null && (!Number.isInteger(config.seed) || config.seed < 0)) {
       errors.push('随机种子必须是非负整数')
     }
 

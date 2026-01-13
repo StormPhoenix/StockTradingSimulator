@@ -24,9 +24,24 @@ class MarketService {
         warnings: response.data.warnings,
         message: response.data.message
       }
-    } catch (error) {
-      console.error('创建市场环境失败:', error)
-      throw new Error(error.response?.data?.message || '创建市场环境失败')
+    } catch (error) {      
+      // 提取具体的错误信息
+      let errorMessage = '创建市场环境失败'
+      
+      if (error.response?.data) {
+        const errorData = error.response.data
+        if (errorData.message) {
+          errorMessage = errorData.message
+        } else if (errorData.error?.message) {
+          errorMessage = errorData.error.message
+        } else if (errorData.details) {
+          errorMessage = Array.isArray(errorData.details) 
+            ? errorData.details.join(', ') 
+            : errorData.details
+        }
+      }
+      
+      throw new Error(errorMessage)
     }
   }
 

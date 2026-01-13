@@ -8,6 +8,7 @@ import AITraderTemplate from '../models/TraderTemplate.js'
 import MarketEnvironment from '../models/MarketEnvironment.js'
 import AllocationService from './allocationService.js'
 import MarketUtils from '../utils/marketUtils.js'
+import { ValidationError } from '../middleware/errorHandler.js'
 
 /**
  * 市场服务类
@@ -62,7 +63,12 @@ class MarketService {
         warnings: validation.warnings
       }
     } catch (error) {
-      throw new Error(`市场环境创建失败: ${error.message}`)
+      // 如果是验证错误，抛出ValidationError（400状态码）
+      if (error.message.includes('配置验证失败') || error.message.includes('未找到')) {
+        throw new ValidationError(error.message)
+      }
+      // 其他错误继续抛出为内部错误
+      throw error
     }
   }
 

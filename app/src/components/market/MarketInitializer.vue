@@ -8,13 +8,7 @@
         </div>
       </template>
 
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-width="120px"
-        class="initialization-form"
-      >
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="120px" class="initialization-form">
         <!-- 基础配置 -->
         <el-card class="config-section" shadow="never">
           <template #header>
@@ -22,30 +16,17 @@
           </template>
 
           <el-form-item label="市场名称" prop="name">
-            <el-input
-              v-model="form.name"
-              placeholder="请输入市场环境名称"
-              clearable
-            />
+            <el-input v-model="form.name" placeholder="请输入市场环境名称" clearable />
           </el-form-item>
 
           <el-form-item label="描述信息" prop="description">
-            <el-input
-              v-model="form.description"
-              type="textarea"
-              :rows="3"
-              placeholder="请输入市场环境描述（可选）"
-            />
+            <el-input v-model="form.description" type="textarea" :rows="3" placeholder="请输入市场环境描述（可选）" />
           </el-form-item>
 
           <el-form-item label="分配算法" prop="allocationAlgorithm">
             <el-select v-model="form.allocationAlgorithm" placeholder="选择股票分配算法">
-              <el-option
-                v-for="algorithm in allocationAlgorithms"
-                :key="algorithm.value"
-                :label="algorithm.label"
-                :value="algorithm.value"
-              >
+              <el-option v-for="algorithm in allocationAlgorithms" :key="algorithm.value" :label="algorithm.label"
+                :value="algorithm.value">
                 <span>{{ algorithm.label }}</span>
                 <span class="algorithm-desc">{{ algorithm.description }}</span>
               </el-option>
@@ -53,18 +34,9 @@
           </el-form-item>
 
           <el-form-item label="随机种子" prop="seed">
-            <el-input-number
-              v-model="form.seed"
-              :min="0"
-              :max="999999"
-              placeholder="可选，用于确保结果可重现"
-              style="width: 200px"
-            />
-            <el-button
-              link
-              @click="generateRandomSeed"
-              style="margin-left: 10px"
-            >
+            <el-input-number v-model="form.seed" :min="0" :max="999999" placeholder="可选，用于确保结果可重现"
+              style="width: 200px" />
+            <el-button link @click="generateRandomSeed" style="margin-left: 10px">
               随机生成
             </el-button>
           </el-form-item>
@@ -76,7 +48,9 @@
             <div class="section-header">
               <h3>交易员配置</h3>
               <el-button type="primary" @click="addTraderConfig">
-                <el-icon><Plus /></el-icon>
+                <el-icon>
+                  <Plus />
+                </el-icon>
                 添加交易员模板
               </el-button>
             </div>
@@ -86,21 +60,15 @@
             <el-empty description="暂无交易员配置，请添加至少一个交易员模板" />
           </div>
 
-          <div
-            v-for="(config, index) in form.traderConfigs"
-            :key="index"
-            class="trader-config-item"
-          >
+          <div v-for="(config, index) in form.traderConfigs" :key="index" class="trader-config-item">
             <el-card shadow="hover">
               <template #header>
                 <div class="config-item-header">
                   <span>交易员配置 {{ index + 1 }}</span>
-                  <el-button
-                    type="danger"
-                    text
-                    @click="removeTraderConfig(index)"
-                  >
-                    <el-icon><Delete /></el-icon>
+                  <el-button type="danger" text @click="removeTraderConfig(index)">
+                    <el-icon>
+                      <Delete />
+                    </el-icon>
                     删除
                   </el-button>
                 </div>
@@ -108,27 +76,15 @@
 
               <el-row :gutter="20">
                 <el-col :span="12">
-                  <el-form-item
-                    :prop="`traderConfigs.${index}.templateId`"
-                    label="交易员模板"
-                    :rules="{ required: true, message: '请选择交易员模板' }"
-                  >
-                    <el-select
-                      v-model="config.templateId"
-                      placeholder="选择交易员模板"
-                      filterable
-                      style="width: 100%"
-                    >
-                      <el-option
-                        v-for="template in traderTemplates"
-                        :key="template._id"
-                        :label="template.name"
-                        :value="template._id"
-                      >
+                  <el-form-item :prop="`traderConfigs.${index}.templateId`" label="交易员模板"
+                    :rules="{ required: true, message: '请选择交易员模板' }">
+                    <el-select v-model="config.templateId" placeholder="选择交易员模板" filterable style="width: 100%">
+                      <el-option v-for="template in traderTemplates" :key="template._id" :label="template.name"
+                        :value="template._id">
                         <div class="template-option">
                           <span>{{ template.name }}</span>
                           <span class="template-info">
-                            {{ formatCurrency(template.initialCapital) }} | 
+                            {{ formatCurrency(template.initialCapital) }} |
                             {{ getRiskProfileLabel(template.riskProfile) }}
                           </span>
                         </div>
@@ -138,17 +94,9 @@
                 </el-col>
 
                 <el-col :span="12">
-                  <el-form-item
-                    :prop="`traderConfigs.${index}.count`"
-                    label="生成数量"
-                    :rules="{ required: true, message: '请输入生成数量' }"
-                  >
-                    <el-input-number
-                      v-model="config.count"
-                      :min="1"
-                      :max="1000"
-                      style="width: 100%"
-                    />
+                  <el-form-item :prop="`traderConfigs.${index}.count`" label="生成数量"
+                    :rules="{ required: true, message: '请输入生成数量' }">
+                    <el-input-number v-model="config.count" :min="1" :max="1000" style="width: 100%" />
                   </el-form-item>
                 </el-col>
               </el-row>
@@ -156,27 +104,15 @@
               <el-row :gutter="20">
                 <el-col :span="12">
                   <el-form-item label="资金倍数" prop="capitalMultiplier">
-                    <el-input-number
-                      v-model="config.capitalMultiplier"
-                      :min="0.1"
-                      :max="10"
-                      :step="0.1"
-                      :precision="1"
-                      style="width: 100%"
-                    />
+                    <el-input-number v-model="config.capitalMultiplier" :min="0.1" :max="10" :step="0.1" :precision="1"
+                      style="width: 100%" />
                   </el-form-item>
                 </el-col>
 
                 <el-col :span="12">
                   <el-form-item label="资金变化率" prop="capitalVariation">
-                    <el-input-number
-                      v-model="config.capitalVariation"
-                      :min="0"
-                      :max="1"
-                      :step="0.05"
-                      :precision="2"
-                      style="width: 100%"
-                    />
+                    <el-input-number v-model="config.capitalVariation" :min="0" :max="1" :step="0.05" :precision="2"
+                      style="width: 100%" />
                     <div class="form-tip">0.2 表示 ±20% 随机变化</div>
                   </el-form-item>
                 </el-col>
@@ -192,23 +128,14 @@
           </template>
 
           <el-form-item label="股票模板" prop="stockTemplateIds">
-            <el-select
-              v-model="form.stockTemplateIds"
-              multiple
-              filterable
-              placeholder="选择股票模板（可多选）"
-              style="width: 100%"
-            >
-              <el-option
-                v-for="template in stockTemplates"
-                :key="template._id"
-                :label="template.name"
-                :value="template._id"
-              >
+            <el-select v-model="form.stockTemplateIds" multiple filterable placeholder="选择股票模板（可多选）"
+              style="width: 100%">
+              <el-option v-for="template in stockTemplates" :key="template._id" :label="template.name"
+                :value="template._id">
                 <div class="template-option">
                   <span>{{ template.name }} ({{ template.symbol }})</span>
                   <span class="template-info">
-                    {{ formatCurrency(template.issuePrice) }} | 
+                    {{ formatCurrency(template.issuePrice) }} |
                     {{ formatQuantity(template.totalShares) }}股 |
                     {{ getCategoryLabel(template.category) }}
                   </span>
@@ -220,12 +147,8 @@
           <div v-if="form.stockTemplateIds.length > 0" class="selected-stocks">
             <h4>已选择的股票 ({{ form.stockTemplateIds.length }})</h4>
             <div class="stock-tags">
-              <el-tag
-                v-for="templateId in form.stockTemplateIds"
-                :key="templateId"
-                closable
-                @close="removeStockTemplate(templateId)"
-              >
+              <el-tag v-for="templateId in form.stockTemplateIds" :key="templateId" closable
+                @close="removeStockTemplate(templateId)">
                 {{ getStockTemplateName(templateId) }}
               </el-tag>
             </div>
@@ -246,18 +169,10 @@
               <el-statistic title="股票总数" :value="previewStats.totalStocks" />
             </el-col>
             <el-col :span="6">
-              <el-statistic
-                title="总资金"
-                :value="previewStats.totalCapital"
-                :formatter="formatCurrency"
-              />
+              <el-statistic title="总资金" :value="previewStats.totalCapital" :formatter="formatCurrency" />
             </el-col>
             <el-col :span="6">
-              <el-statistic
-                title="总市值"
-                :value="previewStats.totalMarketValue"
-                :formatter="formatCurrency"
-              />
+              <el-statistic title="总市值" :value="previewStats.totalMarketValue" :formatter="formatCurrency" />
             </el-col>
           </el-row>
         </el-card>
@@ -265,15 +180,21 @@
         <!-- 操作按钮 -->
         <el-form-item class="form-actions">
           <el-button type="primary" @click="createMarketEnvironment" :loading="loading">
-            <el-icon><Star /></el-icon>
+            <el-icon>
+              <Star />
+            </el-icon>
             创建市场环境
           </el-button>
           <el-button @click="resetForm">
-            <el-icon><Refresh /></el-icon>
+            <el-icon>
+              <Refresh />
+            </el-icon>
             重置表单
           </el-button>
           <el-button @click="previewConfiguration">
-            <el-icon><View /></el-icon>
+            <el-icon>
+              <View />
+            </el-icon>
             预览配置
           </el-button>
         </el-form-item>
@@ -281,18 +202,10 @@
     </el-card>
 
     <!-- 创建结果对话框 -->
-    <el-dialog
-      v-model="resultDialogVisible"
-      title="市场环境创建结果"
-      width="800px"
-      :close-on-click-modal="false"
-    >
+    <el-dialog v-model="resultDialogVisible" title="市场环境创建结果" width="800px" :close-on-click-modal="false">
       <div v-if="creationResult" class="creation-result">
-        <el-result
-          :icon="creationResult.success ? 'success' : 'error'"
-          :title="creationResult.success ? '创建成功' : '创建失败'"
-          :sub-title="creationResult.message"
-        >
+        <el-result :icon="creationResult.success ? 'success' : 'error'"
+          :title="creationResult.success ? '创建成功' : '创建失败'" :sub-title="creationResult.message">
           <template #extra>
             <div v-if="creationResult.success" class="result-stats">
               <h4>市场环境统计</h4>
@@ -319,11 +232,7 @@
             </div>
 
             <div class="result-actions">
-              <el-button
-                v-if="creationResult.success"
-                type="primary"
-                @click="viewMarketEnvironment"
-              >
+              <el-button v-if="creationResult.success" type="primary" @click="viewMarketEnvironment">
                 查看详情
               </el-button>
               <el-button @click="resultDialogVisible = false">
@@ -548,8 +457,14 @@ const createMarketEnvironment = async () => {
 
     loading.value = true
 
+    // 清理表单数据，移除null值
+    const cleanedForm = { ...form }
+    if (cleanedForm.seed === null || cleanedForm.seed === '') {
+      delete cleanedForm.seed
+    }
+
     // 调用市场服务创建市场环境
-    const result = await marketStore.createMarketEnvironment(form)
+    const result = await marketStore.createMarketEnvironment(cleanedForm)
 
     creationResult.value = result
     resultDialogVisible.value = true
