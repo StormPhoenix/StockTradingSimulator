@@ -202,31 +202,36 @@
     </el-card>
 
     <!-- 创建结果对话框 -->
-    <el-dialog v-model="resultDialogVisible" title="市场环境创建结果" width="800px" :close-on-click-modal="false">
+    <el-dialog v-model="resultDialogVisible" title="市场环境创建结果" width="800px" top="20vh" :close-on-click-modal="true"
+      append-to-body center>
       <div v-if="creationResult" class="creation-result">
         <el-result :icon="creationResult.success ? 'success' : 'error'"
           :title="creationResult.success ? '创建成功' : '创建失败'" :sub-title="creationResult.message">
           <template #extra>
-            <div v-if="creationResult.success" class="result-stats">
+            <div v-if="creationResult.success && (creationResult.data || creationResult.statistics)"
+              class="result-stats">
               <h4>市场环境统计</h4>
               <el-descriptions :column="2" border>
                 <el-descriptions-item label="市场ID">
-                  {{ creationResult.data.id }}
+                  {{ creationResult.data?._id || creationResult.data?.id || 'N/A' }}
                 </el-descriptions-item>
                 <el-descriptions-item label="交易员数量">
-                  {{ creationResult.data.statistics.traderCount }}
+                  {{ creationResult.data?.statistics?.traderCount || creationResult.statistics?.traderCount || 0 }}
                 </el-descriptions-item>
                 <el-descriptions-item label="股票数量">
-                  {{ creationResult.data.statistics.stockCount }}
+                  {{ creationResult.data?.statistics?.stockCount || creationResult.statistics?.stockCount || 0 }}
                 </el-descriptions-item>
                 <el-descriptions-item label="总资金">
-                  {{ formatCurrency(creationResult.data.totalCapital) }}
+                  {{ formatCurrency(creationResult.data?.statistics?.totalCapital ||
+                    creationResult.statistics?.totalCapital || 0) }}
                 </el-descriptions-item>
                 <el-descriptions-item label="总市值">
-                  {{ formatCurrency(creationResult.data.totalMarketValue) }}
+                  {{ formatCurrency(creationResult.data?.statistics?.totalMarketValue ||
+                    creationResult.statistics?.totalMarketValue || 0) }}
                 </el-descriptions-item>
                 <el-descriptions-item label="分配公平性">
-                  {{ (creationResult.data.statistics.allocationFairness * 100).toFixed(2) }}%
+                  {{ ((creationResult.data?.statistics?.allocationFairness ||
+                    creationResult.statistics?.allocationFairness || 0) * 100).toFixed(2) }}%
                 </el-descriptions-item>
               </el-descriptions>
             </div>
@@ -465,6 +470,11 @@ const createMarketEnvironment = async () => {
 
     // 调用市场服务创建市场环境
     const result = await marketStore.createMarketEnvironment(cleanedForm)
+
+    // 调试：输出返回的数据结构
+    console.log('创建市场环境返回结果:', result)
+    console.log('result.data:', result.data)
+    console.log('result.statistics:', result.statistics)
 
     creationResult.value = result
     resultDialogVisible.value = true
