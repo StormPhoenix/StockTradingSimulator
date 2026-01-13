@@ -1,7 +1,49 @@
 import mongoose from 'mongoose'
+import dotenv from 'dotenv'
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/stock_trading_simulator'
-const DB_NAME = process.env.MONGODB_DB_NAME || 'stock_trading_simulator'
+// 确保环境变量已加载
+dotenv.config()
+
+// MongoDB 连接参数配置
+const MONGODB_HOST = process.env.MONGODB_HOST || 'localhost'
+const MONGODB_PORT = process.env.MONGODB_PORT || '27017'
+const MONGODB_USERNAME = process.env.MONGODB_USERNAME || ''
+const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD || ''
+const MONGODB_DATABASE = process.env.MONGODB_DATABASE || 'stock_trading_simulator'
+const MONGODB_AUTH_SOURCE = process.env.MONGODB_AUTH_SOURCE || 'admin'
+
+// 动态构建 MongoDB URI
+const buildMongoURI = () => {
+  let uri = 'mongodb://'
+  
+  // 如果有用户名和密码，添加认证信息
+  if (MONGODB_USERNAME && MONGODB_PASSWORD) {
+    uri += `${encodeURIComponent(MONGODB_USERNAME)}:${encodeURIComponent(MONGODB_PASSWORD)}@`
+  }
+  
+  // 添加主机和端口
+  uri += `${MONGODB_HOST}:${MONGODB_PORT}`
+  
+  // 添加数据库名
+  uri += `/${MONGODB_DATABASE}`
+  
+  // 如果有认证信息，添加认证源参数
+  if (MONGODB_USERNAME && MONGODB_PASSWORD) {
+    uri += `?authSource=${MONGODB_AUTH_SOURCE}`
+  }
+  
+  return uri
+}
+
+const MONGODB_URI = buildMongoURI()
+
+console.log('🔧 MongoDB Configuration:')
+console.log(`   Host: ${MONGODB_HOST}:${MONGODB_PORT}`)
+console.log(`   Database: ${MONGODB_DATABASE}`)
+console.log(`   Authentication: ${MONGODB_USERNAME ? 'Enabled' : 'Disabled'}`)
+if (MONGODB_USERNAME) {
+  console.log(`   Auth Source: ${MONGODB_AUTH_SOURCE}`)
+}
 
 // MongoDB连接配置
 const mongooseOptions = {
