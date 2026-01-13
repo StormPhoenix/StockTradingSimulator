@@ -7,13 +7,14 @@
           <el-icon class="logo-icon"><TrendCharts /></el-icon>
           <span class="logo-text">股票交易模拟器</span>
         </div>
-        
+
         <div class="nav-menu">
           <el-menu
             :default-active="activeMenu"
             mode="horizontal"
             router
             class="header-menu"
+            :ellipsis="false"
           >
             <el-menu-item index="/admin/stock-templates">
               <el-icon><TrendCharts /></el-icon>
@@ -23,21 +24,13 @@
               <el-icon><User /></el-icon>
               <span>交易员模板</span>
             </el-menu-item>
-            <el-menu-item index="/market/initializer">
-              <el-icon><Setting /></el-icon>
-              <span>市场初始化</span>
-            </el-menu-item>
-            <el-menu-item index="/market/exporter">
-              <el-icon><Download /></el-icon>
-              <span>数据导出</span>
-            </el-menu-item>
           </el-menu>
         </div>
-        
+
         <div class="header-actions">
           <el-button type="primary" @click="goToMarket">
             <el-icon><Setting /></el-icon>
-            市场管理
+            玩家体验
           </el-button>
         </div>
       </div>
@@ -64,7 +57,7 @@
     <!-- 底部 -->
     <el-footer class="footer">
       <div class="footer-content">
-        <span>© 2026 股票交易模拟器 - 基于AI的交易环境配置系统</span>
+        <span>© 2026 股票交易模拟器 - 管理后台系统</span>
       </div>
     </el-footer>
   </div>
@@ -73,11 +66,10 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { 
-  TrendCharts, 
-  User, 
-  Setting, 
-  Download 
+import {
+  TrendCharts,
+  User,
+  Setting
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -89,7 +81,7 @@ const currentRoute = computed(() => route)
 // 当前激活的菜单项
 const activeMenu = computed(() => route.path)
 
-// 跳转到市场管理
+// 跳转到玩家体验
 const goToMarket = () => {
   router.push('/market/initializer')
 }
@@ -142,16 +134,21 @@ const goToMarket = () => {
   flex: 1;
   display: flex;
   justify-content: center;
+  min-width: 0;
 }
 
 .header-menu {
   border-bottom: none;
   background: transparent;
+  min-width: 300px;
 }
 
 .header-menu .el-menu-item {
   border-bottom: 2px solid transparent;
   color: #606266;
+  padding: 0 20px;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 
 .header-menu .el-menu-item:hover,
@@ -159,6 +156,10 @@ const goToMarket = () => {
   border-bottom-color: #409eff;
   color: #409eff;
   background: transparent;
+}
+
+.header-menu .el-menu-item .el-icon {
+  margin-right: 6px;
 }
 
 .header-actions {
@@ -207,6 +208,16 @@ const goToMarket = () => {
 }
 
 /* 响应式设计 */
+@media (max-width: 1024px) {
+  .header-content {
+    padding: 0 20px;
+  }
+  
+  .header-menu .el-menu-item {
+    padding: 0 16px;
+  }
+}
+
 @media (max-width: 768px) {
   .header-content {
     padding: 0 16px;
@@ -217,15 +228,68 @@ const goToMarket = () => {
   }
   
   .nav-menu {
-    flex: none;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .header-menu .el-menu-item {
+    padding: 0 12px;
+    font-size: 14px;
   }
   
   .header-menu .el-menu-item span {
+    display: inline;
+  }
+  
+  .header-actions {
+    margin-left: 8px;
+  }
+  
+  .header-actions .el-button span {
     display: none;
   }
   
   .content-wrapper {
     padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content {
+    padding: 0 8px;
+  }
+  
+  .logo {
+    font-size: 16px;
+  }
+  
+  .logo-icon {
+    font-size: 20px;
+    margin-right: 4px;
+  }
+  
+  .header-menu {
+    min-width: 200px;
+  }
+  
+  .header-menu .el-menu-item {
+    padding: 0 6px;
+    font-size: 12px;
+  }
+  
+  .header-menu .el-menu-item span {
+    font-size: 11px;
+  }
+  
+  .header-menu .el-menu-item .el-icon {
+    font-size: 14px;
+    margin-right: 3px;
+  }
+  
+  .header-actions .el-button {
+    padding: 8px 12px;
+    font-size: 12px;
   }
 }
 </style>

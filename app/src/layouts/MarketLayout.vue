@@ -5,7 +5,7 @@
       <div class="header-content">
         <div class="logo">
           <el-icon class="logo-icon"><Setting /></el-icon>
-          <span class="logo-text">市场环境管理</span>
+          <span class="logo-text">玩家体验中心</span>
         </div>
         
         <div class="nav-menu">
@@ -29,7 +29,7 @@
         <div class="header-actions">
           <el-button @click="goToAdmin">
             <el-icon><User /></el-icon>
-            模板管理
+            管理后台
           </el-button>
           <el-button type="primary" @click="createNewMarket">
             <el-icon><Plus /></el-icon>
@@ -44,7 +44,7 @@
       <div class="content-wrapper">
         <!-- 面包屑导航 -->
         <el-breadcrumb class="breadcrumb" separator="/">
-          <el-breadcrumb-item :to="{ path: '/market' }">市场管理</el-breadcrumb-item>
+          <el-breadcrumb-item :to="{ path: '/market' }">玩家体验</el-breadcrumb-item>
           <el-breadcrumb-item v-if="currentRoute.meta?.title">
             {{ currentRoute.meta.title }}
           </el-breadcrumb-item>
@@ -77,7 +77,7 @@
             suffix="只"
           />
         </div>
-        <span class="copyright">© 2026 股票交易模拟器 - 市场环境配置系统</span>
+        <span class="copyright">© 2026 股票交易模拟器 - 玩家体验中心</span>
       </div>
     </el-footer>
   </div>

@@ -5,7 +5,7 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    redirect: '/admin',
+    redirect: '/market',
   },
   {
     path: '/admin',
@@ -61,7 +61,7 @@ const routes = [
         name: 'MarketExporter',
         component: () => import('@/components/market/MarketExporter.vue'),
         meta: {
-          title: '市场数据导出导入',
+          title: '数据导出导入',
           icon: 'Download',
         },
       },
