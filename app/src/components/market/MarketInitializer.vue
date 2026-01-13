@@ -61,7 +61,7 @@
               style="width: 200px"
             />
             <el-button
-              type="text"
+              link
               @click="generateRandomSeed"
               style="margin-left: 10px"
             >
@@ -265,7 +265,7 @@
         <!-- 操作按钮 -->
         <el-form-item class="form-actions">
           <el-button type="primary" @click="createMarketEnvironment" :loading="loading">
-            <el-icon><Magic /></el-icon>
+            <el-icon><Star /></el-icon>
             创建市场环境
           </el-button>
           <el-button @click="resetForm">
@@ -340,7 +340,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Delete, Magic, Refresh, View } from '@element-plus/icons-vue'
+import { Plus, Delete, Star, Refresh, View } from '@element-plus/icons-vue'
 import { useTemplatesStore } from '../../stores/templates'
 import { useMarketStore } from '../../stores/market'
 
