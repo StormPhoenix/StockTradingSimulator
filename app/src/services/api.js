@@ -6,13 +6,14 @@
  */
 
 import axios from 'axios';
+import { apiConfig, apiEndpoints } from '../config/api.js';
 
 /**
  * Create axios instance with default configuration
  */
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
-  timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 10000,
+  baseURL: apiConfig.baseURL,
+  timeout: apiConfig.timeout,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
@@ -207,7 +208,7 @@ const api = {
  */
 export const healthCheck = async () => {
   try {
-    const response = await api.get('/health');
+    const response = await api.get(apiEndpoints.health.basic());
     return {
       status: 'healthy',
       data: response.data,

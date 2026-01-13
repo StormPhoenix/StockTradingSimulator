@@ -20,6 +20,7 @@
     "test": "cd app && npm run test && cd ../server && npm run test",
     "test:setup": "node scripts/test-setup.js",
     "validate:env": "node scripts/validate-environment.js",
+    "validate:api": "node scripts/validate-api-config.js",
     "health:check": "node scripts/health-check.js"
   },
   "devDependencies": {

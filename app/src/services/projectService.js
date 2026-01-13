@@ -6,6 +6,7 @@
  */
 
 import api, { healthCheck } from './api.js';
+import { apiEndpoints } from '../config/api.js';
 
 /**
  * Project service with API methods
@@ -19,7 +20,7 @@ export const projectService = {
    */
   async getProjectInfo() {
     try {
-      const response = await api.get('/api/v1/projects/info');
+      const response = await api.get(apiEndpoints.projects.info());
       return response.data;
     } catch (error) {
       console.error('Failed to fetch project info:', error);
@@ -50,7 +51,7 @@ export const projectService = {
       if (options.isActive !== undefined) params.append('isActive', options.isActive);
       
       const queryString = params.toString();
-      const url = `/api/v1/projects${queryString ? `?${queryString}` : ''}`;
+      const url = `${apiEndpoints.projects.list()}${queryString ? `?${queryString}` : ''}`;
       
       const response = await api.get(url);
       return response.data;
@@ -72,7 +73,7 @@ export const projectService = {
         throw new Error('Project ID is required');
       }
       
-      const response = await api.get(`/api/v1/projects/${projectId}`);
+      const response = await api.get(apiEndpoints.projects.byId(projectId));
       return response.data;
     } catch (error) {
       console.error('Failed to fetch project by ID:', error);
@@ -92,7 +93,7 @@ export const projectService = {
         throw new Error('Valid project data is required');
       }
       
-      const response = await api.post('/api/v1/projects', projectData);
+      const response = await api.post(apiEndpoints.projects.create(), projectData);
       return response.data;
     } catch (error) {
       console.error('Failed to create project:', error);
@@ -117,7 +118,7 @@ export const projectService = {
         throw new Error('Valid update data is required');
       }
       
-      const response = await api.put(`/api/v1/projects/${projectId}`, updateData);
+      const response = await api.put(apiEndpoints.projects.update(projectId), updateData);
       return response.data;
     } catch (error) {
       console.error('Failed to update project:', error);
@@ -137,7 +138,7 @@ export const projectService = {
         throw new Error('Project ID is required');
       }
       
-      const response = await api.delete(`/api/v1/projects/${projectId}`);
+      const response = await api.delete(apiEndpoints.projects.delete(projectId));
       return response.data;
     } catch (error) {
       console.error('Failed to delete project:', error);
@@ -157,7 +158,7 @@ export const projectService = {
         throw new Error('Project ID is required');
       }
       
-      const response = await api.patch(`/api/v1/projects/${projectId}/activate`);
+      const response = await api.patch(apiEndpoints.projects.activate(projectId));
       return response.data;
     } catch (error) {
       console.error('Failed to activate project:', error);
@@ -172,7 +173,7 @@ export const projectService = {
    */
   async getProjectStats() {
     try {
-      const response = await api.get('/api/v1/projects/stats');
+      const response = await api.get(apiEndpoints.projects.stats());
       return response.data;
     } catch (error) {
       console.error('Failed to fetch project stats:', error);
@@ -230,7 +231,7 @@ export const projectService = {
    */
   async detailedHealthCheck() {
     try {
-      const response = await api.get('/health/detailed');
+      const response = await api.get(apiEndpoints.health.detailed());
       return {
         status: 'healthy',
         data: response.data,
