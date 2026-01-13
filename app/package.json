@@ -1,0 +1,32 @@
+{
+  "name": "stock-simulator-frontend",
+  "version": "1.0.0",
+  "description": "Vue.js frontend for Stock Trading Simulator",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5173",
+    "build": "vite build",
+    "preview": "vite preview --port 4173",
+    "lint": "echo 'Linting not configured yet'",
+    "test": "echo 'Testing not configured yet'"
+  },
+  "dependencies": {
+    "vue": "^3.4.0",
+    "axios": "^1.6.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.5.2",
+    "vite": "^5.0.8"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "vue",
+    "vite",
+    "frontend",
+    "spa"
+  ],
+  "author": "Stock Trading Simulator Team",
+  "license": "MIT"
+}
