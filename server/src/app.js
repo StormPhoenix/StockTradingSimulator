@@ -48,7 +48,14 @@ const createApp = () => {
     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
+    allowedHeaders: [
+      'Origin', 
+      'X-Requested-With', 
+      'Content-Type', 
+      'Accept', 
+      'Authorization',
+      'X-Request-ID'  // Allow custom request ID header
+    ]
   };
   app.use(cors(corsOptions));
   

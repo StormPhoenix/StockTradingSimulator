@@ -6,6 +6,7 @@
  */
 
 import express from 'express';
+import os from 'os';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { isDatabaseConnected, getDatabaseInfo } from '../config/database.js';
 
@@ -55,7 +56,9 @@ router.get('/', asyncHandler(async (req, res) => {
       },
       cpu: {
         usage: process.cpuUsage(),
-        loadAverage: process.platform !== 'win32' ? process.loadavg() : null
+        loadAverage: (process.platform !== 'win32' && typeof os.loadavg === 'function') 
+          ? os.loadavg() 
+          : 'not available'
       }
     }
   });
@@ -120,7 +123,9 @@ router.get('/detailed', asyncHandler(async (req, res) => {
       cpu: {
         user: cpuUsage.user,
         system: cpuUsage.system,
-        loadAverage: process.platform !== 'win32' ? process.loadavg() : null
+        loadAverage: (process.platform !== 'win32' && typeof os.loadavg === 'function') 
+          ? os.loadavg() 
+          : 'not available'
       }
     },
     checks: {
