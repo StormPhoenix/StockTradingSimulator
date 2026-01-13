@@ -24,26 +24,27 @@ const traderTemplateSchema = new BaseSchema({
     set: (value) => value ? mongoose.Types.Decimal128.fromString(value.toString()) : value,
   },
   
-  // 风险偏好
+  // 风险偏好 (默认稳健型)
   riskProfile: {
     type: String,
-    required: [true, '风险偏好是必填项'],
     enum: {
       values: ['conservative', 'moderate', 'aggressive'],
       message: '风险偏好必须是保守型、稳健型或激进型之一',
     },
+    default: 'moderate',
   },
   
-  // 交易风格
+  // 交易风格 (默认波段交易)
   tradingStyle: {
     type: String,
     enum: {
       values: ['day_trading', 'swing_trading', 'position_trading'],
       message: '交易风格必须是日内交易、波段交易或长期持有之一',
     },
+    default: 'swing_trading',
   },
   
-  // 最大持仓数量
+  // 最大持仓数量 (默认10)
   maxPositions: {
     type: Number,
     min: [1, '最大持仓数量至少为1'],

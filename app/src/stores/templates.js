@@ -34,7 +34,6 @@ export const useTemplatesStore = defineStore('templates', {
     traderTemplatesLoading: false,
     traderTemplatesFilters: {
       status: '',
-      riskProfile: '',
       search: ''
     },
     
@@ -74,18 +73,6 @@ export const useTemplatesStore = defineStore('templates', {
     // AI交易员模板相关getters
     activeTraderTemplates: (state) => {
       return state.traderTemplates.filter(template => template.status === 'active');
-    },
-    
-    traderTemplatesByRiskProfile: (state) => {
-      const grouped = {};
-      state.traderTemplates.forEach(template => {
-        const risk = template.riskProfile;
-        if (!grouped[risk]) {
-          grouped[risk] = [];
-        }
-        grouped[risk].push(template);
-      });
-      return grouped;
     },
     
     // 选择状态
@@ -547,7 +534,6 @@ export const useTemplatesStore = defineStore('templates', {
       };
       this.traderTemplatesFilters = {
         status: '',
-        riskProfile: '',
         search: ''
       };
       this.selectedTraderTemplates = [];

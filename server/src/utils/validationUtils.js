@@ -256,26 +256,7 @@ export const validators = {
       result.addError('initialCapital', errorMessages.invalid('初始资金'))
     }
     
-    if (!data.riskProfile) {
-      result.addError('riskProfile', errorMessages.required('风险偏好'))
-    } else if (!validationUtils.isValidEnum(data.riskProfile, 
-        ['conservative', 'moderate', 'aggressive'])) {
-      result.addError('riskProfile', errorMessages.invalidEnum('风险偏好', 
-        ['conservative', 'moderate', 'aggressive']))
-    }
-    
     // 验证可选字段
-    if (data.tradingStyle && !validationUtils.isValidEnum(data.tradingStyle, 
-        ['day_trading', 'swing_trading', 'position_trading'])) {
-      result.addError('tradingStyle', errorMessages.invalidEnum('交易风格', 
-        ['day_trading', 'swing_trading', 'position_trading']))
-    }
-    
-    if (data.maxPositions !== undefined && 
-        (!Number.isInteger(data.maxPositions) || data.maxPositions < 1 || data.maxPositions > 100)) {
-      result.addError('maxPositions', '最大持仓数量必须是1-100之间的整数')
-    }
-    
     if (data.description && !validationUtils.isValidDescription(data.description)) {
       result.addError('description', errorMessages.tooLong('描述', 500))
     }
