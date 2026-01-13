@@ -9,6 +9,46 @@ import { validateRequest } from '../middleware/validation.js';
 
 const router = express.Router();
 
+// ==================== 模板API根路径 ====================
+
+/**
+ * @route GET /api/v1/templates
+ * @desc 获取模板API信息和可用端点
+ */
+router.get('/', (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      name: 'Templates API',
+      description: '股票模板和AI交易员模板管理API',
+      version: '1.0.0',
+      endpoints: {
+        stocks: {
+          list: 'GET /stocks',
+          detail: 'GET /stocks/:id',
+          create: 'POST /stocks',
+          update: 'PUT /stocks/:id',
+          delete: 'DELETE /stocks/:id'
+        },
+        traders: {
+          list: 'GET /traders',
+          detail: 'GET /traders/:id', 
+          create: 'POST /traders',
+          update: 'PUT /traders/:id',
+          delete: 'DELETE /traders/:id'
+        },
+        batch: {
+          delete: 'POST /batch/delete',
+          updateStatus: 'POST /batch/status'
+        },
+        stats: 'GET /stats'
+      },
+      documentation: 'https://api-docs.stocksimulator.com/templates'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
 // ==================== 股票模板路由 ====================
 
 /**
