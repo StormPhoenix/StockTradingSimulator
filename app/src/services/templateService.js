@@ -25,7 +25,7 @@ class TemplateService {
   async getStockTemplates(params = {}) {
     try {
       const response = await apiService.get(`${this.baseURL}/stocks`, { params });
-      return response.data;
+      return response;
     } catch (error) {
       console.error('获取股票模板列表失败:', error);
       throw this._handleError(error);
@@ -40,7 +40,7 @@ class TemplateService {
   async getStockTemplateById(id) {
     try {
       const response = await apiService.get(`${this.baseURL}/stocks/${id}`);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('获取股票模板详情失败:', error);
       throw this._handleError(error);
@@ -55,7 +55,7 @@ class TemplateService {
   async createStockTemplate(templateData) {
     try {
       const response = await apiService.post(`${this.baseURL}/stocks`, templateData);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('创建股票模板失败:', error);
       throw this._handleError(error);
@@ -71,7 +71,7 @@ class TemplateService {
   async updateStockTemplate(id, templateData) {
     try {
       const response = await apiService.put(`${this.baseURL}/stocks/${id}`, templateData);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('更新股票模板失败:', error);
       throw this._handleError(error);
@@ -86,7 +86,7 @@ class TemplateService {
   async deleteStockTemplate(id) {
     try {
       const response = await apiService.delete(`${this.baseURL}/stocks/${id}`);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('删除股票模板失败:', error);
       throw this._handleError(error);
@@ -108,7 +108,7 @@ class TemplateService {
   async getTraderTemplates(params = {}) {
     try {
       const response = await apiService.get(`${this.baseURL}/traders`, { params });
-      return response.data;
+      return response;
     } catch (error) {
       console.error('获取AI交易员模板列表失败:', error);
       throw this._handleError(error);
@@ -123,7 +123,7 @@ class TemplateService {
   async getTraderTemplateById(id) {
     try {
       const response = await apiService.get(`${this.baseURL}/traders/${id}`);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('获取AI交易员模板详情失败:', error);
       throw this._handleError(error);
@@ -138,7 +138,7 @@ class TemplateService {
   async createTraderTemplate(templateData) {
     try {
       const response = await apiService.post(`${this.baseURL}/traders`, templateData);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('创建AI交易员模板失败:', error);
       throw this._handleError(error);
@@ -154,7 +154,7 @@ class TemplateService {
   async updateTraderTemplate(id, templateData) {
     try {
       const response = await apiService.put(`${this.baseURL}/traders/${id}`, templateData);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('更新AI交易员模板失败:', error);
       throw this._handleError(error);
@@ -169,7 +169,7 @@ class TemplateService {
   async deleteTraderTemplate(id) {
     try {
       const response = await apiService.delete(`${this.baseURL}/traders/${id}`);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('删除AI交易员模板失败:', error);
       throw this._handleError(error);
@@ -190,7 +190,7 @@ class TemplateService {
         type,
         ids
       });
-      return response.data;
+      return response;
     } catch (error) {
       console.error('批量删除模板失败:', error);
       throw this._handleError(error);
@@ -211,7 +211,7 @@ class TemplateService {
         ids,
         status
       });
-      return response.data;
+      return response;
     } catch (error) {
       console.error('批量更新模板状态失败:', error);
       throw this._handleError(error);
@@ -227,7 +227,7 @@ class TemplateService {
   async getTemplateStats() {
     try {
       const response = await apiService.get(`${this.baseURL}/stats`);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('获取模板统计信息失败:', error);
       throw this._handleError(error);
