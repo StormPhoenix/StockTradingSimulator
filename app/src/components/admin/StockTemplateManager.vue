@@ -176,7 +176,7 @@ const templatesStore = useTemplatesStore();
 // 响应式数据
 const loading = computed(() => templatesStore.stockTemplatesLoading);
 const templates = computed(() => templatesStore.stockTemplates);
-const pagination = computed(() => templatesStore.stockTemplatesPagination);
+const pagination = computed(() => templatesStore.stockTemplatesPagination || { page: 1, limit: 10, total: 0, pages: 0 });
 const hasSelected = computed(() => templatesStore.hasSelectedStockTemplates);
 
 const filters = reactive({

@@ -26,43 +26,43 @@ echo
 stop_port_service() {
     local port=$1
     local service_name=$2
-    
+
     print_message $YELLOW "检查端口 ${port} 上的 ${service_name} 服务..."
-    
+
     # 查找占用端口的进程
     local pids=$(lsof -ti:${port} 2>/dev/null || true)
-    
+
     if [ -z "$pids" ]; then
         print_message $GREEN "✅ 端口 ${port} 没有运行的服务"
         return 0
     fi
-    
+
     print_message $YELLOW "🔍 发现端口 ${port} 上的进程: ${pids}"
-    
+
     # 尝试优雅停止 (SIGTERM)
     print_message $YELLOW "⏳ 尝试优雅停止 ${service_name}..."
     echo "$pids" | xargs kill -TERM 2>/dev/null || true
-    
+
     # 等待进程停止
     sleep 2
-    
+
     # 检查进程是否仍在运行
     local remaining_pids=$(lsof -ti:${port} 2>/dev/null || true)
-    
+
     if [ -z "$remaining_pids" ]; then
         print_message $GREEN "✅ ${service_name} 已成功停止"
         return 0
     fi
-    
+
     # 如果进程仍在运行，强制停止 (SIGKILL)
     print_message $YELLOW "⚡ 强制停止 ${service_name}..."
     echo "$remaining_pids" | xargs kill -KILL 2>/dev/null || true
-    
+
     sleep 1
-    
+
     # 最终检查
     local final_pids=$(lsof -ti:${port} 2>/dev/null || true)
-    
+
     if [ -z "$final_pids" ]; then
         print_message $GREEN "✅ ${service_name} 已强制停止"
     else
@@ -75,42 +75,42 @@ stop_port_service() {
 stop_process_by_name() {
     local process_pattern=$1
     local service_name=$2
-    
+
     print_message $YELLOW "检查 ${service_name} 进程..."
-    
+
     # 查找匹配的进程
     local pids=$(pgrep -f "$process_pattern" 2>/dev/null || true)
-    
+
     if [ -z "$pids" ]; then
         print_message $GREEN "✅ 没有找到 ${service_name} 进程"
         return 0
     fi
-    
+
     print_message $YELLOW "🔍 发现 ${service_name} 进程: ${pids}"
-    
+
     # 尝试优雅停止
     print_message $YELLOW "⏳ 尝试优雅停止 ${service_name}..."
     echo "$pids" | xargs kill -TERM 2>/dev/null || true
-    
+
     sleep 2
-    
+
     # 检查进程是否仍在运行
     local remaining_pids=$(pgrep -f "$process_pattern" 2>/dev/null || true)
-    
+
     if [ -z "$remaining_pids" ]; then
         print_message $GREEN "✅ ${service_name} 已成功停止"
         return 0
     fi
-    
+
     # 强制停止
     print_message $YELLOW "⚡ 强制停止 ${service_name}..."
     echo "$remaining_pids" | xargs kill -KILL 2>/dev/null || true
-    
+
     sleep 1
-    
+
     # 最终检查
     local final_pids=$(pgrep -f "$process_pattern" 2>/dev/null || true)
-    
+
     if [ -z "$final_pids" ]; then
         print_message $GREEN "✅ ${service_name} 已强制停止"
     else
@@ -122,44 +122,44 @@ stop_process_by_name() {
 # 主要停止逻辑
 main() {
     local success=true
-    
+
     # 停止前端服务 (Vite dev server on port 5173)
     if ! stop_port_service 5173 "前端服务 (Vite)"; then
         success=false
     fi
-    
+
     echo
-    
+
     # 停止后端服务 (Express server on port 3000)
     if ! stop_port_service 3000 "后端服务 (Express)"; then
         success=false
     fi
-    
+
     echo
-    
+
     # 额外检查：通过进程名停止 nodemon 和 vite 进程
     if ! stop_process_by_name "nodemon.*server" "Nodemon (后端)"; then
         success=false
     fi
-    
+
     echo
-    
+
     if ! stop_process_by_name "vite.*--port 5173" "Vite (前端)"; then
         success=false
     fi
-    
+
     echo
-    
+
     # 通用清理：停止所有可能相关的 Node.js 进程
     print_message $YELLOW "🧹 清理其他相关进程..."
-    
+
     # 停止包含 "stock" 或 "simulator" 的 Node.js 进程
     local node_pids=$(pgrep -f "node.*stock\|node.*simulator" 2>/dev/null || true)
     if [ ! -z "$node_pids" ]; then
         print_message $YELLOW "🔍 发现相关 Node.js 进程: ${node_pids}"
         echo "$node_pids" | xargs kill -TERM 2>/dev/null || true
         sleep 1
-        
+
         # 检查是否还有残留进程
         local remaining_node_pids=$(pgrep -f "node.*stock\|node.*simulator" 2>/dev/null || true)
         if [ ! -z "$remaining_node_pids" ]; then
@@ -167,9 +167,9 @@ main() {
             echo "$remaining_node_pids" | xargs kill -KILL 2>/dev/null || true
         fi
     fi
-    
+
     echo
-    
+
     # 最终状态报告
     if [ "$success" = true ]; then
         print_message $GREEN "🎉 所有服务已成功停止！"

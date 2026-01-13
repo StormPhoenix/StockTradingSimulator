@@ -32,12 +32,7 @@ class TemplateController {
       res.json({
         success: true,
         data: result.templates,
-        pagination: {
-          page: result.page,
-          limit: result.limit,
-          total: result.total,
-          pages: result.pages
-        }
+        pagination: result.pagination
       })
     } catch (error) {
       next(error)
@@ -189,12 +184,7 @@ class TemplateController {
       res.json({
         success: true,
         data: result.templates,
-        pagination: {
-          page: result.page,
-          limit: result.limit,
-          total: result.total,
-          pages: result.pages
-        }
+        pagination: result.pagination
       })
     } catch (error) {
       next(error)

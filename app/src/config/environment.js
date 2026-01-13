@@ -15,7 +15,7 @@ const environment = {
   PREVIEW_PORT: parseInt(import.meta.env.VITE_PREVIEW_PORT) || 4173,
 
   // API Configuration
-  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
+  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001',
   API_TIMEOUT: parseInt(import.meta.env.VITE_API_TIMEOUT) || 10000,
   API_PREFIX: parseInt(import.meta.env.VITE_API_PREFIX) || 10000,
   API_VERSION: parseInt(import.meta.env.VITE_API_VERSION) || 10000,
@@ -46,7 +46,7 @@ const environment = {
   // External Services (future use)
   SENTRY_DSN: import.meta.env.VITE_SENTRY_DSN || '',
   ANALYTICS_ID: import.meta.env.VITE_ANALYTICS_ID || '',
-  WEBSOCKET_URL: import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:3000',
+  WEBSOCKET_URL: import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:3001',
 
   // Build Information (injected by Vite)
   BUILD_TIME: import.meta.env.VITE_BUILD_TIME || new Date().toISOString(),

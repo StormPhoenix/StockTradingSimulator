@@ -107,8 +107,48 @@ process.on('SIGINT', async () => {
   }
 })
 
+// 检查数据库连接状态
+export const isDatabaseConnected = () => {
+  return mongoose.connection.readyState === 1 // 1 表示已连接
+}
+
+// 获取数据库信息
+export const getDatabaseInfo = () => {
+  const connection = mongoose.connection
+  
+  if (connection.readyState !== 1) {
+    return {
+      status: 'disconnected',
+      readyState: connection.readyState,
+      readyStateText: getReadyStateText(connection.readyState)
+    }
+  }
+  
+  return {
+    status: 'connected',
+    name: connection.name || MONGODB_DATABASE,
+    host: connection.host || MONGODB_HOST,
+    port: connection.port || MONGODB_PORT,
+    readyState: connection.readyState,
+    readyStateText: getReadyStateText(connection.readyState)
+  }
+}
+
+// 获取连接状态文本描述
+const getReadyStateText = (state) => {
+  const states = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  }
+  return states[state] || 'unknown'
+}
+
 export default {
   connectDatabase,
   disconnectDatabase,
+  isDatabaseConnected,
+  getDatabaseInfo,
   connection: mongoose.connection,
 }

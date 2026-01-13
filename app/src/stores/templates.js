@@ -124,8 +124,11 @@ export const useTemplatesStore = defineStore('templates', {
         
         const response = await templateService.getStockTemplates(queryParams);
         
-        this.stockTemplates = response.data;
-        this.stockTemplatesPagination = response.pagination;
+        this.stockTemplates = response.data || [];
+        // 确保分页信息存在，如果不存在则保持当前分页状态
+        if (response.pagination) {
+          this.stockTemplatesPagination = response.pagination;
+        }
         
         return response;
       } catch (error) {
@@ -238,8 +241,11 @@ export const useTemplatesStore = defineStore('templates', {
         
         const response = await templateService.getTraderTemplates(queryParams);
         
-        this.traderTemplates = response.data;
-        this.traderTemplatesPagination = response.pagination;
+        this.traderTemplates = response.data || [];
+        // 确保分页信息存在，如果不存在则保持当前分页状态
+        if (response.pagination) {
+          this.traderTemplatesPagination = response.pagination;
+        }
         
         return response;
       } catch (error) {

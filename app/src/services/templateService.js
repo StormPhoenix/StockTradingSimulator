@@ -7,7 +7,7 @@ import apiService from './api.js';
 
 class TemplateService {
   constructor() {
-    this.baseURL = '/api/templates';
+    this.baseURL = '/templates';
   }
 
   // ==================== 股票模板服务 ====================

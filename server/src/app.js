@@ -10,6 +10,7 @@ import { connectDatabase } from './config/database.js'
 import { apiConfig } from './config/api.js'
 import errorHandler from './middleware/errorHandler.js'
 import routes from './routes/index.js'
+import healthRoutes from './routes/healthRoutes.js'
 
 // 加载环境变量
 dotenv.config()
@@ -43,20 +44,14 @@ app.use('/api/', limiter)
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-// 健康检查
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  })
-})
+// 健康检查路由
+app.use('/health', healthRoutes)
 
 // API路由
 app.use('/api/v1', routes)
 
 // 404处理
-app.use('*', (req, res) => {
+app.use('*', (_, res) => {
   res.status(404).json({
     success: false,
     error: {
@@ -72,16 +67,29 @@ app.use(errorHandler)
 // 启动服务器
 async function startServer() {
   try {
+    console.log('🚀 Starting Stock Trading Simulator Server...')
+    console.log('📋 Environment:', process.env.NODE_ENV || 'development')
+    
     // 连接数据库
+    console.log('🔌 Connecting to database...')
     await connectDatabase()
+    console.log('✅ Database connected successfully')
     
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`)
-      console.log(`📊 Health check: http://localhost:${PORT}/health`)
+      console.log('\n🎉 Server started successfully!')
+      console.log('━'.repeat(50))
+      console.log(`📡 Server running on port: ${PORT}`)
+      console.log(`🌐 Base URL: http://localhost:${PORT}`)
+      console.log(`🏥 Health check: http://localhost:${PORT}/health`)
+      console.log(`📊 Detailed health: http://localhost:${PORT}/health/detailed`)
       console.log(`🔗 API base URL: http://localhost:${PORT}/api/v1`)
+      console.log(`📚 API info: http://localhost:${PORT}/api/v1`)
+      console.log('━'.repeat(50))
+      console.log('💡 Press Ctrl+C to stop the server')
     })
   } catch (error) {
-    console.error('❌ Failed to start server:', error)
+    console.error('❌ Failed to start server:', error.message)
+    console.error('💥 Error details:', error)
     process.exit(1)
   }
 }

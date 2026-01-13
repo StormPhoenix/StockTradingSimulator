@@ -231,7 +231,12 @@ export const projectService = {
    */
   async detailedHealthCheck() {
     try {
-      const response = await api.get(apiEndpoints.health.detailed());
+      // 从环境配置获取基础URL，移除/api/v1前缀用于健康检查
+      const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+      const response = await api.get(apiEndpoints.health.detailed(), {}, {
+        baseURL, // 使用环境变量配置的URL
+        timeout: 5000
+      });
       return {
         status: 'healthy',
         data: response.data,
