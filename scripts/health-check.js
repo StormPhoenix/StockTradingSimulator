@@ -10,6 +10,7 @@
 const http = require('http');
 const https = require('https');
 const { execSync } = require('child_process');
+const { getFrontendUrl, getBackendUrl, getBackendHealthUrl, getBackendApiUrl } = require('./lib/env-config.cjs');
 
 console.log('🏥 Running Health Checks...\n');
 
@@ -217,9 +218,9 @@ function displayServiceUrls() {
   console.log('\n🔗 Service URLs:');
   
   const services = [
-    { name: 'Frontend Application', url: 'http://localhost:5173' },
-    { name: 'Backend API', url: 'http://localhost:3000/api/v1/projects/info' },
-    { name: 'Backend Health', url: 'http://localhost:3000/health' },
+    { name: 'Frontend Application', url: getFrontendUrl() },
+    { name: 'Backend API', url: `${getBackendApiUrl()}/projects/info` },
+    { name: 'Backend Health', url: getBackendHealthUrl() },
     { name: 'MongoDB (if mongo-express)', url: 'http://localhost:8081' }
   ];
   
@@ -250,8 +251,8 @@ async function main() {
   if (allHealthy) {
     console.log('🎉 All services are healthy!');
     console.log('\n💡 Ready for development:');
-    console.log('   Frontend: http://localhost:5173');
-    console.log('   Backend API: http://localhost:3000/api/v1/projects/info');
+    console.log(`   Frontend: ${getFrontendUrl()}`);
+    console.log(`   Backend API: ${getBackendApiUrl()}/projects/info`);
     process.exit(0);
   } else {
     console.log('⚠️  Some services need attention.');

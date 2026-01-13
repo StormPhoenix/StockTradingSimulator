@@ -15,6 +15,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 
+// Import the environment configuration functions
+import { readEnvConfig, getAllPorts, getBackendUrl } from './lib/env-config.js';
+
 /**
  * Colors for console output
  */
@@ -83,7 +86,7 @@ function validateApiConfig() {
   const frontendConfig = {
     apiVersion: frontendEnv.VITE_API_VERSION || 'v1',
     apiPrefix: frontendEnv.VITE_API_PREFIX || '/api',
-    baseUrl: frontendEnv.VITE_API_BASE_URL || 'http://localhost:3000'
+    baseUrl: frontendEnv.VITE_API_BASE_URL || getBackendUrl()
   };
   
   console.log(`${colors.blue}⚙️  Backend Configuration:${colors.reset}`);

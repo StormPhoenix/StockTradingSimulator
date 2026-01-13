@@ -8,8 +8,9 @@
 停止所有运行中的前端和后端服务。
 
 **功能：**
-- 停止端口 5173 上的前端服务 (Vite)
-- 停止端口 3000 上的后端服务 (Express)
+- 动态读取 .env 配置文件中的端口设置
+- 停止前端服务 (Vite) - 端口从 app/.env 读取
+- 停止后端服务 (Express) - 端口从 server/.env 读取
 - 清理相关的 nodemon 和 vite 进程
 - 支持优雅停止和强制停止
 
@@ -31,14 +32,33 @@
 npm run stop
 ```
 
+### 🔍 check-ports.sh
+检查和验证端口配置。
+
+**功能：**
+- 显示当前的端口配置信息
+- 验证前后端配置的一致性
+- 检查端口占用情况
+- 显示服务访问地址
+
+**使用方法：**
+```bash
+# 检查端口配置
+./scripts/check-ports.sh
+
+# 或使用 Node.js 版本
+node scripts/lib/env-config.js
+```
+
 ### 🚀 start-services.sh
 启动前端和后端开发服务器。
 
 **功能：**
 - 检查项目结构和依赖
 - 自动安装缺失的依赖
-- 启动后端服务 (端口 3000)
-- 启动前端服务 (端口 5173)
+- 动态读取 .env 配置文件中的端口设置
+- 启动后端服务 - 端口从 server/.env 读取
+- 启动前端服务 - 端口从 app/.env 读取
 - 健康检查和状态监控
 
 **使用方法：**
@@ -79,10 +99,17 @@ npm run dev
 
 ## 服务端口
 
-- **前端 (Vue.js + Vite)**: http://localhost:5173
-- **后端 (Express.js)**: http://localhost:3000
-- **健康检查**: http://localhost:3000/health
-- **API 端点**: http://localhost:3000/api/v1/projects/info
+端口配置现在动态从环境配置文件读取：
+
+- **前端 (Vue.js + Vite)**: 端口从 `app/.env` 中的 `VITE_DEV_PORT` 读取 (默认: 5173)
+- **后端 (Express.js)**: 端口从 `server/.env` 中的 `PORT` 读取 (默认: 3001)
+- **健康检查**: `http://localhost:{后端端口}/health`
+- **API 端点**: `http://localhost:{后端端口}/api/v1/projects/info`
+
+要查看当前的端口配置，可以运行：
+```bash
+node scripts/lib/env-config.js
+```
 
 ## 日志文件
 
@@ -99,8 +126,11 @@ npm run dev
 如果遇到端口被占用的错误：
 
 ```bash
-# 检查端口占用情况
-lsof -i :3000,5173
+# 检查当前配置的端口
+node scripts/lib/env-config.js
+
+# 检查端口占用情况（使用动态端口）
+lsof -i :{端口号}
 
 # 强制停止所有服务
 ./scripts/stop-services.sh --force

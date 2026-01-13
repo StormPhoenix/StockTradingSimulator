@@ -2,8 +2,15 @@
 
 # Stop Services Script
 # 停止前端和后端开发服务器
+# 动态读取 .env 文件中的端口配置
 
 set -e  # 遇到错误时退出
+
+# 获取脚本所在目录
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# 加载环境配置库
+source "${SCRIPT_DIR}/lib/env-config.sh"
 
 # 颜色定义
 RED='\033[0;31m'
@@ -123,15 +130,23 @@ stop_process_by_name() {
 main() {
     local success=true
 
-    # 停止前端服务 (Vite dev server on port 5173)
-    if ! stop_port_service 5173 "前端服务 (Vite)"; then
+    # 获取端口配置
+    get_all_ports
+    
+    print_message $BLUE "📋 端口配置信息："
+    echo "  - 前端端口: ${FRONTEND_PORT}"
+    echo "  - 后端端口: ${BACKEND_PORT}"
+    echo
+
+    # 停止前端服务 (Vite dev server)
+    if ! stop_port_service "$FRONTEND_PORT" "前端服务 (Vite)"; then
         success=false
     fi
 
     echo
 
-    # 停止后端服务 (Express server on port 3000)
-    if ! stop_port_service 3000 "后端服务 (Express)"; then
+    # 停止后端服务 (Express server)
+    if ! stop_port_service "$BACKEND_PORT" "后端服务 (Express)"; then
         success=false
     fi
 
@@ -144,7 +159,7 @@ main() {
 
     echo
 
-    if ! stop_process_by_name "vite.*--port 5173" "Vite (前端)"; then
+    if ! stop_process_by_name "vite.*--port ${FRONTEND_PORT}" "Vite (前端)"; then
         success=false
     fi
 
@@ -175,14 +190,14 @@ main() {
         print_message $GREEN "🎉 所有服务已成功停止！"
         echo
         print_message $BLUE "💡 提示："
-        echo "  - 前端服务 (端口 5173) 已停止"
-        echo "  - 后端服务 (端口 3000) 已停止"
+        echo "  - 前端服务 (端口 ${FRONTEND_PORT}) 已停止"
+        echo "  - 后端服务 (端口 ${BACKEND_PORT}) 已停止"
         echo "  - 要重新启动服务，请运行: npm run dev"
     else
         print_message $RED "⚠️  部分服务可能未能完全停止"
         echo
         print_message $YELLOW "💡 建议："
-        echo "  - 检查是否有进程仍在运行: lsof -i :3000,5173"
+        echo "  - 检查是否有进程仍在运行: lsof -i :${BACKEND_PORT},${FRONTEND_PORT}"
         echo "  - 手动停止残留进程: kill -9 <PID>"
         echo "  - 重启终端或系统以完全清理"
         exit 1
@@ -233,9 +248,13 @@ done
 # 如果是强制模式，停止所有 Node.js 进程
 if [ "$FORCE" = true ]; then
     print_message $RED "⚡ 强制模式：停止所有 Node.js 开发服务器..."
+    
+    # 获取端口配置用于强制清理
+    get_all_ports
+    
     pkill -f "node.*vite\|nodemon\|npm.*dev" 2>/dev/null || true
     pkill -f "vite.*dev\|express.*dev" 2>/dev/null || true
-    lsof -ti:3000,5173 | xargs kill -9 2>/dev/null || true
+    lsof -ti:${BACKEND_PORT},${FRONTEND_PORT} | xargs kill -9 2>/dev/null || true
     print_message $GREEN "✅ 强制清理完成"
     exit 0
 fi
