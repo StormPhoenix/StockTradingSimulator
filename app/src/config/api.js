@@ -10,7 +10,7 @@
  */
 export const apiConfig = {
   // Base URL for API requests
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001',
   
   // Request timeout in milliseconds
   timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 10000,

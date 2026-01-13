@@ -1,32 +1,36 @@
 {
-  "name": "stock-simulator-frontend",
+  "name": "stock-trading-simulator-frontend",
   "version": "1.0.0",
-  "description": "Vue.js frontend for Stock Trading Simulator",
+  "description": "Stock Trading Simulator Frontend - Market Configuration and Environment Initialization",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 5173",
+    "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview --port 4173",
-    "lint": "echo 'Linting not configured yet'",
-    "test": "echo 'Testing not configured yet'"
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
+    "format": "prettier --write src/"
   },
   "dependencies": {
     "vue": "^3.4.0",
-    "axios": "^1.6.2"
+    "vue-router": "^4.2.5",
+    "pinia": "^2.1.7",
+    "element-plus": "^2.4.4",
+    "axios": "^1.6.2",
+    "vee-validate": "^4.12.4",
+    "yup": "^1.4.0",
+    "@element-plus/icons-vue": "^2.3.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.5.2",
-    "vite": "^5.0.8"
+    "vite": "^5.0.8",
+    "eslint": "^8.55.0",
+    "eslint-plugin-vue": "^9.19.2",
+    "prettier": "^3.1.1",
+    "vitest": "^1.1.0",
+    "@vue/test-utils": "^2.4.3",
+    "jsdom": "^23.0.1"
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "keywords": [
-    "vue",
-    "vite",
-    "frontend",
-    "spa"
-  ],
-  "author": "Stock Trading Simulator Team",
-  "license": "MIT"
+  }
 }
