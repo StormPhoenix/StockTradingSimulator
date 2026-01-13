@@ -21,7 +21,11 @@
     "test:setup": "node scripts/test-setup.js",
     "validate:env": "node scripts/validate-environment.js",
     "validate:api": "node scripts/validate-api-config.js",
-    "health:check": "node scripts/health-check.js"
+    "health:check": "node scripts/health-check.js",
+    "backup:speckit": "./scripts/backup-speckit.sh",
+    "backup:list": "./scripts/backup-speckit.sh --list",
+    "backup:clean": "./scripts/backup-speckit.sh --clean",
+    "check:ports": "./scripts/check-ports.sh"
   },
   "devDependencies": {
     "concurrently": "^8.2.0"

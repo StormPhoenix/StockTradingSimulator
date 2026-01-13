@@ -123,3 +123,8 @@ speckit.log
 .codebuddy/cache/
 .codebuddy/temp/
 specs/
+
+# Backup archives
+archives/
+*.backup
+backup-*/

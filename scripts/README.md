@@ -50,6 +50,34 @@ npm run stop
 node scripts/lib/env-config.js
 ```
 
+### 📦 backup-speckit.sh
+备份 speckit 生成的中间文件。
+
+**功能：**
+- 自动打包 .codebuddy、.specify、specs 目录
+- 生成带时间戳的备份文件名 (speckit-YYYYMMDD_HHMMSS.zip)
+- 保存到 archives/ 目录
+- 排除不必要的文件（node_modules、.git 等）
+- 支持备份管理（列出、清理、验证）
+
+**使用方法：**
+```bash
+# 创建备份
+./scripts/backup-speckit.sh
+
+# 列出现有备份
+./scripts/backup-speckit.sh --list
+
+# 验证最新备份
+./scripts/backup-speckit.sh --verify
+
+# 清理旧备份（保留最新5个）
+./scripts/backup-speckit.sh --clean
+
+# 显示帮助
+./scripts/backup-speckit.sh --help
+```
+
 ### 🚀 start-services.sh
 启动前端和后端开发服务器。
 
@@ -84,17 +112,27 @@ npm run start:services
 在项目根目录下，您可以使用以下 npm 脚本：
 
 ```bash
-# 停止所有服务
-npm run stop
+# 服务管理
+npm run stop                # 停止所有服务
+npm run start:services      # 启动所有服务
+npm run restart             # 重启服务（停止 + 启动）
+npm run dev                 # 开发模式（使用 concurrently 同时启动）
 
-# 启动所有服务
-npm run start:services
+# 端口和配置检查
+npm run check:ports         # 检查端口配置
+npm run validate:api        # 验证 API 配置
+npm run health:check        # 健康检查
 
-# 重启服务（停止 + 启动）
-npm run restart
+# Speckit 文件备份
+npm run backup:speckit      # 创建 speckit 文件备份
+npm run backup:list         # 列出现有备份文件
+npm run backup:clean        # 清理旧备份文件
 
-# 开发模式（使用 concurrently 同时启动）
-npm run dev
+# 其他工具
+npm run install:all         # 安装所有依赖
+npm run build               # 构建项目
+npm run lint                # 代码检查
+npm run test                # 运行测试
 ```
 
 ## 服务端口
