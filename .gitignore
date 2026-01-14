@@ -9,6 +9,12 @@ pnpm-debug.log*
 dist/
 build/
 out/
+app/dist/
+server/dist/
+
+# TypeScript
+*.tsbuildinfo
+**/*.tsbuildinfo
 
 # Environment variables
 .env

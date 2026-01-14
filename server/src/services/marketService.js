@@ -7,7 +7,7 @@ import StockTemplate from '../models/StockTemplate.js'
 import AITraderTemplate from '../models/TraderTemplate.js'
 import MarketEnvironment from '../models/MarketEnvironment.js'
 import AllocationService from './allocationService.js'
-import MarketUtils from '../utils/marketUtils.js'
+import MarketUtils from '../utils/marketUtils.ts'
 import { ValidationError } from '../middleware/errorHandler.js'
 
 /**

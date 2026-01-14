@@ -3,8 +3,8 @@
  * 提供市场环境数据的完整性验证和业务规则检查
  */
 
-import MarketUtils from '../utils/marketUtils.js'
-import JsonUtils from '../utils/jsonUtils.js'
+import MarketUtils from '../utils/marketUtils.ts'
+import JsonUtils from '../utils/jsonUtils.ts'
 
 /**
  * 验证服务类

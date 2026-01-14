@@ -1,7 +1,7 @@
 import StockTemplate from '../models/StockTemplate.js'
 import AITraderTemplate from '../models/TraderTemplate.js'
 import { NotFoundError, ConflictError, ValidationError } from '../middleware/errorHandler.js'
-import { validators, sanitizationUtils } from '../utils/validationUtils.js'
+import { validators, sanitizationUtils } from '../utils/validationUtils.ts'
 
 // 股票模板服务
 export class StockTemplateService {

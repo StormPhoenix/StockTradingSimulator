@@ -3,47 +3,79 @@
  * 提供前端文件处理相关的工具函数
  */
 
+// 文件预览信息接口
+interface FilePreview {
+  name: string
+  size: number
+  type: string
+  lastModified: number
+  lastModifiedDate: Date
+  extension: string
+  sizeFormatted: string
+}
+
+// JSON验证结果接口
+interface JsonValidationResult {
+  valid: boolean
+  data: any | null
+  error: string | null
+}
+
+// 浏览器支持检查结果接口
+interface BrowserSupport {
+  fileReader: boolean
+  blob: boolean
+  url: boolean
+  download: boolean
+}
+
+// 批量下载文件项接口
+interface DownloadFile {
+  data: any
+  filename: string
+}
+
 /**
  * 文件工具类
  */
 class FileUtils {
   /**
    * 下载JSON文件
-   * @param {Object} data - 要下载的数据
-   * @param {String} filename - 文件名
+   * @param data - 要下载的数据
+   * @param filename - 文件名
    */
-  static downloadJsonFile(data, filename) {
+  static downloadJsonFile(data: any, filename: string): void {
     try {
       const jsonString = JSON.stringify(data, null, 2)
       const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' })
       
       this.downloadBlob(blob, filename)
     } catch (error) {
-      throw new Error(`下载JSON文件失败: ${error.message}`)
+      throw new Error(`下载JSON文件失败: ${(error as Error).message}`)
     }
   }
 
   /**
    * 下载文本文件
-   * @param {String} content - 文件内容
-   * @param {String} filename - 文件名
-   * @param {String} mimeType - MIME类型
+   * @param content - 文件内容
+   * @param filename - 文件名
+   * @param mimeType - MIME类型
    */
-  static downloadTextFile(content, filename, mimeType = 'text/plain') {
+  static downloadTextFile(content: string, filename: string, mimeType: string = 'text/plain'): void {
     try {
       const blob = new Blob([content], { type: `${mimeType};charset=utf-8` })
       this.downloadBlob(blob, filename)
     } catch (error) {
-      throw new Error(`下载文本文件失败: ${error.message}`)
+      throw new Error(`下载文本文件失败: ${(error as Error).message}`)
     }
   }
 
   /**
    * 下载Blob对象
-   * @param {Blob} blob - Blob对象
-   * @param {String} filename - 文件名
+   * @param blob - Blob对象
+   * @param filename - 文件名
    */
-  static downloadBlob(blob, filename) {
+  static downloadBlob(blob: Blob, filename: string): void {
     try {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -59,17 +91,17 @@ class FileUtils {
       // 释放URL对象
       URL.revokeObjectURL(url)
     } catch (error) {
-      throw new Error(`下载文件失败: ${error.message}`)
+      throw new Error(`下载文件失败: ${(error as Error).message}`)
     }
   }
 
   /**
    * 读取文件内容
-   * @param {File} file - 文件对象
-   * @param {String} readAs - 读取方式 ('text', 'json', 'arrayBuffer', 'dataURL')
-   * @returns {Promise} 文件内容
+   * @param file - 文件对象
+   * @param readAs - 读取方式 ('text', 'json', 'arrayBuffer', 'dataURL')
+   * @returns 文件内容
    */
-  static readFile(file, readAs = 'text') {
+  static readFile(file: File, readAs: 'text' | 'json' | 'arrayBuffer' | 'dataURL' = 'text'): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!file) {
         reject(new Error('文件不能为空'))
@@ -80,15 +112,15 @@ class FileUtils {
       
       reader.onload = (event) => {
         try {
-          let result = event.target.result
+          let result = event.target?.result
           
-          if (readAs === 'json') {
+          if (readAs === 'json' && typeof result === 'string') {
             result = JSON.parse(result)
           }
           
           resolve(result)
         } catch (error) {
-          reject(new Error(`解析文件内容失败: ${error.message}`))
+          reject(new Error(`解析文件内容失败: ${(error as Error).message}`))
         }
       }
       
@@ -116,11 +148,11 @@ class FileUtils {
 
   /**
    * 验证文件类型
-   * @param {File} file - 文件对象
-   * @param {Array} allowedTypes - 允许的文件类型
-   * @returns {Boolean} 是否为允许的类型
+   * @param file - 文件对象
+   * @param allowedTypes - 允许的文件类型
+   * @returns 是否为允许的类型
    */
-  static validateFileType(file, allowedTypes) {
+  static validateFileType(file: File, allowedTypes: string[]): boolean {
     if (!file) return false
     
     // 检查文件扩展名
@@ -130,7 +162,7 @@ class FileUtils {
     )
     
     // 检查MIME类型
-    const mimeTypeMap = {
+    const mimeTypeMap: Record<string, string> = {
       '.json': 'application/json',
       '.txt': 'text/plain',
       '.csv': 'text/csv',
@@ -149,22 +181,22 @@ class FileUtils {
 
   /**
    * 验证文件大小
-   * @param {File} file - 文件对象
-   * @param {Number} maxSizeInBytes - 最大文件大小（字节）
-   * @returns {Boolean} 是否在允许的大小范围内
+   * @param file - 文件对象
+   * @param maxSizeInBytes - 最大文件大小（字节）
+   * @returns 是否在允许的大小范围内
    */
-  static validateFileSize(file, maxSizeInBytes) {
+  static validateFileSize(file: File, maxSizeInBytes: number): boolean {
     if (!file) return false
     return file.size <= maxSizeInBytes
   }
 
   /**
    * 格式化文件大小
-   * @param {Number} bytes - 字节数
-   * @param {Number} decimals - 小数位数
-   * @returns {String} 格式化后的文件大小
+   * @param bytes - 字节数
+   * @param decimals - 小数位数
+   * @returns 格式化后的文件大小
    */
-  static formatFileSize(bytes, decimals = 2) {
+  static formatFileSize(bytes: number, decimals: number = 2): string {
     if (bytes === 0) return '0 B'
     
     const k = 1024
@@ -178,10 +210,10 @@ class FileUtils {
 
   /**
    * 获取文件扩展名
-   * @param {String} filename - 文件名
-   * @returns {String} 文件扩展名
+   * @param filename - 文件名
+   * @returns 文件扩展名
    */
-  static getFileExtension(filename) {
+  static getFileExtension(filename: string): string {
     if (!filename) return ''
     
     const lastDotIndex = filename.lastIndexOf('.')
@@ -192,10 +224,10 @@ class FileUtils {
 
   /**
    * 获取文件名（不含扩展名）
-   * @param {String} filename - 文件名
-   * @returns {String} 不含扩展名的文件名
+   * @param filename - 文件名
+   * @returns 不含扩展名的文件名
    */
-  static getFileNameWithoutExtension(filename) {
+  static getFileNameWithoutExtension(filename: string): string {
     if (!filename) return ''
     
     const lastDotIndex = filename.lastIndexOf('.')
@@ -206,11 +238,11 @@ class FileUtils {
 
   /**
    * 生成唯一文件名
-   * @param {String} originalName - 原始文件名
-   * @param {String} suffix - 后缀
-   * @returns {String} 唯一文件名
+   * @param originalName - 原始文件名
+   * @param suffix - 后缀
+   * @returns 唯一文件名
    */
-  static generateUniqueFilename(originalName, suffix = '') {
+  static generateUniqueFilename(originalName: string, suffix: string = ''): string {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const extension = this.getFileExtension(originalName)
     const nameWithoutExt = this.getFileNameWithoutExtension(originalName)
@@ -220,10 +252,10 @@ class FileUtils {
 
   /**
    * 批量下载文件
-   * @param {Array} files - 文件列表 [{data, filename}, ...]
-   * @param {Number} delay - 下载间隔（毫秒）
+   * @param files - 文件列表 [{data, filename}, ...]
+   * @param delay - 下载间隔（毫秒）
    */
-  static async batchDownload(files, delay = 500) {
+  static async batchDownload(files: DownloadFile[], delay: number = 500): Promise<void> {
     for (let i = 0; i < files.length; i++) {
       const { data, filename } = files[i]
       
@@ -242,29 +274,29 @@ class FileUtils {
 
   /**
    * 压缩JSON数据
-   * @param {Object} data - 要压缩的数据
-   * @returns {String} 压缩后的JSON字符串
+   * @param data - 要压缩的数据
+   * @returns 压缩后的JSON字符串
    */
-  static compressJson(data) {
+  static compressJson(data: any): string {
     return JSON.stringify(data)
   }
 
   /**
    * 美化JSON数据
-   * @param {Object} data - 要美化的数据
-   * @param {Number} indent - 缩进空格数
-   * @returns {String} 美化后的JSON字符串
+   * @param data - 要美化的数据
+   * @param indent - 缩进空格数
+   * @returns 美化后的JSON字符串
    */
-  static prettifyJson(data, indent = 2) {
+  static prettifyJson(data: any, indent: number = 2): string {
     return JSON.stringify(data, null, indent)
   }
 
   /**
    * 创建文件预览信息
-   * @param {File} file - 文件对象
-   * @returns {Object} 预览信息
+   * @param file - 文件对象
+   * @returns 预览信息
    */
-  static createFilePreview(file) {
+  static createFilePreview(file: File): FilePreview | null {
     if (!file) return null
     
     return {
@@ -280,10 +312,10 @@ class FileUtils {
 
   /**
    * 验证JSON文件内容
-   * @param {String} jsonString - JSON字符串
-   * @returns {Object} 验证结果
+   * @param jsonString - JSON字符串
+   * @returns 验证结果
    */
-  static validateJsonContent(jsonString) {
+  static validateJsonContent(jsonString: string): JsonValidationResult {
     try {
       const data = JSON.parse(jsonString)
       return {
@@ -295,16 +327,16 @@ class FileUtils {
       return {
         valid: false,
         data: null,
-        error: error.message
+        error: (error as Error).message
       }
     }
   }
 
   /**
    * 检查浏览器文件API支持
-   * @returns {Object} 支持情况
+   * @returns 支持情况
    */
-  static checkBrowserSupport() {
+  static checkBrowserSupport(): BrowserSupport {
     return {
       fileReader: typeof FileReader !== 'undefined',
       blob: typeof Blob !== 'undefined',
@@ -315,10 +347,10 @@ class FileUtils {
 
   /**
    * 创建临时URL
-   * @param {Blob} blob - Blob对象
-   * @returns {String} 临时URL
+   * @param blob - Blob对象
+   * @returns 临时URL
    */
-  static createObjectURL(blob) {
+  static createObjectURL(blob: Blob): string {
     if (!URL || !URL.createObjectURL) {
       throw new Error('浏览器不支持创建对象URL')
     }
@@ -328,9 +360,9 @@ class FileUtils {
 
   /**
    * 释放临时URL
-   * @param {String} url - 临时URL
+   * @param url - 临时URL
    */
-  static revokeObjectURL(url) {
+  static revokeObjectURL(url: string): void {
     if (URL && URL.revokeObjectURL) {
       URL.revokeObjectURL(url)
     }
@@ -338,10 +370,10 @@ class FileUtils {
 
   /**
    * 复制文本到剪贴板
-   * @param {String} text - 要复制的文本
-   * @returns {Promise<Boolean>} 是否成功
+   * @param text - 要复制的文本
+   * @returns 是否成功
    */
-  static async copyToClipboard(text) {
+  static async copyToClipboard(text: string): Promise<boolean> {
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(text)

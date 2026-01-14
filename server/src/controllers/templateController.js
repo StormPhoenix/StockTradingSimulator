@@ -4,7 +4,7 @@
  */
 
 import templateServiceModule from '../services/templateService.js'
-import { validators } from '../utils/validationUtils.js'
+import { validators } from '../utils/validationUtils.ts'
 
 const { stockTemplateService, aiTraderTemplateService } = templateServiceModule
 const { validateStockTemplate, validateTraderTemplate } = validators

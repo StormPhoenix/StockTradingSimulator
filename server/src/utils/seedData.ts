@@ -5,14 +5,42 @@
  * for development and testing purposes.
  */
 
-import mongoose from 'mongoose';
-import Project from '../models/Project.js';
-import { connectDatabase, disconnectDatabase } from '../config/database.js';
+import mongoose from 'mongoose'
+import Project from '../models/Project.js'
+import { connectDatabase, disconnectDatabase } from '../config/database.js'
+
+// Feature interface
+interface Feature {
+  name: string
+  description: string
+  status: 'completed' | 'in-progress' | 'planned'
+}
+
+// Project interface
+interface ProjectData {
+  name: string
+  description: string
+  version: string
+  technologies: string[]
+  features: Feature[]
+  repository: string
+  isActive: boolean
+}
+
+// Statistics interface
+interface SeedStats {
+  totalProjects: number
+  activeProjects: number
+  totalFeatures: number
+  completedFeatures: number
+  inProgressFeatures: number
+  plannedFeatures: number
+}
 
 /**
  * Sample project data
  */
-const sampleProjects = [
+const sampleProjects: ProjectData[] = [
   {
     name: 'Stock Trading Simulator',
     description: 'A comprehensive web-based stock trading simulator designed for learning and practicing trading strategies. Features real-time market simulation, portfolio management, and educational tools for understanding financial markets. Perfect for beginners and experienced traders looking to test strategies without financial risk.',
@@ -172,184 +200,191 @@ const sampleProjects = [
     repository: 'https://github.com/your-org/task-management',
     isActive: false
   }
-];
+]
 
 /**
  * Seed the database with sample data
  * 
- * @param {boolean} clearExisting - Whether to clear existing data first
- * @returns {Promise<void>}
+ * @param clearExisting - Whether to clear existing data first
+ * @returns Promise<void>
  */
-export const seedDatabase = async (clearExisting = false) => {
+export const seedDatabase = async (clearExisting: boolean = false): Promise<void> => {
   try {
-    console.log('🌱 Starting database seeding...');
+    console.log('🌱 Starting database seeding...')
     
     // Clear existing data if requested
     if (clearExisting) {
-      console.log('🗑️  Clearing existing project data...');
-      await Project.deleteMany({});
-      console.log('✅ Existing data cleared');
+      console.log('🗑️  Clearing existing project data...')
+      await Project.deleteMany({})
+      console.log('✅ Existing data cleared')
     }
     
     // Check if data already exists
-    const existingCount = await Project.countDocuments();
+    const existingCount = await Project.countDocuments()
     if (existingCount > 0 && !clearExisting) {
-      console.log(`📊 Database already contains ${existingCount} projects. Skipping seed.`);
-      console.log('💡 Use --clear flag to clear existing data first');
-      return;
+      console.log(`📊 Database already contains ${existingCount} projects. Skipping seed.`)
+      console.log('💡 Use --clear flag to clear existing data first')
+      return
     }
     
     // Insert sample projects
-    console.log('📝 Inserting sample project data...');
-    const insertedProjects = await Project.insertMany(sampleProjects);
+    console.log('📝 Inserting sample project data...')
+    const insertedProjects = await Project.insertMany(sampleProjects)
     
-    console.log(`✅ Successfully seeded ${insertedProjects.length} projects:`);
-    insertedProjects.forEach((project, index) => {
-      console.log(`   ${index + 1}. ${project.name} (v${project.version}) - ${project.isActive ? 'Active' : 'Inactive'}`);
-    });
+    console.log(`✅ Successfully seeded ${insertedProjects.length} projects:`)
+    insertedProjects.forEach((project: any, index: number) => {
+      console.log(`   ${index + 1}. ${project.name} (v${project.version}) - ${project.isActive ? 'Active' : 'Inactive'}`)
+    })
     
     // Display statistics
-    const stats = await getSeededDataStats();
-    console.log('\n📈 Seeded Data Statistics:');
-    console.log(`   Total Projects: ${stats.totalProjects}`);
-    console.log(`   Active Projects: ${stats.activeProjects}`);
-    console.log(`   Total Features: ${stats.totalFeatures}`);
-    console.log(`   Completed Features: ${stats.completedFeatures}`);
-    console.log(`   In Progress Features: ${stats.inProgressFeatures}`);
-    console.log(`   Planned Features: ${stats.plannedFeatures}`);
+    const stats = await getSeededDataStats()
+    console.log('\n📈 Seeded Data Statistics:')
+    console.log(`   Total Projects: ${stats.totalProjects}`)
+    console.log(`   Active Projects: ${stats.activeProjects}`)
+    console.log(`   Total Features: ${stats.totalFeatures}`)
+    console.log(`   Completed Features: ${stats.completedFeatures}`)
+    console.log(`   In Progress Features: ${stats.inProgressFeatures}`)
+    console.log(`   Planned Features: ${stats.plannedFeatures}`)
     
-    console.log('\n🎉 Database seeding completed successfully!');
+    console.log('\n🎉 Database seeding completed successfully!')
     
   } catch (error) {
-    console.error('❌ Error seeding database:', error.message);
-    throw error;
+    console.error('❌ Error seeding database:', (error as Error).message)
+    throw error
   }
-};
+}
 
 /**
  * Get statistics about seeded data
  * 
- * @returns {Promise<object>} Statistics object
+ * @returns Promise<SeedStats> Statistics object
  */
-const getSeededDataStats = async () => {
+const getSeededDataStats = async (): Promise<SeedStats> => {
   try {
-    const projects = await Project.find({}).lean();
+    const projects = await Project.find({}).lean()
     
-    const stats = {
+    const stats: SeedStats = {
       totalProjects: projects.length,
-      activeProjects: projects.filter(p => p.isActive).length,
+      activeProjects: projects.filter((p: any) => p.isActive).length,
       totalFeatures: 0,
       completedFeatures: 0,
       inProgressFeatures: 0,
       plannedFeatures: 0
-    };
+    }
     
-    projects.forEach(project => {
+    projects.forEach((project: any) => {
       if (project.features) {
-        stats.totalFeatures += project.features.length;
-        project.features.forEach(feature => {
+        stats.totalFeatures += project.features.length
+        project.features.forEach((feature: Feature) => {
           switch (feature.status) {
             case 'completed':
-              stats.completedFeatures++;
-              break;
+              stats.completedFeatures++
+              break
             case 'in-progress':
-              stats.inProgressFeatures++;
-              break;
+              stats.inProgressFeatures++
+              break
             case 'planned':
-              stats.plannedFeatures++;
-              break;
+              stats.plannedFeatures++
+              break
           }
-        });
+        })
       }
-    });
+    })
     
-    return stats;
+    return stats
   } catch (error) {
-    console.error('Error getting seeded data stats:', error);
-    return {};
+    console.error('Error getting seeded data stats:', error)
+    return {
+      totalProjects: 0,
+      activeProjects: 0,
+      totalFeatures: 0,
+      completedFeatures: 0,
+      inProgressFeatures: 0,
+      plannedFeatures: 0
+    }
   }
-};
+}
 
 /**
  * Clear all project data from database
  * 
- * @returns {Promise<void>}
+ * @returns Promise<void>
  */
-export const clearDatabase = async () => {
+export const clearDatabase = async (): Promise<void> => {
   try {
-    console.log('🗑️  Clearing all project data...');
-    const result = await Project.deleteMany({});
-    console.log(`✅ Cleared ${result.deletedCount} projects from database`);
+    console.log('🗑️  Clearing all project data...')
+    const result = await Project.deleteMany({})
+    console.log(`✅ Cleared ${result.deletedCount} projects from database`)
   } catch (error) {
-    console.error('❌ Error clearing database:', error.message);
-    throw error;
+    console.error('❌ Error clearing database:', (error as Error).message)
+    throw error
   }
-};
+}
 
 /**
  * Update existing project to active status
  * 
- * @param {string} projectName - Name of project to activate
- * @returns {Promise<void>}
+ * @param projectName - Name of project to activate
+ * @returns Promise<void>
  */
-export const activateProject = async (projectName) => {
+export const activateProject = async (projectName: string): Promise<void> => {
   try {
-    console.log(`🔄 Activating project: ${projectName}`);
+    console.log(`🔄 Activating project: ${projectName}`)
     
     // Deactivate all projects first
-    await Project.updateMany({}, { isActive: false });
+    await Project.updateMany({}, { isActive: false })
     
     // Activate the specified project
     const result = await Project.updateOne(
       { name: projectName },
       { isActive: true }
-    );
+    )
     
     if (result.matchedCount === 0) {
-      throw new Error(`Project '${projectName}' not found`);
+      throw new Error(`Project '${projectName}' not found`)
     }
     
-    console.log(`✅ Project '${projectName}' activated successfully`);
+    console.log(`✅ Project '${projectName}' activated successfully`)
   } catch (error) {
-    console.error('❌ Error activating project:', error.message);
-    throw error;
+    console.error('❌ Error activating project:', (error as Error).message)
+    throw error
   }
-};
+}
 
 /**
  * Main function for CLI usage
  */
-const main = async () => {
+const main = async (): Promise<void> => {
   try {
     // Parse command line arguments
-    const args = process.argv.slice(2);
-    const clearFlag = args.includes('--clear') || args.includes('-c');
-    const activateFlag = args.find(arg => arg.startsWith('--activate='));
-    const projectToActivate = activateFlag ? activateFlag.split('=')[1] : null;
+    const args = process.argv.slice(2)
+    const clearFlag = args.includes('--clear') || args.includes('-c')
+    const activateFlag = args.find(arg => arg.startsWith('--activate='))
+    const projectToActivate = activateFlag ? activateFlag.split('=')[1] : null
     
     // Connect to database
-    await connectDatabase();
+    await connectDatabase()
     
     if (args.includes('--clear-only')) {
-      await clearDatabase();
+      await clearDatabase()
     } else if (projectToActivate) {
-      await activateProject(projectToActivate);
+      await activateProject(projectToActivate)
     } else {
-      await seedDatabase(clearFlag);
+      await seedDatabase(clearFlag)
     }
     
     // Disconnect from database
-    await disconnectDatabase();
+    await disconnectDatabase()
     
   } catch (error) {
-    console.error('❌ Seed script failed:', error.message);
-    process.exit(1);
+    console.error('❌ Seed script failed:', (error as Error).message)
+    process.exit(1)
   }
-};
+}
 
 // Run main function if this file is executed directly
 if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
+  main()
 }
 
 export default {
@@ -357,4 +392,4 @@ export default {
   clearDatabase,
   activateProject,
   sampleProjects
-};
+}

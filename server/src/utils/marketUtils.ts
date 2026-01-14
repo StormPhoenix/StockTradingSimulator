@@ -6,15 +6,137 @@
 import { v4 as uuidv4 } from 'uuid'
 import crypto from 'crypto'
 
+// 交易员配置接口
+interface TraderConfig {
+  templateId: string
+  count: number
+}
+
+// 市场配置接口
+interface MarketConfig {
+  traderConfigs?: TraderConfig[]
+  stockTemplateIds?: string[]
+  allocationAlgorithm?: string
+  seed?: number
+}
+
+// 验证结果接口
+interface ValidationResult {
+  valid: boolean
+  errors: string[]
+  warnings: string[]
+}
+
+// 交易员持仓接口
+interface TraderHolding {
+  stockSymbol: string
+  stockName: string
+  quantity: number
+  averagePrice: number
+  currentValue: number
+}
+
+// 交易员接口
+interface Trader {
+  id: string
+  name: string
+  templateId: string
+  initialCapital: number
+  currentCapital: number
+  riskProfile: string
+  tradingStyle?: string
+  maxPositions: number
+  parameters: Record<string, any>
+  holdings: TraderHolding[]
+  createdAt?: Date
+}
+
+// 股票持有者接口
+interface StockHolder {
+  traderId: string
+  traderName: string
+  quantity: number
+  percentage: number
+}
+
+// 股票接口
+interface Stock {
+  id: string
+  symbol: string
+  name: string
+  templateId: string
+  issuePrice: number
+  currentPrice: number
+  totalShares: number
+  allocatedShares: number
+  availableShares: number
+  category?: string
+  holders: StockHolder[]
+  createdAt?: Date
+}
+
+// 市场统计信息接口
+interface MarketStatistics {
+  traderCount: number
+  stockCount: number
+  totalCapital: number
+  totalMarketValue: number
+  averageCapitalPerTrader: number
+  capitalDistribution: Record<string, number>
+  stockDistribution: Record<string, number>
+  riskProfileDistribution: Record<string, number>
+  tradingStyleDistribution: Record<string, number>
+  allocationFairness: number
+  giniCoefficient: number
+  concentrationIndex: number
+}
+
+// 市场环境接口
+interface MarketEnvironment {
+  id: string
+  name: string
+  description?: string
+  version?: string
+  createdAt: Date | string
+  allocationAlgorithm: string
+  allocationSeed: number
+  totalCapital: number
+  totalMarketValue: number
+  traders: Trader[]
+  stocks: Stock[]
+  statistics?: MarketStatistics
+  metadata?: Record<string, any>
+}
+
+// 市场摘要接口
+interface MarketSummary {
+  id: string
+  name: string
+  createdAt: Date | string
+  traderCount: number
+  stockCount: number
+  totalCapital: number
+  totalMarketValue: number
+  allocationAlgorithm: string
+  version?: string
+  statistics?: {
+    averageCapitalPerTrader: number
+    allocationFairness: number
+    giniCoefficient: number
+  }
+  riskDistribution: Record<string, number>
+  categoryDistribution: Record<string, number>
+}
+
 /**
  * 市场工具类
  */
 class MarketUtils {
   /**
    * 生成唯一的市场环境ID
-   * @returns {String} 唯一ID
+   * @returns 唯一ID
    */
-  static generateMarketId() {
+  static generateMarketId(): string {
     const timestamp = Date.now()
     const random = Math.random().toString(36).substr(2, 9)
     return `market_${timestamp}_${random}`
@@ -22,38 +144,38 @@ class MarketUtils {
 
   /**
    * 生成唯一的交易员ID
-   * @returns {String} 唯一ID
+   * @returns 唯一ID
    */
-  static generateTraderId() {
+  static generateTraderId(): string {
     return `trader_${uuidv4()}`
   }
 
   /**
    * 生成唯一的股票ID
-   * @returns {String} 唯一ID
+   * @returns 唯一ID
    */
-  static generateStockId() {
+  static generateStockId(): string {
     return `stock_${uuidv4()}`
   }
 
   /**
    * 生成交易员名称
-   * @param {String} templateName - 模板名称
-   * @param {Number} index - 序号
-   * @returns {String} 交易员名称
+   * @param templateName - 模板名称
+   * @param index - 序号
+   * @returns 交易员名称
    */
-  static generateTraderName(templateName, index) {
+  static generateTraderName(templateName: string, index: number): string {
     return `${templateName}_${String(index).padStart(3, '0')}`
   }
 
   /**
    * 验证市场环境配置
-   * @param {Object} config - 市场配置
-   * @returns {Object} 验证结果
+   * @param config - 市场配置
+   * @returns 验证结果
    */
-  static validateMarketConfig(config) {
-    const errors = []
-    const warnings = []
+  static validateMarketConfig(config: MarketConfig): ValidationResult {
+    const errors: string[] = []
+    const warnings: string[] = []
 
     // 基础验证
     if (!config) {
@@ -107,12 +229,12 @@ class MarketUtils {
 
   /**
    * 计算市场环境统计信息
-   * @param {Array} traders - 交易员列表
-   * @param {Array} stocks - 股票列表
-   * @returns {Object} 统计信息
+   * @param traders - 交易员列表
+   * @param stocks - 股票列表
+   * @returns 统计信息
    */
-  static calculateMarketStatistics(traders, stocks) {
-    const stats = {
+  static calculateMarketStatistics(traders: Trader[], stocks: Stock[]): MarketStatistics {
+    const stats: MarketStatistics = {
       traderCount: traders.length,
       stockCount: stocks.length,
       totalCapital: 0,
@@ -175,10 +297,10 @@ class MarketUtils {
 
   /**
    * 计算Jain公平性指数
-   * @param {Array} values - 数值数组
-   * @returns {Number} 公平性指数 (0-1)
+   * @param values - 数值数组
+   * @returns 公平性指数 (0-1)
    */
-  static calculateJainsFairnessIndex(values) {
+  static calculateJainsFairnessIndex(values: number[]): number {
     if (values.length === 0) return 1
 
     const sum = values.reduce((a, b) => a + b, 0)
@@ -191,10 +313,10 @@ class MarketUtils {
 
   /**
    * 计算基尼系数
-   * @param {Array} values - 数值数组
-   * @returns {Number} 基尼系数 (0-1)
+   * @param values - 数值数组
+   * @returns 基尼系数 (0-1)
    */
-  static calculateGiniCoefficient(values) {
+  static calculateGiniCoefficient(values: number[]): number {
     if (values.length === 0) return 0
 
     const sortedValues = [...values].sort((a, b) => a - b)
@@ -213,10 +335,10 @@ class MarketUtils {
 
   /**
    * 计算赫芬达尔指数（HHI）
-   * @param {Array} values - 数值数组
-   * @returns {Number} 集中度指数
+   * @param values - 数值数组
+   * @returns 集中度指数
    */
-  static calculateHerfindahlIndex(values) {
+  static calculateHerfindahlIndex(values: number[]): number {
     if (values.length === 0) return 0
 
     const total = values.reduce((a, b) => a + b, 0)
@@ -228,10 +350,10 @@ class MarketUtils {
 
   /**
    * 获取资金范围标签
-   * @param {Number} capital - 资金数额
-   * @returns {String} 范围标签
+   * @param capital - 资金数额
+   * @returns 范围标签
    */
-  static getCapitalRange(capital) {
+  static getCapitalRange(capital: number): string {
     if (capital < 10000) return '< 1万'
     if (capital < 100000) return '1-10万'
     if (capital < 1000000) return '10-100万'
@@ -241,12 +363,12 @@ class MarketUtils {
 
   /**
    * 验证股票分配完整性
-   * @param {Array} stocks - 股票列表
-   * @returns {Object} 验证结果
+   * @param stocks - 股票列表
+   * @returns 验证结果
    */
-  static validateStockAllocation(stocks) {
-    const errors = []
-    const warnings = []
+  static validateStockAllocation(stocks: Stock[]): ValidationResult {
+    const errors: string[] = []
+    const warnings: string[] = []
 
     stocks.forEach(stock => {
       const totalAllocated = stock.holders.reduce((sum, holder) => sum + holder.quantity, 0)
@@ -283,13 +405,13 @@ class MarketUtils {
 
   /**
    * 验证交易员持仓一致性
-   * @param {Array} traders - 交易员列表
-   * @param {Array} stocks - 股票列表
-   * @returns {Object} 验证结果
+   * @param traders - 交易员列表
+   * @param stocks - 股票列表
+   * @returns 验证结果
    */
-  static validateTraderHoldings(traders, stocks) {
-    const errors = []
-    const warnings = []
+  static validateTraderHoldings(traders: Trader[], stocks: Stock[]): ValidationResult {
+    const errors: string[] = []
+    const warnings: string[] = []
 
     traders.forEach(trader => {
       trader.holdings.forEach(holding => {
@@ -325,11 +447,11 @@ class MarketUtils {
 
   /**
    * 生成市场环境摘要
-   * @param {Object} marketEnvironment - 市场环境对象
-   * @returns {Object} 摘要信息
+   * @param marketEnvironment - 市场环境对象
+   * @returns 摘要信息
    */
-  static generateMarketSummary(marketEnvironment) {
-    const summary = {
+  static generateMarketSummary(marketEnvironment: MarketEnvironment): MarketSummary {
+    const summary: MarketSummary = {
       id: marketEnvironment.id,
       name: marketEnvironment.name,
       createdAt: marketEnvironment.createdAt,
@@ -338,7 +460,9 @@ class MarketUtils {
       totalCapital: marketEnvironment.totalCapital,
       totalMarketValue: marketEnvironment.totalMarketValue,
       allocationAlgorithm: marketEnvironment.allocationAlgorithm,
-      version: marketEnvironment.version
+      version: marketEnvironment.version,
+      riskDistribution: {},
+      categoryDistribution: {}
     }
 
     // 添加统计摘要
@@ -351,7 +475,7 @@ class MarketUtils {
     }
 
     // 添加风险分布
-    const riskDistribution = {}
+    const riskDistribution: Record<string, number> = {}
     marketEnvironment.traders.forEach(trader => {
       const risk = trader.riskProfile
       riskDistribution[risk] = (riskDistribution[risk] || 0) + 1
@@ -359,7 +483,7 @@ class MarketUtils {
     summary.riskDistribution = riskDistribution
 
     // 添加股票类别分布
-    const categoryDistribution = {}
+    const categoryDistribution: Record<string, number> = {}
     marketEnvironment.stocks.forEach(stock => {
       const category = stock.category || 'other'
       categoryDistribution[category] = (categoryDistribution[category] || 0) + 1
@@ -371,28 +495,28 @@ class MarketUtils {
 
   /**
    * 生成随机种子
-   * @returns {Number} 随机种子
+   * @returns 随机种子
    */
-  static generateRandomSeed() {
+  static generateRandomSeed(): number {
     return Math.floor(Math.random() * 1000000)
   }
 
   /**
    * 创建哈希值
-   * @param {String} data - 要哈希的数据
-   * @returns {String} 哈希值
+   * @param data - 要哈希的数据
+   * @returns 哈希值
    */
-  static createHash(data) {
+  static createHash(data: string): string {
     return crypto.createHash('md5').update(data).digest('hex')
   }
 
   /**
    * 格式化货币数额
-   * @param {Number} amount - 金额
-   * @param {String} currency - 货币符号
-   * @returns {String} 格式化后的金额
+   * @param amount - 金额
+   * @param currency - 货币符号
+   * @returns 格式化后的金额
    */
-  static formatCurrency(amount, currency = '¥') {
+  static formatCurrency(amount: number, currency: string = '¥'): string {
     if (typeof amount !== 'number') return `${currency}0.00`
     
     return `${currency}${amount.toLocaleString('zh-CN', {
@@ -403,11 +527,11 @@ class MarketUtils {
 
   /**
    * 格式化百分比
-   * @param {Number} value - 数值
-   * @param {Number} decimals - 小数位数
-   * @returns {String} 格式化后的百分比
+   * @param value - 数值
+   * @param decimals - 小数位数
+   * @returns 格式化后的百分比
    */
-  static formatPercentage(value, decimals = 2) {
+  static formatPercentage(value: number, decimals: number = 2): string {
     if (typeof value !== 'number') return '0.00%'
     
     return `${(value * 100).toFixed(decimals)}%`
@@ -415,10 +539,10 @@ class MarketUtils {
 
   /**
    * 格式化数量
-   * @param {Number} quantity - 数量
-   * @returns {String} 格式化后的数量
+   * @param quantity - 数量
+   * @returns 格式化后的数量
    */
-  static formatQuantity(quantity) {
+  static formatQuantity(quantity: number): string {
     if (typeof quantity !== 'number') return '0'
     
     return quantity.toLocaleString('zh-CN')
@@ -426,15 +550,15 @@ class MarketUtils {
 
   /**
    * 深度克隆对象
-   * @param {Object} obj - 要克隆的对象
-   * @returns {Object} 克隆后的对象
+   * @param obj - 要克隆的对象
+   * @returns 克隆后的对象
    */
-  static deepClone(obj) {
+  static deepClone<T>(obj: T): T {
     if (obj === null || typeof obj !== 'object') return obj
-    if (obj instanceof Date) return new Date(obj.getTime())
-    if (obj instanceof Array) return obj.map(item => this.deepClone(item))
+    if (obj instanceof Date) return new Date(obj.getTime()) as T
+    if (obj instanceof Array) return obj.map(item => this.deepClone(item)) as T
     
-    const cloned = {}
+    const cloned = {} as T
     for (const key in obj) {
       if (obj.hasOwnProperty(key)) {
         cloned[key] = this.deepClone(obj[key])
@@ -446,10 +570,10 @@ class MarketUtils {
 
   /**
    * 检查对象是否为空
-   * @param {Object} obj - 要检查的对象
-   * @returns {Boolean} 是否为空
+   * @param obj - 要检查的对象
+   * @returns 是否为空
    */
-  static isEmpty(obj) {
+  static isEmpty(obj: any): boolean {
     if (obj === null || obj === undefined) return true
     if (typeof obj === 'string') return obj.trim().length === 0
     if (Array.isArray(obj)) return obj.length === 0
@@ -460,12 +584,12 @@ class MarketUtils {
 
   /**
    * 安全地获取嵌套属性
-   * @param {Object} obj - 对象
-   * @param {String} path - 属性路径
-   * @param {*} defaultValue - 默认值
-   * @returns {*} 属性值或默认值
+   * @param obj - 对象
+   * @param path - 属性路径
+   * @param defaultValue - 默认值
+   * @returns 属性值或默认值
    */
-  static safeGet(obj, path, defaultValue = undefined) {
+  static safeGet<T>(obj: any, path: string, defaultValue?: T): T | undefined {
     const keys = path.split('.')
     let current = obj
     

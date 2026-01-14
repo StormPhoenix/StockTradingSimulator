@@ -1,71 +1,84 @@
 import mongoose from 'mongoose'
 
+// 验证结果接口
+export interface ValidationError {
+  field: string
+  message: string
+  code: string
+}
+
+export interface ValidationWarning {
+  field: string
+  message: string
+  code: string
+}
+
 // 通用验证工具
 export const validationUtils = {
   // 验证MongoDB ObjectId
-  isValidObjectId: (id) => {
+  isValidObjectId: (id: string): boolean => {
     return mongoose.Types.ObjectId.isValid(id)
   },
   
   // 验证股票代码格式
-  isValidStockSymbol: (symbol) => {
+  isValidStockSymbol: (symbol: string): boolean => {
     return /^[A-Z0-9]{1,10}$/.test(symbol)
   },
   
   // 验证价格格式
-  isValidPrice: (price) => {
-    const num = parseFloat(price)
+  isValidPrice: (price: number | string): boolean => {
+    const num = parseFloat(price.toString())
     return !isNaN(num) && num > 0 && num <= 999999.99 && 
            (price.toString().split('.')[1] || '').length <= 2
   },
   
   // 验证股数
-  isValidShares: (shares) => {
-    const num = parseInt(shares)
+  isValidShares: (shares: number | string): boolean => {
+    const num = parseInt(shares.toString())
     return Number.isInteger(num) && num > 0 && num <= 1000000000
   },
   
   // 验证资金
-  isValidCapital: (capital) => {
-    const num = parseFloat(capital)
+  isValidCapital: (capital: number | string): boolean => {
+    const num = parseFloat(capital.toString())
     return !isNaN(num) && num >= 1000 && num <= 100000000 &&
            (capital.toString().split('.')[1] || '').length <= 2
   },
   
   // 验证名称
-  isValidName: (name) => {
+  isValidName: (name: string): boolean => {
     return typeof name === 'string' && 
            name.trim().length >= 1 && 
            name.trim().length <= 100
   },
   
   // 验证描述
-  isValidDescription: (description) => {
+  isValidDescription: (description?: string | null): boolean => {
     return description === undefined || 
            description === null || 
            (typeof description === 'string' && description.length <= 500)
   },
   
   // 验证枚举值
-  isValidEnum: (value, allowedValues) => {
+  isValidEnum: <T>(value: T, allowedValues: T[]): boolean => {
     return allowedValues.includes(value)
   },
   
   // 验证分页参数
-  isValidPagination: (page, limit) => {
-    const pageNum = parseInt(page)
-    const limitNum = parseInt(limit)
+  isValidPagination: (page: number | string, limit: number | string): boolean => {
+    const pageNum = parseInt(page.toString())
+    const limitNum = parseInt(limit.toString())
     return Number.isInteger(pageNum) && pageNum >= 1 &&
            Number.isInteger(limitNum) && limitNum >= 1 && limitNum <= 100
   },
   
   // 验证排序参数
-  isValidSort: (sort, order, allowedFields) => {
+  isValidSort: (sort: string, order: string, allowedFields: string[]): boolean => {
     return allowedFields.includes(sort) && ['asc', 'desc'].includes(order)
   },
   
   // 验证JSON对象
-  isValidJSON: (value) => {
+  isValidJSON: (value: any): boolean => {
     if (value === null || value === undefined) return true
     if (typeof value === 'object') {
       try {
@@ -82,36 +95,36 @@ export const validationUtils = {
 // 数据清理工具
 export const sanitizationUtils = {
   // 清理字符串
-  sanitizeString: (str) => {
+  sanitizeString: (str: any): string => {
     if (typeof str !== 'string') return str
     return str.trim().replace(/\s+/g, ' ')
   },
   
   // 清理股票代码
-  sanitizeStockSymbol: (symbol) => {
+  sanitizeStockSymbol: (symbol: any): string => {
     if (typeof symbol !== 'string') return symbol
     return symbol.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
   },
   
   // 清理数字
-  sanitizeNumber: (num, decimals = 2) => {
+  sanitizeNumber: (num: any, decimals: number = 2): number | null => {
     const parsed = parseFloat(num)
     if (isNaN(parsed)) return null
     return parseFloat(parsed.toFixed(decimals))
   },
   
   // 清理整数
-  sanitizeInteger: (num) => {
+  sanitizeInteger: (num: any): number | null => {
     const parsed = parseInt(num)
     if (isNaN(parsed)) return null
     return parsed
   },
   
   // 清理对象（移除空值）
-  sanitizeObject: (obj) => {
+  sanitizeObject: (obj: any): Record<string, any> => {
     if (!obj || typeof obj !== 'object') return obj
     
-    const cleaned = {}
+    const cleaned: Record<string, any> = {}
     Object.keys(obj).forEach(key => {
       const value = obj[key]
       if (value !== null && value !== undefined && value !== '') {
@@ -122,7 +135,12 @@ export const sanitizationUtils = {
   },
   
   // 清理分页参数
-  sanitizePagination: (params) => {
+  sanitizePagination: (params: any): {
+    page: number
+    limit: number
+    sort: string
+    order: string
+  } => {
     return {
       page: Math.max(1, parseInt(params.page) || 1),
       limit: Math.min(100, Math.max(1, parseInt(params.limit) || 10)),
@@ -134,58 +152,66 @@ export const sanitizationUtils = {
 
 // 错误消息生成器
 export const errorMessages = {
-  required: (field) => `${field}是必填项`,
-  invalid: (field) => `${field}格式无效`,
-  tooShort: (field, min) => `${field}至少${min}个字符`,
-  tooLong: (field, max) => `${field}最多${max}个字符`,
-  tooSmall: (field, min) => `${field}不能小于${min}`,
-  tooLarge: (field, max) => `${field}不能大于${max}`,
-  notUnique: (field, value) => `${field} '${value}' 已存在`,
-  notFound: (resource) => `${resource}不存在`,
-  inUse: (resource) => `${resource}正在使用中，无法删除`,
-  invalidEnum: (field, values) => `${field}必须是以下值之一: ${values.join(', ')}`,
+  required: (field: string): string => `${field}是必填项`,
+  invalid: (field: string): string => `${field}格式无效`,
+  tooShort: (field: string, min: number): string => `${field}至少${min}个字符`,
+  tooLong: (field: string, max: number): string => `${field}最多${max}个字符`,
+  tooSmall: (field: string, min: number): string => `${field}不能小于${min}`,
+  tooLarge: (field: string, max: number): string => `${field}不能大于${max}`,
+  notUnique: (field: string, value: string): string => `${field} '${value}' 已存在`,
+  notFound: (resource: string): string => `${resource}不存在`,
+  inUse: (resource: string): string => `${resource}正在使用中，无法删除`,
+  invalidEnum: (field: string, values: string[]): string => `${field}必须是以下值之一: ${values.join(', ')}`,
 }
 
 // 验证结果构建器
 export class ValidationResult {
+  public errors: ValidationError[] = []
+  public warnings: ValidationWarning[] = []
+  public isValid: boolean = true
+  
   constructor() {
     this.errors = []
     this.warnings = []
     this.isValid = true
   }
   
-  addError(field, message, code = 'VALIDATION_ERROR') {
+  addError(field: string, message: string, code: string = 'VALIDATION_ERROR'): ValidationResult {
     this.errors.push({ field, message, code })
     this.isValid = false
     return this
   }
   
-  addWarning(field, message, code = 'VALIDATION_WARNING') {
+  addWarning(field: string, message: string, code: string = 'VALIDATION_WARNING'): ValidationResult {
     this.warnings.push({ field, message, code })
     return this
   }
   
-  hasErrors() {
+  hasErrors(): boolean {
     return this.errors.length > 0
   }
   
-  hasWarnings() {
+  hasWarnings(): boolean {
     return this.warnings.length > 0
   }
   
-  getFirstError() {
+  getFirstError(): ValidationError | null {
     return this.errors[0] || null
   }
   
-  getAllErrors() {
+  getAllErrors(): ValidationError[] {
     return this.errors
   }
   
-  getAllWarnings() {
+  getAllWarnings(): ValidationWarning[] {
     return this.warnings
   }
   
-  toJSON() {
+  toJSON(): {
+    isValid: boolean
+    errors: ValidationError[]
+    warnings: ValidationWarning[]
+  } {
     return {
       isValid: this.isValid,
       errors: this.errors,
@@ -194,10 +220,28 @@ export class ValidationResult {
   }
 }
 
+// 股票模板数据接口
+interface StockTemplateData {
+  name?: string
+  symbol?: string
+  issuePrice?: number
+  totalShares?: number
+  description?: string
+  category?: string
+}
+
+// 交易员模板数据接口
+interface TraderTemplateData {
+  name?: string
+  initialCapital?: number
+  description?: string
+  parameters?: any
+}
+
 // 复合验证器
 export const validators = {
   // 验证股票模板
-  validateStockTemplate: (data) => {
+  validateStockTemplate: (data: StockTemplateData): ValidationResult => {
     const result = new ValidationResult()
     
     // 验证必填字段
@@ -240,7 +284,7 @@ export const validators = {
   },
   
   // 验证AI交易员模板
-  validateTraderTemplate: (data) => {
+  validateTraderTemplate: (data: TraderTemplateData): ValidationResult => {
     const result = new ValidationResult()
     
     // 验证必填字段
