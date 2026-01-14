@@ -4,32 +4,35 @@
     <el-header class="header">
       <div class="header-content">
         <div class="logo">
-          <el-icon class="logo-icon"><Setting /></el-icon>
+          <el-icon class="logo-icon">
+            <Setting />
+          </el-icon>
           <span class="logo-text">玩家体验中心</span>
         </div>
-        
+
         <div class="nav-menu">
-          <el-menu
-            :default-active="activeMenu"
-            mode="horizontal"
-            router
-            class="header-menu"
-          >
+          <el-menu :default-active="activeMenu" mode="horizontal" router class="header-menu" :ellipsis="false">
             <el-menu-item index="/market/initializer">
-              <el-icon><Setting /></el-icon>
+              <el-icon>
+                <Setting />
+              </el-icon>
               <span>市场环境管理</span>
             </el-menu-item>
 
           </el-menu>
         </div>
-        
+
         <div class="header-actions">
           <el-button @click="goToAdmin">
-            <el-icon><User /></el-icon>
+            <el-icon>
+              <User />
+            </el-icon>
             管理后台
           </el-button>
           <el-button type="primary" @click="createNewMarket">
-            <el-icon><Plus /></el-icon>
+            <el-icon>
+              <Plus />
+            </el-icon>
             新建市场
           </el-button>
         </div>
@@ -58,21 +61,9 @@
     <el-footer class="footer">
       <div class="footer-content">
         <div class="footer-stats">
-          <el-statistic 
-            title="活跃市场" 
-            :value="marketStats.activeMarkets" 
-            suffix="个"
-          />
-          <el-statistic 
-            title="总交易员" 
-            :value="marketStats.totalTraders" 
-            suffix="个"
-          />
-          <el-statistic 
-            title="总股票" 
-            :value="marketStats.totalStocks" 
-            suffix="只"
-          />
+          <el-statistic title="活跃市场" :value="marketStats.activeMarkets" suffix="个" />
+          <el-statistic title="总交易员" :value="marketStats.totalTraders" suffix="个" />
+          <el-statistic title="总股票" :value="marketStats.totalStocks" suffix="只" />
         </div>
         <span class="copyright">© 2026 股票交易模拟器 - 玩家体验中心</span>
       </div>
@@ -83,10 +74,10 @@
 <script setup>
 import { computed, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { 
-  Setting, 
-  User, 
-  Plus 
+import {
+  Setting,
+  User,
+  Plus
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -287,33 +278,33 @@ onMounted(() => {
   .header-content {
     padding: 0 16px;
   }
-  
+
   .logo-text {
     display: none;
   }
-  
+
   .nav-menu {
     flex: none;
   }
-  
+
   .header-menu .el-menu-item span {
     display: none;
   }
-  
+
   .header-actions {
     gap: 8px;
   }
-  
+
   .content-wrapper {
     padding: 16px;
   }
-  
+
   .footer-content {
     flex-direction: column;
     gap: 12px;
     text-align: center;
   }
-  
+
   .footer-stats {
     gap: 24px;
   }
