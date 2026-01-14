@@ -89,7 +89,7 @@
         </el-table-column>
         <el-table-column label="操作" width="200">
           <template #default="{ row }">
-            <el-button size="small" @click="handleEdit(row)">编辑</el-button>
+            <el-button size="small" @click="handleViewDetail(row)">查看</el-button>
             <el-button size="small" type="success" @click="handleExport(row)">导出</el-button>
             <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
@@ -110,10 +110,10 @@
       </div>
     </el-card>
 
-    <!-- 创建/编辑对话框 -->
+    <!-- 创建对话框 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? '编辑市场环境' : '创建市场环境'"
+      title="创建市场环境"
       width="80%"
       :close-on-click-modal="false"
       append-to-body
@@ -202,7 +202,15 @@
               >
                 <el-card shadow="hover">
                   <div class="config-header">
-                    <span class="template-name">{{ config.templateName }}</span>
+                    <div class="trader-info">
+                      <span class="template-name">{{ config.templateName }}</span>
+                      <el-tag v-if="config.riskProfile" size="small" :type="getRiskProfileTagType(config.riskProfile)">
+                        {{ config.riskProfile }}
+                      </el-tag>
+                      <el-tag v-if="config.tradingStyle" size="small" type="info">
+                        {{ config.tradingStyle }}
+                      </el-tag>
+                    </div>
                     <el-button
                       size="small"
                       type="danger"
@@ -213,42 +221,87 @@
                     </el-button>
                   </div>
                   
-                  <el-row :gutter="20">
-                    <el-col :span="8">
-                      <el-form-item :label="`数量`" :prop="`traderConfigs.${index}.count`">
-                        <el-input-number
-                          v-model="config.count"
-                          :min="1"
-                          :max="100"
-                          placeholder="交易员数量"
-                        />
-                      </el-form-item>
-                    </el-col>
-                    <el-col :span="8">
-                      <el-form-item :label="`资金倍数`" :prop="`traderConfigs.${index}.capitalMultiplier`">
-                        <el-input-number
-                          v-model="config.capitalMultiplier"
-                          :min="0.1"
-                          :max="10"
-                          :precision="2"
-                          :step="0.1"
-                          placeholder="基于模板初始资金的倍数"
-                        />
-                      </el-form-item>
-                    </el-col>
-                    <el-col :span="8">
-                      <el-form-item :label="`资金变化率`" :prop="`traderConfigs.${index}.capitalVariation`">
-                        <el-input-number
-                          v-model="config.capitalVariation"
-                          :min="0"
-                          :max="1"
-                          :precision="2"
-                          :step="0.05"
-                          placeholder="随机变化幅度(0-1)"
-                        />
-                      </el-form-item>
-                    </el-col>
-                  </el-row>
+                  <!-- 模板信息展示 -->
+                  <div class="template-info">
+                    <el-row :gutter="20">
+                      <el-col :span="12">
+                        <el-form-item label="模板初始资金">
+                          <el-input
+                            :value="formatCurrency(config.initialCapital)"
+                            readonly
+                            placeholder="来自模板定义"
+                          >
+                            <template #suffix>
+                              <el-tag size="small" type="info">模板定义</el-tag>
+                            </template>
+                          </el-input>
+                        </el-form-item>
+                      </el-col>
+                      <el-col :span="12">
+                        <el-form-item label="模板描述">
+                          <el-input
+                            :value="config.description || '无描述'"
+                            readonly
+                            placeholder="来自模板定义"
+                          >
+                            <template #suffix>
+                              <el-tag size="small" type="info">模板定义</el-tag>
+                            </template>
+                          </el-input>
+                        </el-form-item>
+                      </el-col>
+                    </el-row>
+                  </div>
+                  
+                  <!-- 可配置参数 -->
+                  <div class="config-params">
+                    <el-divider content-position="left">配置参数</el-divider>
+                    <el-row :gutter="20">
+                      <el-col :span="8">
+                        <el-form-item :label="`数量`" :prop="`traderConfigs.${index}.count`">
+                          <el-input-number
+                            v-model="config.count"
+                            :min="1"
+                            :max="100"
+                            placeholder="交易员数量"
+                          />
+                        </el-form-item>
+                      </el-col>
+                      <el-col :span="8">
+                        <el-form-item :label="`资金倍数`" :prop="`traderConfigs.${index}.capitalMultiplier`">
+                          <el-input-number
+                            v-model="config.capitalMultiplier"
+                            :min="0.1"
+                            :max="10"
+                            :precision="2"
+                            :step="0.1"
+                            placeholder="基于模板初始资金的倍数"
+                          />
+                        </el-form-item>
+                      </el-col>
+                      <el-col :span="8">
+                        <el-form-item :label="`资金变化率`" :prop="`traderConfigs.${index}.capitalVariation`">
+                          <el-input-number
+                            v-model="config.capitalVariation"
+                            :min="0"
+                            :max="1"
+                            :precision="2"
+                            :step="0.05"
+                            placeholder="随机变化幅度(0-1)"
+                          />
+                        </el-form-item>
+                      </el-col>
+                    </el-row>
+                  </div>
+                  
+                  <div class="template-note">
+                    <el-alert
+                      title="交易员基础信息由模板定义，只能配置数量和资金参数"
+                      type="info"
+                      :closable="false"
+                      show-icon
+                    />
+                  </div>
                 </el-card>
               </div>
             </div>
@@ -297,7 +350,10 @@
               >
                 <el-card shadow="hover">
                   <div class="config-header">
-                    <span class="template-name">{{ config.templateName }} ({{ config.symbol }})</span>
+                    <div class="stock-info">
+                      <span class="template-name">{{ config.templateName }} ({{ config.symbol }})</span>
+                      <el-tag v-if="config.category" size="small" type="success">{{ config.category }}</el-tag>
+                    </div>
                     <el-button
                       size="small"
                       type="danger"
@@ -310,27 +366,41 @@
                   
                   <el-row :gutter="20">
                     <el-col :span="12">
-                      <el-form-item :label="`发行价格`" :prop="`stockConfigs.${index}.issuePrice`">
-                        <el-input-number
-                          v-model="config.issuePrice"
-                          :min="0.01"
-                          :max="999999.99"
-                          :precision="2"
-                          placeholder="股票发行价格"
-                        />
+                      <el-form-item label="发行价格">
+                        <el-input
+                          :value="formatCurrency(config.issuePrice)"
+                          readonly
+                          placeholder="来自模板定义"
+                        >
+                          <template #suffix>
+                            <el-tag size="small" type="info">模板定义</el-tag>
+                          </template>
+                        </el-input>
                       </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                      <el-form-item :label="`总股数`" :prop="`stockConfigs.${index}.totalShares`">
-                        <el-input-number
-                          v-model="config.totalShares"
-                          :min="1"
-                          :max="1000000000"
-                          placeholder="股票总数"
-                        />
+                      <el-form-item label="总股数">
+                        <el-input
+                          :value="config.totalShares?.toLocaleString('zh-CN')"
+                          readonly
+                          placeholder="来自模板定义"
+                        >
+                          <template #suffix>
+                            <el-tag size="small" type="info">模板定义</el-tag>
+                          </template>
+                        </el-input>
                       </el-form-item>
                     </el-col>
                   </el-row>
+                  
+                  <div class="template-note">
+                    <el-alert
+                      title="股票参数由模板定义，不可修改"
+                      type="info"
+                      :closable="false"
+                      show-icon
+                    />
+                  </div>
                 </el-card>
               </div>
             </div>
@@ -341,12 +411,125 @@
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="handleSubmit" :loading="submitting">
-          {{ isEdit ? '更新' : '创建' }}
+          创建
         </el-button>
       </template>
     </el-dialog>
 
     <!-- 模板选择对话框 -->
+
+    <!-- 查看详情对话框 -->
+    <el-dialog
+      v-model="detailDialogVisible"
+      title="市场环境详情"
+      width="90%"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <div v-if="currentMarketDetail" class="market-detail-container">
+        <!-- 基本信息 -->
+        <el-card shadow="never" class="detail-section">
+          <template #header>
+            <h3>基本信息</h3>
+          </template>
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="市场名称">{{ currentMarketDetail.name }}</el-descriptions-item>
+            <el-descriptions-item label="市场ID">{{ currentMarketDetail.id }}</el-descriptions-item>
+            <el-descriptions-item label="描述信息">{{ currentMarketDetail.description || '无描述' }}</el-descriptions-item>
+            <el-descriptions-item label="分配算法">{{ getAllocationAlgorithmName(currentMarketDetail.allocationAlgorithm) }}</el-descriptions-item>
+            <el-descriptions-item label="创建时间">{{ formatDateTime(currentMarketDetail.createdAt) }}</el-descriptions-item>
+            <el-descriptions-item label="版本">{{ currentMarketDetail.version || '1.0.0' }}</el-descriptions-item>
+          </el-descriptions>
+        </el-card>
+
+        <!-- 统计信息 -->
+        <el-card shadow="never" class="detail-section">
+          <template #header>
+            <h3>统计信息</h3>
+          </template>
+          <el-row :gutter="20">
+            <el-col :span="6">
+              <el-statistic title="交易员总数" :value="currentMarketDetail.statistics?.traderCount || 0" />
+            </el-col>
+            <el-col :span="6">
+              <el-statistic title="股票总数" :value="currentMarketDetail.statistics?.stockCount || 0" />
+            </el-col>
+            <el-col :span="6">
+              <el-statistic title="总资金" :value="currentMarketDetail.totalCapital || 0" :formatter="formatCurrency" />
+            </el-col>
+            <el-col :span="6">
+              <el-statistic title="总市值" :value="currentMarketDetail.totalMarketValue || 0" :formatter="formatCurrency" />
+            </el-col>
+          </el-row>
+        </el-card>
+
+        <!-- 交易员信息 -->
+        <el-card shadow="never" class="detail-section">
+          <template #header>
+            <h3>交易员信息 ({{ currentMarketDetail.traders?.length || 0 }}人)</h3>
+          </template>
+          <el-table :data="currentMarketDetail.traders" max-height="300">
+            <el-table-column prop="name" label="姓名" width="120" />
+            <el-table-column prop="initialCapital" label="初始资金" width="120">
+              <template #default="{ row }">
+                {{ formatCurrency(row.initialCapital) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="riskProfile" label="风险偏好" width="100">
+              <template #default="{ row }">
+                <el-tag size="small" :type="getRiskProfileTagType(row.riskProfile)">
+                  {{ row.riskProfile }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="tradingStyle" label="交易风格" width="120" />
+            <el-table-column prop="holdings" label="持股数量" width="100">
+              <template #default="{ row }">
+                {{ row.holdings?.length || 0 }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="templateId.name" label="模板来源" show-overflow-tooltip />
+          </el-table>
+        </el-card>
+
+        <!-- 股票信息 -->
+        <el-card shadow="never" class="detail-section">
+          <template #header>
+            <h3>股票信息 ({{ currentMarketDetail.stocks?.length || 0 }}只)</h3>
+          </template>
+          <el-table :data="currentMarketDetail.stocks" max-height="300">
+            <el-table-column prop="symbol" label="股票代码" width="100" />
+            <el-table-column prop="name" label="股票名称" width="150" />
+            <el-table-column prop="issuePrice" label="发行价格" width="120">
+              <template #default="{ row }">
+                {{ formatCurrency(row.issuePrice) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="totalShares" label="总股数" width="120">
+              <template #default="{ row }">
+                {{ row.totalShares?.toLocaleString('zh-CN') }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="category" label="分类" width="100">
+              <template #default="{ row }">
+                <el-tag size="small" type="success">{{ row.category }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="holders" label="持有人数" width="100">
+              <template #default="{ row }">
+                {{ row.holders?.length || 0 }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="templateId.name" label="模板来源" show-overflow-tooltip />
+          </el-table>
+        </el-card>
+      </div>
+      
+      <template #footer>
+        <el-button @click="detailDialogVisible = false">关闭</el-button>
+        <el-button type="primary" @click="handleExportFromDetail">导出数据</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -385,9 +568,12 @@ const pagination = reactive({
 
 // 对话框相关
 const dialogVisible = ref(false)
-const isEdit = ref(false)
 const submitting = ref(false)
 const formRef = ref()
+
+// 详情对话框相关
+const detailDialogVisible = ref(false)
+const currentMarketDetail = ref(null)
 
 const form = reactive({
   name: '',
@@ -485,23 +671,32 @@ const handleCurrentChange = (page) => {
 }
 
 const showCreateDialog = () => {
-  isEdit.value = false
   resetForm()
   dialogVisible.value = true
 }
 
-const handleEdit = (row) => {
-  isEdit.value = true
-  // 复制数据到表单
-  Object.assign(form, {
-    _id: row._id,
-    name: row.name,
-    description: row.description,
-    allocationAlgorithm: row.allocationAlgorithm,
-    traderConfigs: row.traderConfigs || [],
-    stockConfigs: row.stockConfigs || []
-  })
-  dialogVisible.value = true
+const handleViewDetail = async (row) => {
+  try {
+    loading.value = true
+    console.log('查看市场环境详情:', row)
+    
+    // 获取完整的市场环境数据
+    const result = await marketStore.getMarketEnvironmentById(row.id)
+    
+    if (!result.success) {
+      throw new Error('获取市场环境详情失败')
+    }
+    
+    currentMarketDetail.value = result.data
+    console.log('获取到的详情数据:', result.data)
+    detailDialogVisible.value = true
+    
+  } catch (error) {
+    console.error('查看详情失败:', error)
+    ElMessage.error('获取详情失败：' + error.message)
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleDelete = async (row) => {
@@ -614,18 +809,22 @@ const handleSubmit = async () => {
         capitalMultiplier: config.capitalMultiplier || 1.0,
         capitalVariation: config.capitalVariation || 0.0
       })),
+      // 只提交模板ID，让后端使用模板中的原始数据
       stockTemplateIds: form.stockConfigs.map(config => config.templateId)
     }
     
     console.log('提交的数据:', submitData)
+    console.log('股票配置（仅供参考）:', form.stockConfigs.map(config => ({
+      模板ID: config.templateId,
+      股票名称: config.templateName,
+      股票代码: config.symbol,
+      发行价格: config.issuePrice,
+      总股数: config.totalShares,
+      说明: '实际使用模板中的数据'
+    })))
     
-    if (isEdit.value) {
-      await marketStore.updateMarketEnvironment(form._id, submitData)
-      ElMessage.success('更新成功')
-    } else {
-      await marketStore.createMarketEnvironment(submitData)
-      ElMessage.success('创建成功')
-    }
+    await marketStore.createMarketEnvironment(submitData)
+    ElMessage.success('创建成功')
     
     dialogVisible.value = false
     
@@ -671,9 +870,15 @@ const addTraderConfig = (command) => {
     form.traderConfigs.push({
       templateId: template._id,
       templateName: template.name,
+      riskProfile: template.riskProfile,
+      tradingStyle: template.tradingStyle,
+      initialCapital: template.initialCapital || 10000,
+      description: template.description || '',
       count: 1,
       capitalMultiplier: 1.0,
-      capitalVariation: 0.2
+      capitalVariation: 0.2,
+      // 添加只读标识
+      readonly: true
     })
   }
 }
@@ -691,8 +896,11 @@ const addStockConfig = (command) => {
       templateId: template._id,
       templateName: template.name,
       symbol: template.symbol,
+      category: template.category || '未分类',
       issuePrice: template.issuePrice || 10.00,
-      totalShares: template.totalShares || 1000000
+      totalShares: template.totalShares || 1000000,
+      // 添加只读标识，确保这些值不会被意外修改
+      readonly: true
     })
   }
 }
@@ -744,6 +952,34 @@ const formatDateTime = (date) => {
   if (!date) return '-'
   const d = new Date(date)
   return d.toLocaleString('zh-CN')
+}
+
+// 获取风险偏好标签类型
+const getRiskProfileTagType = (riskProfile) => {
+  const typeMap = {
+    '保守型': 'success',
+    '稳健型': 'primary',
+    '积极型': 'warning',
+    '激进型': 'danger'
+  }
+  return typeMap[riskProfile] || 'info'
+}
+
+// 获取分配算法名称
+const getAllocationAlgorithmName = (algorithm) => {
+  const nameMap = {
+    'weighted_random': '加权随机分配',
+    'equal_distribution': '平均分配',
+    'risk_based': '风险基础分配'
+  }
+  return nameMap[algorithm] || algorithm
+}
+
+// 从详情页导出
+const handleExportFromDetail = async () => {
+  if (currentMarketDetail.value) {
+    await handleExport(currentMarketDetail.value)
+  }
 }
 
 // 生命周期
@@ -837,6 +1073,53 @@ onMounted(() => {
 .template-name {
   font-weight: 600;
   color: #303133;
+}
+
+.trader-info,
+.stock-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.template-info {
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+}
+
+.config-params {
+  margin-top: 16px;
+}
+
+.template-note {
+  margin-top: 12px;
+}
+
+.template-note .el-alert {
+  --el-alert-padding: 8px 12px;
+  --el-alert-title-font-size: 12px;
+}
+
+/* 详情对话框样式 */
+.market-detail-container {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.detail-section {
+  margin-bottom: 20px;
+}
+
+.detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.detail-section h3 {
+  margin: 0;
+  color: #303133;
+  font-size: 16px;
 }
 
 /* 响应式设计 */

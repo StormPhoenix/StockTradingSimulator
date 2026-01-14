@@ -125,8 +125,8 @@ class MarketService {
     try {
       const response = await apiClient.get(`/market/${id}`)
       return {
-        success: true,
-        data: response.data.data
+        success: response.success,
+        data: response.data
       }
     } catch (error) {
       console.error('获取市场环境详情失败:', error)
@@ -143,8 +143,8 @@ class MarketService {
     try {
       const response = await apiClient.delete(`/market/${id}`)
       return {
-        success: true,
-        message: response.data.message
+        success: response.success,
+        message: response.message
       }
     } catch (error) {
       console.error('删除市场环境失败:', error)
@@ -163,18 +163,18 @@ class MarketService {
       const response = await apiClient.get(`/market/${id}/export`)
       console.log('导出API响应数据:', response.data)
       console.log('响应数据类型:', typeof response.data)
-      
+
       // 检查响应数据
       if (!response.data) {
         throw new Error('响应数据为空')
       }
-      
+
       if (typeof response.data !== 'object') {
         throw new Error(`响应数据格式错误，期望对象类型，实际为: ${typeof response.data}`)
       }
-      
+
       console.log('响应数据的所有键:', Object.keys(response.data))
-      
+
       // 处理标准格式：{ success: true, data: {...}, filename: "..." }
       if (response.data.success && response.data.data && response.data.filename) {
         console.log('检测到标准导出格式')
@@ -184,36 +184,36 @@ class MarketService {
           filename: response.data.filename
         }
       }
-      
+
       // 兼容旧格式：直接返回导出数据
       if (response.data.id && (response.data.name || response.data.traders || response.data.stocks)) {
         console.log('检测到直接导出数据格式（兼容模式）')
-        
+
         // 生成默认文件名
         const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')
-        const marketName = (response.data.name && typeof response.data.name === 'string') ? 
+        const marketName = (response.data.name && typeof response.data.name === 'string') ?
           response.data.name.replace(/[^a-zA-Z0-9_-]/g, '_') : 'market'
-        const marketId = (response.data.id && typeof response.data.id === 'string') ? 
+        const marketId = (response.data.id && typeof response.data.id === 'string') ?
           response.data.id.slice(-8) : 'unknown'
         const filename = `${marketName}_${marketId}_${timestamp}.json`
-        
+
         return {
           success: true,
           data: response.data,
           filename
         }
       }
-      
+
       // 其他情况
       console.error('未识别的响应格式:', response.data)
       console.error('响应数据的键:', Object.keys(response.data))
       throw new Error('无法识别的导出数据格式')
-      
+
     } catch (error) {
       console.error('导出市场环境失败:', error)
       console.error('错误详情:', error.response?.data)
       console.error('错误状态码:', error.response?.status)
-      
+
       const errorMessage = error.response?.data?.message || error.message || '导出市场环境失败'
       throw new Error(errorMessage)
     }
