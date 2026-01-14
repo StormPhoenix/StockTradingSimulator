@@ -25,10 +25,16 @@
     "backup:speckit": "./scripts/backup-speckit.sh",
     "backup:list": "./scripts/backup-speckit.sh --list",
     "backup:clean": "./scripts/backup-speckit.sh --clean",
-    "check:ports": "./scripts/check-ports.sh"
+    "check:ports": "./scripts/check-ports.sh",
+    "type-check": "npm run type-check:client && npm run type-check:server",
+    "type-check:client": "cd app && vue-tsc --noEmit",
+    "type-check:server": "cd server && tsc --noEmit",
+    "migration:progress": "node scripts/check-migration-progress.js"
   },
   "devDependencies": {
-    "concurrently": "^8.2.0"
+    "@types/node": "^25.0.8",
+    "concurrently": "^8.2.0",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=18.0.0"

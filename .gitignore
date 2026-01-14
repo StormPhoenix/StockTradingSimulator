@@ -112,6 +112,7 @@ test-results.xml
 .local/
 
 # Speckit and development tools
+.specify/
 .specify/cache/
 .specify/temp/
 .specify/.cache/
@@ -122,6 +123,7 @@ speckit-*.tmp
 speckit.log
 .codebuddy/cache/
 .codebuddy/temp/
+.codebuddy/
 specs/
 
 # Backup archives

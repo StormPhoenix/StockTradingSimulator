@@ -1,0 +1,21 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "checkJs": false,
+    "strict": false,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@shared/*": ["../shared/types/*"]
+    },
+    "noEmit": true,
+    "types": ["jsdom"]
+  },
+  "include": ["src/**/*", "src/**/*.vue", "src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
