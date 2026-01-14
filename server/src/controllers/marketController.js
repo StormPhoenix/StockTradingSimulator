@@ -145,7 +145,12 @@ class MarketController {
       res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`)
       res.setHeader('Cache-Control', 'no-cache')
       
-      res.json(result.data)
+      // 返回完整的结果，包含success、data和filename
+      res.json({
+        success: result.success,
+        data: result.data,
+        filename: result.filename
+      })
     } catch (error) {
       next(error)
     }
