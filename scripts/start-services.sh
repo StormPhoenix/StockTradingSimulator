@@ -5,6 +5,12 @@
 
 set -e  # 遇到错误时退出
 
+# 获取脚本所在目录
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# 加载环境配置库
+source "${SCRIPT_DIR}/lib/env-config.sh"
+
 # 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -19,8 +25,8 @@ print_message() {
     echo -e "${color}${message}${NC}"
 }
 
-# 获取脚本所在目录的父目录（项目根目录）
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# 获取项目根目录
+PROJECT_ROOT=$(get_project_root)
 
 print_message $BLUE "🚀 启动 Stock Trading Simulator 服务..."
 echo "📁 项目根目录: $PROJECT_ROOT"
@@ -138,7 +144,7 @@ start_backend() {
     local attempt=0
     
     while [ $attempt -lt $max_attempts ]; do
-        if curl -s http://localhost:3000/health >/dev/null 2>&1; then
+        if curl -s "$(get_backend_health_url)" >/dev/null 2>&1; then
             print_message $GREEN "✅ 后端服务启动成功！"
             break
         fi
@@ -181,7 +187,7 @@ start_frontend() {
     local attempt=0
     
     while [ $attempt -lt $max_attempts ]; do
-        if curl -s http://localhost:5173 >/dev/null 2>&1; then
+        if curl -s "$(get_frontend_url)" >/dev/null 2>&1; then
             print_message $GREEN "✅ 前端服务启动成功！"
             break
         fi
@@ -203,17 +209,17 @@ show_status() {
     echo
     
     # 检查后端状态
-    if curl -s http://localhost:3000/health >/dev/null 2>&1; then
-        print_message $GREEN "✅ 后端服务: http://localhost:3000 (运行中)"
-        print_message $GREEN "   健康检查: http://localhost:3000/health"
-        print_message $GREEN "   API 端点: http://localhost:3000/api/v1/projects/info"
+    if curl -s "$(get_backend_health_url)" >/dev/null 2>&1; then
+        print_message $GREEN "✅ 后端服务: $(get_backend_url) (运行中)"
+        print_message $GREEN "   健康检查: $(get_backend_health_url)"
+        print_message $GREEN "   API 端点: $(get_backend_api_url)/projects/info"
     else
         print_message $RED "❌ 后端服务: 未运行"
     fi
     
     # 检查前端状态
-    if curl -s http://localhost:5173 >/dev/null 2>&1; then
-        print_message $GREEN "✅ 前端服务: http://localhost:5173 (运行中)"
+    if curl -s "$(get_frontend_url)" >/dev/null 2>&1; then
+        print_message $GREEN "✅ 前端服务: $(get_frontend_url) (运行中)"
     else
         print_message $RED "❌ 前端服务: 未运行"
     fi

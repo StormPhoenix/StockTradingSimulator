@@ -48,9 +48,11 @@ Authorization: Bearer <jwt-token>
 
 ### Development Environment
 ```
-Base URL: http://localhost:3000
-API Base: http://localhost:3000/api/v1
+Base URL: http://localhost:3001
+API Base: http://localhost:3001/api/v1
 ```
+
+**Note**: Port configuration is managed through `.env` files. Default development port is 3001 to avoid conflicts.
 
 ### Production Environment (Future)
 ```
@@ -339,13 +341,13 @@ GET    /api/v1/stocks/:symbol/history  # Get price history
 
 #### Health Check
 ```bash
-curl -X GET http://localhost:3000/health \
+curl -X GET http://localhost:3001/health \
   -H "Accept: application/json"
 ```
 
 #### Get Project Info
 ```bash
-curl -X GET http://localhost:3000/api/v1/projects/info \
+curl -X GET http://localhost:3001/api/v1/projects/info \
   -H "Accept: application/json" \
   -H "Content-Type: application/json"
 ```
@@ -356,7 +358,7 @@ curl -X GET http://localhost:3000/api/v1/projects/info \
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api/v1',
+  baseURL: 'http://localhost:3001/api/v1',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
@@ -366,7 +368,7 @@ const api = axios.create({
 // Health check
 const healthCheck = async () => {
   try {
-    const response = await axios.get('http://localhost:3000/health');
+    const response = await axios.get('http://localhost:3001/health');
     console.log('Health:', response.data);
   } catch (error) {
     console.error('Health check failed:', error);
@@ -390,7 +392,7 @@ const getProjectInfo = async () => {
 import requests
 import json
 
-base_url = "http://localhost:3000"
+base_url = "http://localhost:3001"
 api_url = f"{base_url}/api/v1"
 
 headers = {
@@ -423,8 +425,8 @@ if __name__ == "__main__":
 
 #### Using Browser
 Navigate to endpoints directly:
-- Health: http://localhost:3000/health
-- Project Info: http://localhost:3000/api/v1/projects/info
+- Health: http://localhost:3001/health
+- Project Info: http://localhost:3001/api/v1/projects/info
 
 #### Using Postman
 
@@ -438,11 +440,11 @@ Create a `.http` file:
 
 ```http
 ### Health Check
-GET http://localhost:3000/health
+GET http://localhost:3001/health
 Accept: application/json
 
 ### Project Info
-GET http://localhost:3000/api/v1/projects/info
+GET http://localhost:3001/api/v1/projects/info
 Accept: application/json
 Content-Type: application/json
 ```
@@ -488,7 +490,7 @@ describe('API Integration', () => {
 ```yaml
 # artillery-config.yml
 config:
-  target: 'http://localhost:3000'
+  target: 'http://localhost:3001'
   phases:
     - duration: 60
       arrivalRate: 10

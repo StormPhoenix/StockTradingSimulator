@@ -1,123 +1,110 @@
-/**
- * Express.js Application Setup
- * 
- * @description Main Express application configuration with middleware,
- * routes, and error handling setup.
- */
+import express from 'express'
+import cors from 'cors'
+import helmet from 'helmet'
+import morgan from 'morgan'
+import compression from 'compression'
+import rateLimit from 'express-rate-limit'
+import dotenv from 'dotenv'
 
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
+import { connectDatabase } from './config/database.js'
+import { apiConfig } from './config/api.js'
+import errorHandler from './middleware/errorHandler.js'
+import routes from './routes/index.js'
+import healthRoutes from './routes/healthRoutes.js'
 
-// Import middleware
-import { errorHandler } from './middleware/errorHandler.js';
-import { setupSecurity } from './middleware/security.js';
+// 加载环境变量
+dotenv.config()
 
-// Import routes
-import healthRoutes from './routes/healthRoutes.js';
-import projectRoutes from './routes/projectRoutes.js';
+const app = express()
+const PORT = process.env.PORT || 3000
 
-// Load environment variables
-dotenv.config();
+// 安全中间件
+app.use(helmet())
 
-/**
- * Create and configure Express application
- * 
- * @returns {express.Application} Configured Express app
- */
-const createApp = () => {
-  const app = express();
-  
-  // Trust proxy (for rate limiting behind reverse proxy)
-  app.set('trust proxy', 1);
-  
-  // Security middleware
-  setupSecurity(app);
-  
-  // Logging middleware
-  if (process.env.NODE_ENV !== 'test') {
-    const logFormat = process.env.LOG_FORMAT || 'combined';
-    app.use(morgan(logFormat));
-  }
-  
-  // CORS configuration
-  const corsOptions = {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: [
-      'Origin', 
-      'X-Requested-With', 
-      'Content-Type', 
-      'Accept', 
-      'Authorization',
-      'X-Request-ID'  // Allow custom request ID header
-    ]
-  };
-  app.use(cors(corsOptions));
-  
-  // Rate limiting
-  const limiter = rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
-    message: {
-      success: false,
-      message: 'Too many requests from this IP, please try again later.',
-      timestamp: new Date().toISOString()
-    },
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  });
-  
-  // Apply rate limiting to API routes only
-  app.use('/api/', limiter);
-  
-  // Body parsing middleware
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-  
-  // API routes
-  const apiVersion = process.env.API_VERSION || 'v1';
-  const apiPrefix = process.env.API_PREFIX || '/api';
-  
-  // Health check route (no rate limiting)
-  app.use('/health', healthRoutes);
-  
-  // API routes with versioning
-  app.use(`${apiPrefix}/${apiVersion}/projects`, projectRoutes);
-  
-  // Root endpoint
-  app.get('/', (req, res) => {
-    res.json({
-      success: true,
-      message: 'Stock Trading Simulator API',
-      version: '1.0.0',
-      timestamp: new Date().toISOString(),
-      endpoints: {
-        health: '/health',
-        projects: `${apiPrefix}/${apiVersion}/projects`
-      }
-    });
-  });
-  
-  // 404 handler for undefined routes
-  app.use('*', (req, res) => {
-    res.status(404).json({
-      success: false,
+// 跨域配置
+app.use(cors(apiConfig.cors))
+
+// 请求日志
+app.use(morgan('combined'))
+
+// 压缩响应
+app.use(compression())
+
+// 速率限制
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15分钟
+  max: 1000, // 限制每个IP 15分钟内最多1000个请求
+  message: {
+    error: 'Too many requests from this IP, please try again later.',
+  },
+})
+app.use('/api/', limiter)
+
+// 解析请求体
+app.use(express.json({ limit: '10mb' }))
+app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+
+// 健康检查路由
+app.use('/health', healthRoutes)
+
+// API路由
+app.use('/api/v1', routes)
+
+// 404处理
+app.use('*', (_, res) => {
+  res.status(404).json({
+    success: false,
+    error: {
+      code: 'NOT_FOUND',
       message: 'API endpoint not found',
-      path: req.originalUrl,
-      method: req.method,
-      timestamp: new Date().toISOString()
-    });
-  });
-  
-  // Global error handler (must be last)
-  app.use(errorHandler);
-  
-  return app;
-};
+    },
+  })
+})
 
-export default createApp;
+// 错误处理中间件
+app.use(errorHandler)
+
+// 启动服务器
+async function startServer() {
+  try {
+    console.log('🚀 Starting Stock Trading Simulator Server...')
+    console.log('📋 Environment:', process.env.NODE_ENV || 'development')
+    
+    // 连接数据库
+    console.log('🔌 Connecting to database...')
+    await connectDatabase()
+    console.log('✅ Database connected successfully')
+    
+    app.listen(PORT, () => {
+      console.log('\n🎉 Server started successfully!')
+      console.log('━'.repeat(50))
+      console.log(`📡 Server running on port: ${PORT}`)
+      console.log(`🌐 Base URL: http://localhost:${PORT}`)
+      console.log(`🏥 Health check: http://localhost:${PORT}/health`)
+      console.log(`📊 Detailed health: http://localhost:${PORT}/health/detailed`)
+      console.log(`🔗 API base URL: http://localhost:${PORT}/api/v1`)
+      console.log(`📚 API info: http://localhost:${PORT}/api/v1`)
+      console.log('━'.repeat(50))
+      console.log('💡 Press Ctrl+C to stop the server')
+    })
+  } catch (error) {
+    console.error('❌ Failed to start server:', error.message)
+    console.error('💥 Error details:', error)
+    process.exit(1)
+  }
+}
+
+// 优雅关闭
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully')
+  process.exit(0)
+})
+
+process.on('SIGINT', () => {
+  console.log('🛑 SIGINT received, shutting down gracefully')
+  process.exit(0)
+})
+
+startServer()
+
+export default app
