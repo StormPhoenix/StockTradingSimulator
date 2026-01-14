@@ -17,12 +17,9 @@
           >
             <el-menu-item index="/market/initializer">
               <el-icon><Setting /></el-icon>
-              <span>环境初始化</span>
+              <span>市场环境管理</span>
             </el-menu-item>
-            <el-menu-item index="/market/exporter">
-              <el-icon><Download /></el-icon>
-              <span>数据导出导入</span>
-            </el-menu-item>
+
           </el-menu>
         </div>
         
@@ -86,17 +83,14 @@
 <script setup>
 import { computed, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useMarketStore } from '@/stores/market'
 import { 
   Setting, 
-  Download, 
   User, 
   Plus 
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
-const marketStore = useMarketStore()
 
 // 当前路由信息
 const currentRoute = computed(() => route)

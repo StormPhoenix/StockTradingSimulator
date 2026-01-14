@@ -24,10 +24,10 @@ class MarketService {
         warnings: response.data.warnings,
         message: response.data.message
       }
-    } catch (error) {      
+    } catch (error) {
       // 提取具体的错误信息
       let errorMessage = '创建市场环境失败'
-      
+
       if (error.response?.data) {
         const errorData = error.response.data
         if (errorData.message) {
@@ -35,12 +35,12 @@ class MarketService {
         } else if (errorData.error?.message) {
           errorMessage = errorData.error.message
         } else if (errorData.details) {
-          errorMessage = Array.isArray(errorData.details) 
-            ? errorData.details.join(', ') 
+          errorMessage = Array.isArray(errorData.details)
+            ? errorData.details.join(', ')
             : errorData.details
         }
       }
-      
+
       throw new Error(errorMessage)
     }
   }
@@ -53,14 +53,66 @@ class MarketService {
   async getMarketEnvironments(params = {}) {
     try {
       const response = await apiClient.get('/market', { params })
+
+      // 处理不同的响应格式
+      let resultPagination = { page: 1, limit: 20, total: 0, pages: 0 }
+
+      // 如果 response.data 直接是数组
+      resultPagination = {
+        page: 1,
+        limit: 20,
+        total: response.data.length,
+        pages: Math.ceil(response.data.length / 20)
+      }
+
       return {
         success: true,
-        data: response.data.data,
-        pagination: response.data.pagination
+        data: response.data,
+        pagination: resultPagination
       }
     } catch (error) {
       console.error('获取市场环境列表失败:', error)
-      throw new Error(error.response?.data?.message || '获取市场环境列表失败')
+      console.error('错误详情:', error.response?.data)
+
+      const errorMessage = error.response?.data?.message || error.message || '获取市场环境列表失败'
+      throw new Error(errorMessage)
+    }
+  }
+
+  /**
+   * 更新市场环境
+   * @param {String} id - 市场环境ID
+   * @param {Object} updateData - 更新数据
+   * @returns {Promise<Object>} API响应
+   */
+  async updateMarketEnvironment(id, updateData) {
+    try {
+      const response = await apiClient.put(`/market/${id}`, updateData)
+      return {
+        success: true,
+        data: response.data.data,
+        message: response.data.message
+      }
+    } catch (error) {
+      console.error('更新市场环境失败:', error)
+
+      // 提取具体的错误信息
+      let errorMessage = '更新市场环境失败'
+
+      if (error.response?.data) {
+        const errorData = error.response.data
+        if (errorData.message) {
+          errorMessage = errorData.message
+        } else if (errorData.error?.message) {
+          errorMessage = errorData.error.message
+        } else if (errorData.details) {
+          errorMessage = Array.isArray(errorData.details)
+            ? errorData.details.join(', ')
+            : errorData.details
+        }
+      }
+
+      throw new Error(errorMessage)
     }
   }
 
@@ -108,13 +160,13 @@ class MarketService {
   async exportMarketEnvironment(id) {
     try {
       const response = await apiClient.get(`/market/${id}/export`)
-      
+
       // 生成文件名
       const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')
       const marketName = response.data.name || 'market'
       const marketId = response.data.id?.slice(-8) || 'unknown'
       const filename = `${marketName}_${marketId}_${timestamp}.json`
-      
+
       return {
         success: true,
         data: response.data,
@@ -308,7 +360,7 @@ class MarketService {
         search: keyword,
         ...options
       }
-      
+
       const response = await apiClient.get('/market', { params })
       return {
         success: true,
@@ -331,19 +383,19 @@ class MarketService {
     try {
       // 先导出原市场环境
       const exportResult = await this.exportMarketEnvironment(id)
-      
+
       if (!exportResult.success) {
         throw new Error('导出原市场环境失败')
       }
-      
+
       // 修改导入数据
       const importData = { ...exportResult.data }
       importData.name = options.name || `${importData.name}_copy`
       importData.description = options.description || `${importData.description || ''} (复制)`
-      
+
       // 导入新市场环境
       const importResult = await this.importMarketEnvironment(importData)
-      
+
       return {
         success: true,
         data: importResult.data,

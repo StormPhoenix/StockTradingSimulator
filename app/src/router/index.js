@@ -52,19 +52,11 @@ const routes = [
         name: 'MarketInitializer',
         component: () => import('@/components/market/MarketInitializer.vue'),
         meta: {
-          title: '市场环境初始化',
+          title: '市场环境管理',
           icon: 'Setting',
         },
       },
-      {
-        path: 'exporter',
-        name: 'MarketExporter',
-        component: () => import('@/components/market/MarketExporter.vue'),
-        meta: {
-          title: '数据导出导入',
-          icon: 'Download',
-        },
-      },
+
     ],
   },
   {

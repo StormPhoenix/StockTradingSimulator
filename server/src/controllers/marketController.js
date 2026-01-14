@@ -93,6 +93,29 @@ class MarketController {
   }
 
   /**
+   * 更新市场环境
+   * PUT /api/market/:id
+   */
+  async updateMarketEnvironment(req, res, next) {
+    try {
+      const updateData = {
+        ...req.body,
+        updatedBy: req.user?.id || 'anonymous'
+      }
+
+      const result = await this.marketService.updateMarketEnvironment(req.params.id, updateData)
+      
+      res.json({
+        success: true,
+        data: result.data,
+        message: '市场环境更新成功'
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
    * 删除市场环境
    * DELETE /api/market/:id
    */
@@ -378,6 +401,7 @@ export default {
   createMarketEnvironment: marketController.createMarketEnvironment.bind(marketController),
   getMarketEnvironments: marketController.getMarketEnvironments.bind(marketController),
   getMarketEnvironmentById: marketController.getMarketEnvironmentById.bind(marketController),
+  updateMarketEnvironment: marketController.updateMarketEnvironment.bind(marketController),
   deleteMarketEnvironment: marketController.deleteMarketEnvironment.bind(marketController),
   exportMarketEnvironment: marketController.exportMarketEnvironment.bind(marketController),
   importMarketEnvironment: marketController.importMarketEnvironment.bind(marketController),

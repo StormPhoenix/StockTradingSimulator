@@ -79,13 +79,21 @@ export const useMarketStore = defineStore('market', () => {
       const result = await marketService.getMarketEnvironments(params)
       
       if (result.success) {
-        marketEnvironments.value = result.data
-        pagination.value = result.pagination
+        marketEnvironments.value = result.data || []
+        pagination.value = result.pagination || { page: 1, limit: 20, total: 0, pages: 0 }
+      } else {
+        console.warn('API返回失败状态:', result)
+        marketEnvironments.value = []
+        pagination.value = { page: 1, limit: 20, total: 0, pages: 0 }
       }
 
       return result
     } catch (err) {
+      console.error('获取市场环境列表失败:', err)
       error.value = err.message
+      // 确保在错误时也有默认值
+      marketEnvironments.value = []
+      pagination.value = { page: 1, limit: 20, total: 0, pages: 0 }
       throw err
     } finally {
       loading.value = false
@@ -106,6 +114,41 @@ export const useMarketStore = defineStore('market', () => {
       
       if (result.success) {
         currentMarket.value = result.data
+      }
+
+      return result
+    } catch (err) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * 更新市场环境
+   * @param {String} id - 市场环境ID
+   * @param {Object} updateData - 更新数据
+   * @returns {Promise<Object>} 更新结果
+   */
+  const updateMarketEnvironment = async (id, updateData) => {
+    try {
+      loading.value = true
+      error.value = null
+
+      const result = await marketService.updateMarketEnvironment(id, updateData)
+      
+      if (result.success) {
+        // 更新列表中的项目
+        const index = marketEnvironments.value.findIndex(market => market._id === id)
+        if (index > -1) {
+          marketEnvironments.value[index] = result.data
+        }
+        
+        // 如果更新的是当前市场，也更新当前市场
+        if (currentMarket.value?._id === id) {
+          currentMarket.value = result.data
+        }
       }
 
       return result
@@ -425,6 +468,7 @@ export const useMarketStore = defineStore('market', () => {
 
     // 操作方法
     createMarketEnvironment,
+    updateMarketEnvironment,
     getMarketEnvironments,
     getMarketEnvironmentById,
     deleteMarketEnvironment,

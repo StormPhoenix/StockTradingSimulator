@@ -56,11 +56,14 @@ class MarketService {
         allocationResult
       })
 
+      // 保存到数据库
+      const saveResult = await this.saveMarketEnvironment(marketEnvironment)
+
       return {
         success: true,
-        data: marketEnvironment,
-        statistics: marketEnvironment.statistics,
-        warnings: validation.warnings
+        data: saveResult.data,
+        statistics: saveResult.data.statistics,
+        warnings: [...(validation.warnings || []), ...(saveResult.warnings || [])]
       }
     } catch (error) {
       // 如果是验证错误，抛出ValidationError（400状态码）
@@ -328,6 +331,76 @@ class MarketService {
       }
     } catch (error) {
       throw new Error(`保存市场环境失败: ${error.message}`)
+    }
+  }
+
+  /**
+   * 更新市场环境
+   * @param {String} id - 市场环境ID
+   * @param {Object} updateData - 更新数据
+   * @returns {Promise<Object>} 更新结果
+   */
+  async updateMarketEnvironment(id, updateData) {
+    try {
+      // 获取现有市场环境
+      const existingMarket = await MarketEnvironment.findOne({ id })
+      if (!existingMarket) {
+        throw new Error(`未找到市场环境: ${id}`)
+      }
+
+      // 如果更新了配置，需要重新生成市场环境
+      if (updateData.traderConfigs || updateData.stockTemplateIds) {
+        // 验证配置
+        const config = {
+          ...existingMarket.toObject(),
+          ...updateData
+        }
+        
+        const validation = MarketUtils.validateMarketConfig(config)
+        if (!validation.valid) {
+          throw new Error(`配置验证失败: ${validation.errors.join(', ')}`)
+        }
+
+        // 获取模板数据
+        const { traderTemplates, stockTemplates } = await this.loadTemplates(config)
+
+        // 重新生成交易员和股票
+        const traders = await this.generateTraders(config.traderConfigs, traderTemplates)
+        const stocks = await this.generateStocks(config.stockTemplateIds, stockTemplates)
+
+        // 重新执行股票分配
+        const allocationResult = this.allocationService.allocateStocks(
+          traders,
+          stocks,
+          config.allocationAlgorithm || 'weighted_random',
+          config.seed
+        )
+
+        // 更新市场环境对象
+        Object.assign(existingMarket, {
+          ...updateData,
+          traders: allocationResult.traders,
+          stocks: allocationResult.stocks,
+          updatedAt: new Date()
+        })
+      } else {
+        // 只更新基本信息
+        Object.assign(existingMarket, {
+          ...updateData,
+          updatedAt: new Date()
+        })
+      }
+
+      // 保存更新
+      const updatedMarket = await existingMarket.save()
+
+      return {
+        success: true,
+        data: updatedMarket,
+        message: '市场环境更新成功'
+      }
+    } catch (error) {
+      throw new Error(`更新市场环境失败: ${error.message}`)
     }
   }
 

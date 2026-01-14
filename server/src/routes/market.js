@@ -28,6 +28,21 @@ const createMarketSchema = Joi.object({
   createdBy: Joi.string().optional()
 })
 
+const updateMarketSchema = Joi.object({
+  name: Joi.string().min(1).max(200).optional(),
+  description: Joi.string().max(1000).optional(),
+  traderConfigs: Joi.array().items(
+    Joi.object({
+      templateId: Joi.string().required(),
+      count: Joi.number().integer().min(1).max(1000).required(),
+      capitalMultiplier: Joi.number().min(0.1).max(10).optional().default(1),
+      capitalVariation: Joi.number().min(0).max(1).optional().default(0)
+    })
+  ).min(1).optional(),
+  stockTemplateIds: Joi.array().items(Joi.string()).min(1).optional(),
+  allocationAlgorithm: Joi.string().valid('weighted_random', 'equal_distribution', 'risk_based').optional()
+})
+
 const querySchema = Joi.object({
   page: Joi.number().integer().min(1).optional().default(1),
   limit: Joi.number().integer().min(1).max(100).optional().default(20),
@@ -49,6 +64,7 @@ router.get('/stats/trends', marketController.getMarketTrends)
 router.post('/import', marketController.importMarketEnvironment)
 router.delete('/batch', validateRequest(batchDeleteSchema), marketController.batchDeleteMarketEnvironments)
 router.get('/:id', marketController.getMarketEnvironmentById)
+router.put('/:id', validateRequest(updateMarketSchema), marketController.updateMarketEnvironment)
 router.delete('/:id', marketController.deleteMarketEnvironment)
 router.get('/:id/export', marketController.exportMarketEnvironment)
 router.post('/:id/validate', marketController.validateMarketEnvironment)
