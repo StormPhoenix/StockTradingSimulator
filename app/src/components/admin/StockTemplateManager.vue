@@ -62,7 +62,7 @@
         <el-table-column prop="symbol" label="股票代码" />
         <el-table-column prop="issuePrice" label="发行价格">
           <template #default="{ row }">
-            ¥{{ row.issuePrice.toFixed(2) }}
+            ¥{{ typeof row.issuePrice === 'number' ? row.issuePrice.toFixed(2) : parseFloat(row.issuePrice || 0).toFixed(2) }}
           </template>
         </el-table-column>
         <el-table-column prop="totalShares" label="总股本">

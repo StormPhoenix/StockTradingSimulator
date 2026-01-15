@@ -74,7 +74,7 @@ stockTemplateSchema.methods.toSafeObject = function() {
     id: obj.id,
     name: obj.name,
     symbol: obj.symbol,
-    issuePrice: obj.issuePrice,
+    issuePrice: obj.issuePrice ? parseFloat(obj.issuePrice.toString()) : obj.issuePrice,
     totalShares: obj.totalShares,
     category: obj.category,
     description: obj.description,

@@ -111,7 +111,15 @@ export const useTemplatesStore = defineStore('templates', {
         
         const response = await templateService.getStockTemplates(queryParams);
         
-        this.stockTemplates = response.data || [];
+        // 确保 issuePrice 字段是数字类型
+        const processedData = (response.data || []).map(template => ({
+          ...template,
+          issuePrice: typeof template.issuePrice === 'number' 
+            ? template.issuePrice 
+            : parseFloat(template.issuePrice || 0)
+        }));
+        
+        this.stockTemplates = processedData;
         // 确保分页信息存在，如果不存在则保持当前分页状态
         if (response.pagination) {
           this.stockTemplatesPagination = response.pagination;
@@ -168,7 +176,14 @@ export const useTemplatesStore = defineStore('templates', {
         // 更新列表中的数据
         const index = this.stockTemplates.findIndex(t => t._id === id);
         if (index !== -1) {
-          this.stockTemplates[index] = response.data;
+          // 确保 issuePrice 是数字类型
+          const updatedTemplate = {
+            ...response.data,
+            issuePrice: typeof response.data.issuePrice === 'number' 
+              ? response.data.issuePrice 
+              : parseFloat(response.data.issuePrice || 0)
+          };
+          this.stockTemplates[index] = updatedTemplate;
         }
         
         // 更新当前模板
