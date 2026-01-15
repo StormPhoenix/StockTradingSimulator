@@ -10,7 +10,7 @@
     "build:vite": "vite build",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx --fix --ignore-path .gitignore",
+    "lint": "eslint . --ext .vue,.js,.ts --fix",
     "lint:ts": "eslint . --ext .ts,.tsx,.vue --fix",
     "format": "prettier --write src/",
     "test": "vitest",

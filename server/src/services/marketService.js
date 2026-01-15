@@ -3,12 +3,12 @@
  * 负责基于模板创建市场环境，包括交易员生成、股票分配等核心业务逻辑
  */
 
+import { ValidationError } from '../middleware/errorHandler.js'
+import MarketEnvironment from '../models/MarketEnvironment.js'
 import StockTemplate from '../models/StockTemplate.js'
 import AITraderTemplate from '../models/TraderTemplate.js'
-import MarketEnvironment from '../models/MarketEnvironment.js'
+import MarketUtils from '../utils/marketUtils'
 import AllocationService from './allocationService.js'
-import MarketUtils from '../utils/marketUtils.ts'
-import { ValidationError } from '../middleware/errorHandler.js'
 
 /**
  * 市场服务类

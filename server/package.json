@@ -2,23 +2,17 @@
   "name": "stock-trading-simulator-backend",
   "version": "1.0.0",
   "description": "Stock Trading Simulator Backend - Market Configuration and Environment Initialization API",
-  "type": "module",
   "main": "dist/app.js",
   "scripts": {
     "start": "node dist/app.js",
-    "start:dev": "node src/app.js",
-    "dev": "nodemon src/app.js",
+    "dev": "nodemon --exec ts-node src/app.js",
     "build": "tsc",
-    "build:watch": "tsc --watch",
-    "type-check": "tsc --noEmit",
     "test": "jest",
-    "test:watch": "jest --watch",
     "lint": "eslint src/ --ext .js,.ts --fix",
-    "lint:ts": "eslint src/ --ext .ts --fix",
-    "format": "prettier --write src/",
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@types/mongoose": "^5.11.97",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -62,16 +56,14 @@
       "<rootDir>/src"
     ],
     "testMatch": [
-      "**/__tests__/**/*.ts",
-      "**/?(*.)+(spec|test).ts"
+      "**/__tests__/**/*.js",
+      "**/?(*.)+(spec|test).js"
     ],
     "transform": {
-      "^.+\\.ts$": "ts-jest",
       "^.+\\.js$": "babel-jest"
     },
-    "moduleNameMapping": {
-      "^@/(.*)$": "<rootDir>/src/$1",
-      "^@shared/(.*)$": "<rootDir>/../shared/types/$1"
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1"
     }
   }
 }

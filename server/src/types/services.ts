@@ -6,27 +6,25 @@ import type {
   TradeOrderDocument,
   StockDocument,
   MarketEnvironmentDocument 
-} from '../../../shared/types/models.js'
+} from '@shared/models'
 import type { 
   User, 
   LoginRequest, 
   RegisterRequest 
-} from '../../../shared/types/auth.js'
+} from '@shared/auth'
 import type { 
   Portfolio, 
   Position, 
   PortfolioPerformance 
-} from '../../../shared/types/portfolio.js'
+} from '@shared/portfolio'
 import type { 
   Trade, 
-  TradeOrder, 
   MarketData 
-} from '../../../shared/types/trading.js'
+} from '@shared/trading'
 import type { 
-  Stock, 
-  MarketEnvironment 
-} from '../../../shared/types/market.js'
-import type { QueryParams } from '../../../shared/types/common.js'
+  Stock 
+} from '@shared/market'
+import type { QueryParams } from '@shared/common'
 
 // 服务层类型定义
 

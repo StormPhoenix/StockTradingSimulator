@@ -195,22 +195,14 @@ export class StockTemplateService {
   
   // 根据分类获取模板
   async getByCategory(category, options = {}) {
-    try {
-      const templates = await StockTemplate.findByCategory(category, options)
-      return templates.map(template => template.toSafeObject())
-    } catch (error) {
-      throw error
-    }
+    const templates = await StockTemplate.findByCategory(category, options)
+    return templates.map(template => template.toSafeObject())
   }
   
   // 搜索模板
   async search(searchTerm, options = {}) {
-    try {
-      const templates = await StockTemplate.searchByName(searchTerm, options)
-      return templates.map(template => template.toSafeObject())
-    } catch (error) {
-      throw error
-    }
+    const templates = await StockTemplate.searchByName(searchTerm, options)
+    return templates.map(template => template.toSafeObject())
   }
 }
 
@@ -307,26 +299,22 @@ export class AITraderTemplateService {
   
   // 创建AI交易员模板
   async create(data, createdBy = null) {
-    try {
-      // 验证数据
-      const validation = validators.validateTraderTemplate(data)
-      if (!validation.isValid) {
-        throw new ValidationError('AI交易员模板数据验证失败', validation.getAllErrors())
-      }
-      
-      // 创建模板
-      const templateData = {
-        ...data,
-        createdBy,
-      }
-      
-      const template = new AITraderTemplate(templateData)
-      await template.save()
-      
-      return template.toSafeObject()
-    } catch (error) {
-      throw error
+    // 验证数据
+    const validation = validators.validateTraderTemplate(data)
+    if (!validation.isValid) {
+      throw new ValidationError('AI交易员模板数据验证失败', validation.getAllErrors())
     }
+    
+    // 创建模板
+    const templateData = {
+      ...data,
+      createdBy,
+    }
+    
+    const template = new AITraderTemplate(templateData)
+    await template.save()
+    
+    return template.toSafeObject()
   }
   
   // 更新AI交易员模板
@@ -385,36 +373,24 @@ export class AITraderTemplateService {
   
   // 根据风险偏好获取模板
   async getByRiskProfile(riskProfile, options = {}) {
-    try {
-      const templates = await AITraderTemplate.findByRiskProfile(riskProfile, options)
-      return templates.map(template => template.toSafeObject())
-    } catch (error) {
-      throw error
-    }
+    const templates = await AITraderTemplate.findByRiskProfile(riskProfile, options)
+    return templates.map(template => template.toSafeObject())
   }
   
   // 根据交易风格获取模板
   async getByTradingStyle(tradingStyle, options = {}) {
-    try {
-      const templates = await AITraderTemplate.findByTradingStyle(tradingStyle, options)
-      return templates.map(template => template.toSafeObject())
-    } catch (error) {
-      throw error
-    }
+    const templates = await AITraderTemplate.findByTradingStyle(tradingStyle, options)
+    return templates.map(template => template.toSafeObject())
   }
   
   // 获取资金范围统计
   async getCapitalStatistics() {
-    try {
-      const stats = await AITraderTemplate.getCapitalRange()
-      return stats[0] || {
-        minCapital: 0,
-        maxCapital: 0,
-        avgCapital: 0,
-        totalTemplates: 0,
-      }
-    } catch (error) {
-      throw error
+    const stats = await AITraderTemplate.getCapitalRange()
+    return stats[0] || {
+      minCapital: 0,
+      maxCapital: 0,
+      avgCapital: 0,
+      totalTemplates: 0,
     }
   }
 }

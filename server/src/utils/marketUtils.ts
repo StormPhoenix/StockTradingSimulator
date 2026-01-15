@@ -138,7 +138,7 @@ class MarketUtils {
    */
   static generateMarketId(): string {
     const timestamp = Date.now()
-    const random = Math.random().toString(36).substr(2, 9)
+    const random = Math.random().toString(36).substring(2, 11)
     return `market_${timestamp}_${random}`
   }
 
@@ -560,7 +560,7 @@ class MarketUtils {
     
     const cloned = {} as T
     for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
         cloned[key] = this.deepClone(obj[key])
       }
     }
