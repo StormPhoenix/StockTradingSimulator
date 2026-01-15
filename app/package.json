@@ -14,7 +14,8 @@
     "lint:ts": "eslint . --ext .ts,.tsx,.vue --fix",
     "format": "prettier --write src/",
     "test": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",

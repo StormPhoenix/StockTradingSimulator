@@ -99,8 +99,8 @@
       <!-- 分页 -->
       <div class="pagination">
         <el-pagination
-          v-model:current-page="pagination.page"
-          v-model:page-size="pagination.limit"
+          :current-page="pagination.page"
+          :page-size="pagination.limit"
           :total="pagination.total"
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
@@ -549,7 +549,8 @@ const availableStockTemplates = ref([])
 
 // 响应式数据
 const loading = ref(false)
-const marketEnvironments = ref([])
+// 使用store中的响应式数据
+const marketEnvironments = computed(() => marketStore.marketEnvironments)
 const selectedEnvironments = ref([])
 const hasSelected = computed(() => selectedEnvironments.value.length > 0)
 
@@ -559,13 +560,8 @@ const filters = reactive({
   stockCount: ''
 })
 
-const pagination = reactive({
-  page: 1,
-  limit: 20,
-  total: 0,
-  pages: 0
-})
-
+// 使用store中的分页数据
+const pagination = computed(() => marketStore.pagination)
 // 对话框相关
 const dialogVisible = ref(false)
 const submitting = ref(false)
@@ -599,40 +595,15 @@ const fetchData = async () => {
     loading.value = true
     console.log('开始获取市场环境数据...')
     
-    const result = await marketStore.getMarketEnvironments({
-      page: pagination.page,
-      limit: pagination.limit,
+    await marketStore.getMarketEnvironments({
+      page: pagination.value.page,
+      limit: pagination.value.limit,
       ...filters
     })
     
-    console.log('获取到的数据:', result)
+    console.log('获取到的数据:', marketStore.marketEnvironments)
+    console.log('分页信息:', marketStore.pagination)
     
-    if (result.success) {
-      const data = result.data || []
-      console.log('处理后的数据:', data)
-      
-      // 验证数据完整性
-      const validData = data.filter(item => {
-        if (!item) {
-          console.warn('发现空数据项:', item)
-          return false
-        }
-        if (!item.name) {
-          console.warn('发现缺少name字段的数据项:', item)
-        }
-        return true
-      })
-      
-      marketEnvironments.value = validData
-      
-      if (result.pagination) {
-        pagination.total = result.pagination.total || 0
-        pagination.pages = result.pagination.pages || 0
-      } else {
-        pagination.total = 0
-        pagination.pages = 0
-      }
-    }
   } catch (error) {
     console.error('获取市场环境列表失败:', error)
     ElMessage.error('获取数据失败：' + error.message)
@@ -660,13 +631,13 @@ const handleSelectionChange = (selection) => {
 }
 
 const handleSizeChange = (size) => {
-  pagination.limit = size
-  pagination.page = 1
+  marketStore.pagination.limit = size
+  marketStore.pagination.page = 1
   fetchData()
 }
 
 const handleCurrentChange = (page) => {
-  pagination.page = page
+  marketStore.pagination.page = page
   fetchData()
 }
 

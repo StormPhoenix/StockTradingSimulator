@@ -3,11 +3,68 @@
  * 处理股票模板和AI交易员模板的CRUD操作
  */
 
+import { Request, Response, NextFunction } from 'express'
 import templateServiceModule from '../services/templateService'
 import { validators } from '../utils/validationUtils'
+import type { ID } from '@shared/common'
 
 const { stockTemplateService, aiTraderTemplateService } = templateServiceModule
 const { validateStockTemplate, validateTraderTemplate } = validators
+
+// 股票模板查询参数
+interface StockTemplateQueryParams {
+  page?: string
+  limit?: string
+  status?: string
+  category?: string
+  search?: string
+}
+
+// 交易员模板查询参数
+interface TraderTemplateQueryParams {
+  page?: string
+  limit?: string
+  status?: string
+  riskProfile?: string
+  search?: string
+}
+
+// 批量操作请求体
+interface BatchDeleteRequest {
+  type: 'stock' | 'trader'
+  ids: string[]
+}
+
+interface BatchUpdateStatusRequest {
+  type: 'stock' | 'trader'
+  ids: string[]
+  status: 'active' | 'inactive'
+}
+
+// 股票模板创建/更新请求体
+interface StockTemplateRequest {
+  name: string
+  symbol: string
+  issuePrice: number
+  totalShares: number
+  category: string
+  description?: string
+  status?: 'active' | 'inactive'
+  [key: string]: any
+}
+
+// 交易员模板创建/更新请求体
+interface TraderTemplateRequest {
+  name: string
+  initialCapital: number
+  riskProfile: 'conservative' | 'moderate' | 'aggressive'
+  tradingStyle: string
+  maxPositions: number
+  parameters?: Record<string, any>
+  description?: string
+  status?: 'active' | 'inactive'
+  [key: string]: any
+}
 
 class TemplateController {
   // ==================== 股票模板管理 ====================
@@ -15,14 +72,14 @@ class TemplateController {
   /**
    * 获取所有股票模板
    */
-  async getStockTemplates(req, res, next) {
+  async getStockTemplates(req: Request<{}, {}, {}, StockTemplateQueryParams>, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { page = 1, limit = 10, status, category, search } = req.query
+      const { page = '1', limit = '10', status, category, search } = req.query
       
       const options = {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        status,
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
+        status: status as 'active' | 'inactive' | undefined,
         category,
         search
       }
@@ -42,16 +99,17 @@ class TemplateController {
   /**
    * 根据ID获取股票模板
    */
-  async getStockTemplateById(req, res, next) {
+  async getStockTemplateById(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params
       const template = await stockTemplateService.getById(id)
       
       if (!template) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: '股票模板不存在'
         })
+        return
       }
       
       res.json({
@@ -66,16 +124,17 @@ class TemplateController {
   /**
    * 创建股票模板
    */
-  async createStockTemplate(req, res, next) {
+  async createStockTemplate(req: Request<{}, {}, StockTemplateRequest>, res: Response, next: NextFunction): Promise<void> {
     try {
       // 数据验证
       const validation = validateStockTemplate(req.body)
       if (!validation.isValid) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: '数据验证失败',
           errors: validation.errors
         })
+        return
       }
       
       const template = await stockTemplateService.create(req.body)
@@ -85,12 +144,13 @@ class TemplateController {
         data: template,
         message: '股票模板创建成功'
       })
-    } catch (error) {
+    } catch (error: any) {
       if (error.code === 11000) {
-        return res.status(409).json({
+        res.status(409).json({
           success: false,
           message: '股票代码已存在'
         })
+        return
       }
       next(error)
     }
@@ -99,27 +159,29 @@ class TemplateController {
   /**
    * 更新股票模板
    */
-  async updateStockTemplate(req, res, next) {
+  async updateStockTemplate(req: Request<{ id: string }, {}, Partial<StockTemplateRequest>>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params
       
       // 数据验证
-      const validation = validateStockTemplate(req.body, true) // partial validation
+      const validation = validateStockTemplate(req.body)
       if (!validation.isValid) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: '数据验证失败',
           errors: validation.errors
         })
+        return
       }
       
       const template = await stockTemplateService.update(id, req.body)
       
       if (!template) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: '股票模板不存在'
         })
+        return
       }
       
       res.json({
@@ -127,12 +189,13 @@ class TemplateController {
         data: template,
         message: '股票模板更新成功'
       })
-    } catch (error) {
+    } catch (error: any) {
       if (error.code === 11000) {
-        return res.status(409).json({
+        res.status(409).json({
           success: false,
           message: '股票代码已存在'
         })
+        return
       }
       next(error)
     }
@@ -141,16 +204,17 @@ class TemplateController {
   /**
    * 删除股票模板
    */
-  async deleteStockTemplate(req, res, next) {
+  async deleteStockTemplate(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params
       const result = await stockTemplateService.delete(id)
       
       if (!result) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: '股票模板不存在'
         })
+        return
       }
       
       res.json({
@@ -167,15 +231,15 @@ class TemplateController {
   /**
    * 获取所有AI交易员模板
    */
-  async getTraderTemplates(req, res, next) {
+  async getTraderTemplates(req: Request<{}, {}, {}, TraderTemplateQueryParams>, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { page = 1, limit = 10, status, riskProfile, search } = req.query
+      const { page = '1', limit = '10', status, riskProfile, search } = req.query
       
       const options = {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        status,
-        riskProfile,
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
+        status: status as 'active' | 'inactive' | undefined,
+        riskProfile: riskProfile as any,
         search
       }
       
@@ -194,16 +258,17 @@ class TemplateController {
   /**
    * 根据ID获取AI交易员模板
    */
-  async getTraderTemplateById(req, res, next) {
+  async getTraderTemplateById(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params
       const template = await aiTraderTemplateService.getById(id)
       
       if (!template) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'AI交易员模板不存在'
         })
+        return
       }
       
       res.json({
@@ -218,19 +283,20 @@ class TemplateController {
   /**
    * 创建AI交易员模板
    */
-  async createTraderTemplate(req, res, next) {
+  async createTraderTemplate(req: Request<{}, {}, TraderTemplateRequest>, res: Response, next: NextFunction): Promise<void> {
     try {
       // 数据验证
       const validation = validateTraderTemplate(req.body)
       if (!validation.isValid) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: '数据验证失败',
           errors: validation.errors
         })
+        return
       }
       
-      const template = await aiTraderTemplateService.create(req.body)
+      const template = await aiTraderTemplateService.create(req.body as any)
       
       res.status(201).json({
         success: true,
@@ -245,27 +311,29 @@ class TemplateController {
   /**
    * 更新AI交易员模板
    */
-  async updateTraderTemplate(req, res, next) {
+  async updateTraderTemplate(req: Request<{ id: string }, {}, Partial<TraderTemplateRequest>>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params
       
       // 数据验证
-      const validation = validateTraderTemplate(req.body, true) // partial validation
+      const validation = validateTraderTemplate(req.body)
       if (!validation.isValid) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: '数据验证失败',
           errors: validation.errors
         })
+        return
       }
       
-      const template = await aiTraderTemplateService.update(id, req.body)
+      const template = await aiTraderTemplateService.update(id, req.body as any)
       
       if (!template) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'AI交易员模板不存在'
         })
+        return
       }
       
       res.json({
@@ -281,16 +349,17 @@ class TemplateController {
   /**
    * 删除AI交易员模板
    */
-  async deleteTraderTemplate(req, res, next) {
+  async deleteTraderTemplate(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params
       const result = await aiTraderTemplateService.delete(id)
       
       if (!result) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'AI交易员模板不存在'
         })
+        return
       }
       
       res.json({
@@ -307,27 +376,35 @@ class TemplateController {
   /**
    * 批量删除模板
    */
-  async batchDeleteTemplates(req, res, next) {
+  async batchDeleteTemplates(req: Request<{}, {}, BatchDeleteRequest>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { type, ids } = req.body
       
       if (!type || !Array.isArray(ids) || ids.length === 0) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: '请提供有效的模板类型和ID列表'
         })
+        return
       }
       
-      let result
+      let result: any
       if (type === 'stock') {
-        result = await stockTemplateService.batchDelete(ids)
+        // Use individual delete calls since batchDelete doesn't exist
+        const deletePromises = ids.map(id => stockTemplateService.delete(id))
+        const results = await Promise.allSettled(deletePromises)
+        result = { deletedCount: results.filter(r => r.status === 'fulfilled').length }
       } else if (type === 'trader') {
-        result = await aiTraderTemplateService.batchDelete(ids)
+        // Use individual delete calls since batchDelete doesn't exist  
+        const deletePromises = ids.map(id => aiTraderTemplateService.delete(id))
+        const results = await Promise.allSettled(deletePromises)
+        result = { deletedCount: results.filter(r => r.status === 'fulfilled').length }
       } else {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: '无效的模板类型'
         })
+        return
       }
       
       res.json({
@@ -343,34 +420,43 @@ class TemplateController {
   /**
    * 批量更新模板状态
    */
-  async batchUpdateTemplateStatus(req, res, next) {
+  async batchUpdateTemplateStatus(req: Request<{}, {}, BatchUpdateStatusRequest>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { type, ids, status } = req.body
       
       if (!type || !Array.isArray(ids) || ids.length === 0 || !status) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: '请提供有效的参数'
         })
+        return
       }
       
       if (!['active', 'inactive'].includes(status)) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: '无效的状态值'
         })
+        return
       }
       
-      let result
+      let result: any
       if (type === 'stock') {
-        result = await stockTemplateService.batchUpdateStatus(ids, status)
+        // Use individual update calls since batchUpdateStatus doesn't exist
+        const updatePromises = ids.map(id => stockTemplateService.update(id, { status }))
+        const results = await Promise.allSettled(updatePromises)
+        result = { modifiedCount: results.filter(r => r.status === 'fulfilled').length }
       } else if (type === 'trader') {
-        result = await aiTraderTemplateService.batchUpdateStatus(ids, status)
+        // Use individual update calls since batchUpdateStatus doesn't exist
+        const updatePromises = ids.map(id => aiTraderTemplateService.update(id, { status }))
+        const results = await Promise.allSettled(updatePromises)
+        result = { modifiedCount: results.filter(r => r.status === 'fulfilled').length }
       } else {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: '无效的模板类型'
         })
+        return
       }
       
       res.json({
@@ -388,10 +474,23 @@ class TemplateController {
   /**
    * 获取模板统计信息
    */
-  async getTemplateStats(req, res, next) {
+  async getTemplateStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const stockStats = await stockTemplateService.getStats()
-      const traderStats = await aiTraderTemplateService.getStats()
+      // Simple stats implementation since getStats doesn't exist
+      const stockTemplates = await stockTemplateService.getAll({ page: 1, limit: 1000 })
+      const traderTemplates = await aiTraderTemplateService.getAll({ page: 1, limit: 1000 })
+      
+      const stockStats = {
+        total: stockTemplates.pagination.total,
+        active: stockTemplates.templates.filter((t: any) => t.status === 'active').length,
+        inactive: stockTemplates.templates.filter((t: any) => t.status === 'inactive').length
+      }
+      
+      const traderStats = {
+        total: traderTemplates.pagination.total,
+        active: traderTemplates.templates.filter((t: any) => t.status === 'active').length,
+        inactive: traderTemplates.templates.filter((t: any) => t.status === 'inactive').length
+      }
       
       const stats = {
         stock: stockStats,

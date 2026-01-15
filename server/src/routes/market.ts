@@ -4,8 +4,8 @@
  */
 
 import express from 'express'
-import marketController from '../controllers/marketController.js'
-import { validateRequest } from '../middleware/validation.js'
+import marketController from '../controllers/marketController'
+import { validateRequest } from '../middleware/validation'
 import Joi from 'joi'
 
 const router = express.Router()
@@ -58,7 +58,7 @@ const batchDeleteSchema = Joi.object({
 
 // 路由定义
 router.post('/', validateRequest(createMarketSchema), marketController.createMarketEnvironment)
-router.get('/', validateRequest(querySchema, 'query'), marketController.getMarketEnvironments)
+router.get('/', validateRequest({ query: querySchema }), marketController.getMarketEnvironments)
 router.get('/stats/summary', marketController.getMarketStatsSummary)
 router.get('/stats/trends', marketController.getMarketTrends)
 router.post('/import', marketController.importMarketEnvironment)

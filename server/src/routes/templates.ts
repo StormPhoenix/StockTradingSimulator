@@ -3,11 +3,11 @@
  * 提供股票模板和AI交易员模板的RESTful API
  */
 
-import express from 'express';
-import templateController from '../controllers/templateController.js';
-import { validateRequest } from '../middleware/validation.js';
+import express, { Request, Response, NextFunction } from 'express'
+import templateController from '../controllers/templateController'
+import { validateRequest } from '../middleware/validation'
 
-const router = express.Router();
+const router = express.Router()
 
 // ==================== 模板API根路径 ====================
 
@@ -15,7 +15,7 @@ const router = express.Router();
  * @route GET /api/v1/templates
  * @desc 获取模板API信息和可用端点
  */
-router.get('/', (req, res) => {
+router.get('/', (req: Request, res: Response): void => {
   res.json({
     success: true,
     data: {
@@ -46,8 +46,8 @@ router.get('/', (req, res) => {
       documentation: 'https://api-docs.stocksimulator.com/templates'
     },
     timestamp: new Date().toISOString()
-  });
-});
+  })
+})
 
 // ==================== 股票模板路由 ====================
 
@@ -60,14 +60,14 @@ router.get('/', (req, res) => {
  * @query {string} category - 分类筛选
  * @query {string} search - 搜索关键词
  */
-router.get('/stocks', templateController.getStockTemplates);
+router.get('/stocks', templateController.getStockTemplates)
 
 /**
  * @route GET /api/templates/stocks/:id
  * @desc 根据ID获取股票模板详情
  * @param {string} id - 模板ID
  */
-router.get('/stocks/:id', templateController.getStockTemplateById);
+router.get('/stocks/:id', templateController.getStockTemplateById)
 
 /**
  * @route POST /api/templates/stocks
@@ -77,7 +77,7 @@ router.get('/stocks/:id', templateController.getStockTemplateById);
 router.post('/stocks', 
   validateRequest('stockTemplate'),
   templateController.createStockTemplate
-);
+)
 
 /**
  * @route PUT /api/templates/stocks/:id
@@ -88,14 +88,14 @@ router.post('/stocks',
 router.put('/stocks/:id',
   validateRequest('stockTemplateUpdate'),
   templateController.updateStockTemplate
-);
+)
 
 /**
  * @route DELETE /api/templates/stocks/:id
  * @desc 删除股票模板
  * @param {string} id - 模板ID
  */
-router.delete('/stocks/:id', templateController.deleteStockTemplate);
+router.delete('/stocks/:id', templateController.deleteStockTemplate)
 
 // ==================== AI交易员模板路由 ====================
 
@@ -108,14 +108,14 @@ router.delete('/stocks/:id', templateController.deleteStockTemplate);
  * @query {string} riskProfile - 风险偏好筛选
  * @query {string} search - 搜索关键词
  */
-router.get('/traders', templateController.getTraderTemplates);
+router.get('/traders', templateController.getTraderTemplates)
 
 /**
  * @route GET /api/templates/traders/:id
  * @desc 根据ID获取AI交易员模板详情
  * @param {string} id - 模板ID
  */
-router.get('/traders/:id', templateController.getTraderTemplateById);
+router.get('/traders/:id', templateController.getTraderTemplateById)
 
 /**
  * @route POST /api/templates/traders
@@ -125,7 +125,7 @@ router.get('/traders/:id', templateController.getTraderTemplateById);
 router.post('/traders',
   validateRequest('traderTemplate'),
   templateController.createTraderTemplate
-);
+)
 
 /**
  * @route PUT /api/templates/traders/:id
@@ -136,14 +136,14 @@ router.post('/traders',
 router.put('/traders/:id',
   validateRequest('traderTemplateUpdate'),
   templateController.updateTraderTemplate
-);
+)
 
 /**
  * @route DELETE /api/templates/traders/:id
  * @desc 删除AI交易员模板
  * @param {string} id - 模板ID
  */
-router.delete('/traders/:id', templateController.deleteTraderTemplate);
+router.delete('/traders/:id', templateController.deleteTraderTemplate)
 
 // ==================== 批量操作路由 ====================
 
@@ -157,7 +157,7 @@ router.delete('/traders/:id', templateController.deleteTraderTemplate);
 router.post('/batch/delete',
   validateRequest('batchDelete'),
   templateController.batchDeleteTemplates
-);
+)
 
 /**
  * @route POST /api/templates/batch/status
@@ -170,7 +170,7 @@ router.post('/batch/delete',
 router.post('/batch/status',
   validateRequest('batchStatus'),
   templateController.batchUpdateTemplateStatus
-);
+)
 
 // ==================== 统计信息路由 ====================
 
@@ -178,60 +178,64 @@ router.post('/batch/status',
  * @route GET /api/templates/stats
  * @desc 获取模板统计信息
  */
-router.get('/stats', templateController.getTemplateStats);
+router.get('/stats', templateController.getTemplateStats)
 
 // ==================== 参数验证中间件 ====================
 
 /**
  * 验证模板ID参数
  */
-router.param('id', (req, res, next, id) => {
+router.param('id', (req: Request, res: Response, next: NextFunction, id: string): void => {
   // 验证MongoDB ObjectId格式
   if (!/^[0-9a-fA-F]{24}$/.test(id)) {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       message: '无效的模板ID格式'
-    });
+    })
+    return
   }
-  next();
-});
+  next()
+})
 
 // ==================== 错误处理 ====================
 
 /**
  * 模板路由错误处理中间件
  */
-router.use((error, req, res, next) => {
-  console.error('Template Route Error:', error);
+router.use((error: any, req: Request, res: Response, next: NextFunction): void => {
+  console.error('Template Route Error:', error)
   
   // 数据库连接错误
   if (error.name === 'MongoError' || error.name === 'MongooseError') {
-    return res.status(503).json({
+    res.status(503).json({
       success: false,
       message: '数据库服务暂时不可用',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    })
+    return
   }
   
   // 验证错误
   if (error.name === 'ValidationError') {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       message: '数据验证失败',
-      errors: Object.values(error.errors).map(err => err.message)
-    });
+      errors: Object.values(error.errors).map((err: any) => err.message)
+    })
+    return
   }
   
   // 转换错误
   if (error.name === 'CastError') {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       message: '无效的数据格式'
-    });
+    })
+    return
   }
   
   // 默认错误处理
-  next(error);
-});
+  next(error)
+})
 
-export default router;
+export default router

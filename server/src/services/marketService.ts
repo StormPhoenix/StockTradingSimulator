@@ -191,7 +191,10 @@ class MarketService {
    * @param config - 市场配置
    * @returns 创建的市场环境
    */
-  async createMarketEnvironment(config: MarketConfig): Promise<ApiResponse<Document>> {
+  async createMarketEnvironment(config: MarketConfig): Promise<ApiResponse<Document> & { 
+    statistics?: any; 
+    warnings?: string[] 
+  }> {
     try {
       // 验证配置
       const validation = MarketUtils.validateMarketConfig(config)
@@ -236,7 +239,13 @@ class MarketService {
       return {
         success: true,
         data: saveResult.data,
-        message: '市场环境创建成功'
+        message: '市场环境创建成功',
+        statistics: {
+          tradersGenerated: traders.length,
+          stocksGenerated: stocks.length,
+          totalAllocations: allocationResult.traders.reduce((sum: number, trader: any) => sum + trader.holdings.length, 0)
+        },
+        warnings: allocationResult.warnings || []
       }
     } catch (error) {
       // 如果是验证错误，抛出ValidationError（400状态码）

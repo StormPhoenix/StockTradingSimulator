@@ -5,36 +5,34 @@
  * database connectivity, and system health.
  */
 
-import express from 'express';
-import os from 'os';
-import { asyncHandler } from '../middleware/errorHandler.js';
-import { isDatabaseConnected, getDatabaseInfo } from '../config/database.js';
+import express, { Request, Response } from 'express'
+import os from 'os'
+import { asyncHandler } from '../middleware/errorHandler'
+import { isDatabaseConnected, getDatabaseInfo } from '../config/database'
 
-const router = express.Router();
+const router = express.Router()
 
 /**
  * Basic health check endpoint
  * 
  * @route GET /health
  * @access Public
- * @param {express.Request} req - Express request object
- * @param {express.Response} res - Express response object
  */
-router.get('/', asyncHandler(async (req, res) => {
-  const startTime = process.hrtime();
+router.get('/', asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const startTime = process.hrtime()
   
   // Check database connectivity
-  const dbConnected = isDatabaseConnected();
-  const dbInfo = getDatabaseInfo();
+  const dbConnected = isDatabaseConnected()
+  const dbInfo = getDatabaseInfo()
   
   // Calculate response time
-  const [seconds, nanoseconds] = process.hrtime(startTime);
-  const responseTime = seconds * 1000 + nanoseconds / 1000000; // Convert to milliseconds
+  const [seconds, nanoseconds] = process.hrtime(startTime)
+  const responseTime = seconds * 1000 + nanoseconds / 1000000 // Convert to milliseconds
   
   // Determine overall health status
-  const isHealthy = dbConnected;
-  const status = isHealthy ? 'OK' : 'ERROR';
-  const httpStatus = isHealthy ? 200 : 503;
+  const isHealthy = dbConnected
+  const status = isHealthy ? 'OK' : 'ERROR'
+  const httpStatus = isHealthy ? 200 : 503
   
   res.status(httpStatus).json({
     status,
@@ -61,36 +59,34 @@ router.get('/', asyncHandler(async (req, res) => {
           : 'not available'
       }
     }
-  });
-}));
+  })
+}))
 
 /**
  * Detailed health check endpoint
  * 
  * @route GET /health/detailed
  * @access Public
- * @param {express.Request} req - Express request object
- * @param {express.Response} res - Express response object
  */
-router.get('/detailed', asyncHandler(async (req, res) => {
-  const startTime = process.hrtime();
+router.get('/detailed', asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const startTime = process.hrtime()
   
   // Collect system information
-  const dbConnected = isDatabaseConnected();
-  const dbInfo = getDatabaseInfo();
+  const dbConnected = isDatabaseConnected()
+  const dbInfo = getDatabaseInfo()
   
   // Calculate response time
-  const [seconds, nanoseconds] = process.hrtime(startTime);
-  const responseTime = seconds * 1000 + nanoseconds / 1000000;
+  const [seconds, nanoseconds] = process.hrtime(startTime)
+  const responseTime = seconds * 1000 + nanoseconds / 1000000
   
   // Get process information
-  const memoryUsage = process.memoryUsage();
-  const cpuUsage = process.cpuUsage();
+  const memoryUsage = process.memoryUsage()
+  const cpuUsage = process.cpuUsage()
   
   // Determine health status
-  const isHealthy = dbConnected;
-  const status = isHealthy ? 'OK' : 'ERROR';
-  const httpStatus = isHealthy ? 200 : 503;
+  const isHealthy = dbConnected
+  const status = isHealthy ? 'OK' : 'ERROR'
+  const httpStatus = isHealthy ? 200 : 503
   
   res.status(httpStatus).json({
     status,
@@ -133,49 +129,45 @@ router.get('/detailed', asyncHandler(async (req, res) => {
       memory: memoryUsage.heapUsed < memoryUsage.heapTotal * 0.9, // Less than 90% heap usage
       uptime: process.uptime() > 0
     }
-  });
-}));
+  })
+}))
 
 /**
  * Readiness probe endpoint (for Kubernetes/container orchestration)
  * 
  * @route GET /health/ready
  * @access Public
- * @param {express.Request} req - Express request object
- * @param {express.Response} res - Express response object
  */
-router.get('/ready', asyncHandler(async (req, res) => {
-  const dbConnected = isDatabaseConnected();
+router.get('/ready', asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const dbConnected = isDatabaseConnected()
   
   if (dbConnected) {
     res.status(200).json({
       status: 'ready',
       timestamp: new Date().toISOString()
-    });
+    })
   } else {
     res.status(503).json({
       status: 'not ready',
       reason: 'Database not connected',
       timestamp: new Date().toISOString()
-    });
+    })
   }
-}));
+}))
 
 /**
  * Liveness probe endpoint (for Kubernetes/container orchestration)
  * 
  * @route GET /health/live
  * @access Public
- * @param {express.Request} req - Express request object
- * @param {express.Response} res - Express response object
  */
-router.get('/live', asyncHandler(async (req, res) => {
+router.get('/live', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   // Simple liveness check - if we can respond, we're alive
   res.status(200).json({
     status: 'alive',
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
-  });
-}));
+  })
+}))
 
-export default router;
+export default router

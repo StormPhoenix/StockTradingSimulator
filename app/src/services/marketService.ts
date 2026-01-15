@@ -140,9 +140,14 @@ class MarketService {
 
       // 检查响应数据结构
       if (response.data && response.data.data) {
-        // 标准格式：{ success: true, data: { data: [...], pagination: {...} } }
-        // 简化格式：{ success: true, data: [...] }
+        // 标准格式：{ success: true, data: [...], pagination: {...} }
         resultData = response.data.data
+        if (response.data.pagination) {
+          resultPagination = response.data.pagination
+        }
+      } else if (response.data && Array.isArray(response.data)) {
+        // 简化格式：直接返回数组
+        resultData = response.data
       }
 
       return {

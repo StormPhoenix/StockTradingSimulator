@@ -3,12 +3,46 @@
  * 处理市场环境相关的HTTP请求
  */
 
+import { Request, Response, NextFunction } from 'express'
 import MarketService from '../services/marketService'
+import type { ID, ApiResponse } from '@shared/common'
+import type { User } from '@shared/auth'
+
+// 扩展 Request 接口以支持用户信息
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string
+    email: string
+    role: string
+  }
+}
+
+// 查询参数接口
+interface MarketQueryParams {
+  page?: string
+  limit?: string
+  sort?: string
+  order?: 'asc' | 'desc'
+  populate?: string
+  search?: string
+}
+
+// 趋势查询参数
+interface TrendQueryParams {
+  period?: '7d' | '30d' | '90d'
+}
+
+// 批量删除请求体
+interface BatchDeleteRequest {
+  ids: string[]
+}
 
 /**
  * 市场控制器类
  */
 class MarketController {
+  private marketService: MarketService
+
   constructor() {
     this.marketService = new MarketService()
   }
@@ -17,7 +51,7 @@ class MarketController {
    * 创建市场环境
    * POST /api/market
    */
-  async createMarketEnvironment(req, res, next) {
+  async createMarketEnvironment(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const config = {
         ...req.body,
@@ -42,12 +76,12 @@ class MarketController {
    * 获取市场环境列表
    * GET /api/market
    */
-  async getMarketEnvironments(req, res, next) {
+  async getMarketEnvironments(req: Request<{}, {}, {}, MarketQueryParams>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { page, limit, sort, order, populate, search } = req.query
       
       // 构建查询条件
-      const query = {}
+      const query: any = {}
       if (search) {
         query.$or = [
           { name: { $regex: search, $options: 'i' } },
@@ -57,9 +91,9 @@ class MarketController {
 
       // 构建查询选项
       const options = {
-        page: parseInt(page) || 1,
-        limit: parseInt(limit) || 20,
-        sort: { [sort || 'createdAt']: order === 'asc' ? 1 : -1 },
+        page: parseInt(page || '1', 10),
+        limit: parseInt(limit || '20', 10),
+        sort: { [sort || 'createdAt']: order === 'asc' ? 1 as const : -1 as const },
         populate: populate === 'true'
       }
 
@@ -67,8 +101,8 @@ class MarketController {
       
       res.json({
         success: true,
-        data: result.data,
-        pagination: result.pagination
+        data: result.data.data,
+        pagination: result.data.pagination
       })
     } catch (error) {
       next(error)
@@ -79,7 +113,7 @@ class MarketController {
    * 获取指定市场环境详情
    * GET /api/market/:id
    */
-  async getMarketEnvironmentById(req, res, next) {
+  async getMarketEnvironmentById(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await this.marketService.getMarketEnvironmentById(req.params.id)
       
@@ -96,7 +130,7 @@ class MarketController {
    * 更新市场环境
    * PUT /api/market/:id
    */
-  async updateMarketEnvironment(req, res, next) {
+  async updateMarketEnvironment(req: AuthenticatedRequest & Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
       const updateData = {
         ...req.body,
@@ -119,7 +153,7 @@ class MarketController {
    * 删除市场环境
    * DELETE /api/market/:id
    */
-  async deleteMarketEnvironment(req, res, next) {
+  async deleteMarketEnvironment(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await this.marketService.deleteMarketEnvironment(req.params.id)
       
@@ -136,7 +170,7 @@ class MarketController {
    * 导出市场环境
    * GET /api/market/:id/export
    */
-  async exportMarketEnvironment(req, res, next) {
+  async exportMarketEnvironment(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await this.marketService.exportMarketEnvironment(req.params.id)
       
@@ -160,7 +194,7 @@ class MarketController {
    * 导入市场环境
    * POST /api/market/import
    */
-  async importMarketEnvironment(req, res, next) {
+  async importMarketEnvironment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await this.marketService.importMarketEnvironment(req.body)
       
@@ -168,7 +202,7 @@ class MarketController {
         success: true,
         data: result.data,
         message: result.message,
-        warnings: result.warnings
+        warnings: (result as any).warnings || []
       })
     } catch (error) {
       next(error)
@@ -179,10 +213,10 @@ class MarketController {
    * 验证市场环境
    * POST /api/market/:id/validate
    */
-  async validateMarketEnvironment(req, res, next) {
+  async validateMarketEnvironment(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
       const marketResult = await this.marketService.getMarketEnvironmentById(req.params.id)
-      const validation = this.marketService.validateMarketEnvironment(marketResult.data)
+      const validation = this.marketService.validateMarketEnvironment(marketResult.data as any)
       
       res.json({
         success: true,
@@ -203,12 +237,13 @@ class MarketController {
    * 获取市场统计摘要
    * GET /api/market/stats/summary
    */
-  async getMarketStatsSummary(req, res, next) {
+  async getMarketStatsSummary(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await this.marketService.getMarketEnvironments({}, { limit: 1000 })
+      const markets = result.data.data
       
       const summary = {
-        totalMarkets: result.data.length,
+        totalMarkets: markets.length,
         totalTraders: 0,
         totalStocks: 0,
         totalCapital: 0,
@@ -216,19 +251,19 @@ class MarketController {
         averageTraders: 0,
         averageStocks: 0,
         averageCapital: 0,
-        allocationAlgorithms: {},
-        riskProfileDistribution: {},
-        categoryDistribution: {},
+        allocationAlgorithms: {} as Record<string, number>,
+        riskProfileDistribution: {} as Record<string, number>,
+        categoryDistribution: {} as Record<string, number>,
         createdThisMonth: 0,
         createdThisWeek: 0
       }
 
-      if (result.data.length > 0) {
+      if (markets.length > 0) {
         const now = new Date()
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
         const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-        result.data.forEach(market => {
+        markets.forEach((market: any) => {
           // 基础统计
           summary.totalTraders += market.statistics?.traderCount || 0
           summary.totalStocks += market.statistics?.stockCount || 0
@@ -251,22 +286,22 @@ class MarketController {
           // 风险偏好分布
           if (market.statistics?.riskProfileDistribution) {
             Object.entries(market.statistics.riskProfileDistribution).forEach(([risk, count]) => {
-              summary.riskProfileDistribution[risk] = (summary.riskProfileDistribution[risk] || 0) + count
+              summary.riskProfileDistribution[risk] = (summary.riskProfileDistribution[risk] || 0) + (count as number)
             })
           }
 
           // 股票类别分布
           if (market.statistics?.stockDistribution) {
             Object.entries(market.statistics.stockDistribution).forEach(([category, count]) => {
-              summary.categoryDistribution[category] = (summary.categoryDistribution[category] || 0) + count
+              summary.categoryDistribution[category] = (summary.categoryDistribution[category] || 0) + (count as number)
             })
           }
         })
 
         // 计算平均值
-        summary.averageTraders = Math.round(summary.totalTraders / result.data.length * 100) / 100
-        summary.averageStocks = Math.round(summary.totalStocks / result.data.length * 100) / 100
-        summary.averageCapital = Math.round(summary.totalCapital / result.data.length * 100) / 100
+        summary.averageTraders = Math.round(summary.totalTraders / markets.length * 100) / 100
+        summary.averageStocks = Math.round(summary.totalStocks / markets.length * 100) / 100
+        summary.averageCapital = Math.round(summary.totalCapital / markets.length * 100) / 100
       }
 
       res.json({
@@ -283,13 +318,13 @@ class MarketController {
    * 获取市场环境趋势数据
    * GET /api/market/stats/trends
    */
-  async getMarketTrends(req, res, next) {
+  async getMarketTrends(req: Request<{}, {}, {}, TrendQueryParams>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { period = '30d' } = req.query
       
       // 计算时间范围
       const now = new Date()
-      let startDate
+      let startDate: Date
       
       switch (period) {
         case '7d':
@@ -310,10 +345,11 @@ class MarketController {
       }
 
       const result = await this.marketService.getMarketEnvironments(query, { limit: 1000 })
+      const markets = result.data.data
       
       // 按日期分组统计
-      const trends = {}
-      result.data.forEach(market => {
+      const trends: Record<string, any> = {}
+      markets.forEach((market: any) => {
         const date = market.createdAt.toISOString().split('T')[0]
         if (!trends[date]) {
           trends[date] = {
@@ -331,7 +367,7 @@ class MarketController {
         trends[date].totalCapital += market.totalCapital || 0
       })
 
-      const trendData = Object.values(trends).sort((a, b) => a.date.localeCompare(b.date))
+      const trendData = Object.values(trends).sort((a: any, b: any) => a.date.localeCompare(b.date))
 
       res.json({
         success: true,
@@ -339,9 +375,9 @@ class MarketController {
           period,
           trends: trendData,
           summary: {
-            totalMarkets: result.data.length,
+            totalMarkets: markets.length,
             totalDays: trendData.length,
-            averageMarketsPerDay: trendData.length > 0 ? result.data.length / trendData.length : 0
+            averageMarketsPerDay: trendData.length > 0 ? markets.length / trendData.length : 0
           }
         }
       })
@@ -354,18 +390,19 @@ class MarketController {
    * 批量删除市场环境
    * DELETE /api/market/batch
    */
-  async batchDeleteMarketEnvironments(req, res, next) {
+  async batchDeleteMarketEnvironments(req: Request<{}, {}, BatchDeleteRequest>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { ids } = req.body
       
       if (!Array.isArray(ids) || ids.length === 0) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: '请提供要删除的市场环境ID列表'
         })
+        return
       }
 
-      const results = []
+      const results: Array<{ id: string; success: boolean; error?: string }> = []
       let successCount = 0
       let failureCount = 0
 
@@ -375,7 +412,7 @@ class MarketController {
           results.push({ id, success: true })
           successCount++
         } catch (error) {
-          results.push({ id, success: false, error: error.message })
+          results.push({ id, success: false, error: (error as Error).message })
           failureCount++
         }
       }

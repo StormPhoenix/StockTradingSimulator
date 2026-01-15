@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { Request, Response } from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
@@ -9,8 +9,8 @@ import dotenv from 'dotenv'
 import { connectDatabase } from './config/database.js'
 import { apiConfig } from './config/api.js'
 import errorHandler from './middleware/errorHandler.js'
-import routes from './routes/index.js'
-import healthRoutes from './routes/healthRoutes.js'
+import routes from './routes/index'
+import healthRoutes from './routes/healthRoutes'
 
 // 加载环境变量
 dotenv.config()
@@ -51,7 +51,7 @@ app.use('/health', healthRoutes)
 app.use('/api/v1', routes)
 
 // 404处理
-app.use('*', (_, res) => {
+app.use('*', (_: Request, res: Response) => {
   res.status(404).json({
     success: false,
     error: {
@@ -65,7 +65,7 @@ app.use('*', (_, res) => {
 app.use(errorHandler)
 
 // 启动服务器
-async function startServer() {
+async function startServer(): Promise<void> {
   try {
     console.log('🚀 Starting Stock Trading Simulator Server...')
     console.log('📋 Environment:', process.env.NODE_ENV || 'development')
@@ -87,7 +87,7 @@ async function startServer() {
       console.log('━'.repeat(50))
       console.log('💡 Press Ctrl+C to stop the server')
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Failed to start server:', error.message)
     console.error('💥 Error details:', error)
     process.exit(1)

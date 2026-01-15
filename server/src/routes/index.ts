@@ -1,6 +1,6 @@
-import express from 'express'
-import templateRoutes from './templates.js'
-import marketRoutes from './market.js'
+import express, { Request, Response } from 'express'
+import templateRoutes from './templates'
+import marketRoutes from './market'
 
 const router = express.Router()
 
@@ -9,7 +9,7 @@ router.use('/templates', templateRoutes)
 router.use('/market', marketRoutes)
 
 // API信息
-router.get('/', (req, res) => {
+router.get('/', (req: Request, res: Response): void => {
   res.json({
     success: true,
     data: {
@@ -28,7 +28,7 @@ router.get('/', (req, res) => {
 })
 
 // 测试路由
-router.get('/test', (req, res) => {
+router.get('/test', (req: Request, res: Response): void => {
   res.json({
     success: true,
     message: 'API is working correctly',
