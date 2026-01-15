@@ -140,6 +140,38 @@ export interface MarketDataDocument extends Document {
   }
 }
 
+// ========== 模板模型 ==========
+export interface StockTemplateDocument extends Document {
+  name: string
+  symbol: string
+  issuePrice: number
+  totalShares: number
+  category: string
+  description?: string
+  status: 'active' | 'inactive'
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  
+  // 实例方法
+  toSafeObject(): any
+}
+
+export interface AITraderTemplateDocument extends Document {
+  name: string
+  initialCapital: number
+  riskProfile: 'conservative' | 'moderate' | 'aggressive'
+  tradingStyle: 'day_trading' | 'swing_trading' | 'position_trading'
+  maxPositions: number
+  parameters: Record<string, any>
+  description?: string
+  status: 'active' | 'inactive'
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  
+  // 实例方法
+  toSafeObject(): any
+}
+
 // ========== 系统模型 ==========
 export interface AuditLogDocument extends Document {
   userId?: ObjectId

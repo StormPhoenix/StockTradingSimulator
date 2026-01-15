@@ -4,57 +4,22 @@
  */
 
 import crypto from 'crypto'
+import type { ID } from '@shared/common'
+import type { 
+  Trader, 
+  Stock, 
+  Holding, 
+  Holder, 
+  MarketEnvironmentData,
+  ImportData,
+  ExportFormat,
+  ExportMetadata,
+  RiskProfile,
+  TradingStyle
+} from '@shared/market'
 
-// 交易员持仓接口
-interface TraderHolding {
-  stockSymbol: string
-  stockName: string
-  quantity: number
-  averagePrice: number
-  currentValue: number
-}
-
-// 交易员接口
-interface Trader {
-  id: string
-  name: string
-  templateId: string
-  initialCapital: number
-  currentCapital: number
-  riskProfile: string
-  tradingStyle: string
-  maxPositions: number
-  parameters: Record<string, any>
-  holdings: TraderHolding[]
-  createdAt?: Date
-}
-
-// 股票持有者接口
-interface StockHolder {
-  traderId: string
-  traderName: string
-  quantity: number
-  percentage: number
-}
-
-// 股票接口
-interface Stock {
-  id: string
-  symbol: string
-  name: string
-  templateId: string
-  issuePrice: number
-  currentPrice: number
-  totalShares: number
-  allocatedShares: number
-  availableShares: number
-  category: string
-  holders: StockHolder[]
-  createdAt?: Date
-}
-
-// 市场环境统计信息接口
-interface MarketStatistics {
+// 本地特定的市场统计信息接口（扩展版本）
+interface ExtendedMarketStatistics {
   traderCount: number
   stockCount: number
   averageCapitalPerTrader: number
@@ -74,65 +39,15 @@ interface MarketConfiguration {
   totalMarketValue: number
 }
 
-// 市场环境接口
-interface MarketEnvironment {
-  id: string
-  name: string
-  description?: string
+// 本地扩展的市场环境接口
+interface LocalMarketEnvironment extends MarketEnvironmentData {
   version?: string
-  createdAt: Date | string
   allocationAlgorithm: string
   allocationSeed: number
   totalCapital: number
   totalMarketValue: number
-  traders: Trader[]
-  stocks: Stock[]
-  statistics?: MarketStatistics
+  statistics?: ExtendedMarketStatistics
   metadata?: Record<string, any>
-}
-
-// 导出格式接口
-interface ExportFormat {
-  id: string
-  name: string
-  description: string
-  version: string
-  createdAt: Date | string
-  exportedAt: string
-  configuration: MarketConfiguration
-  traders: Array<{
-    id: string
-    name: string
-    templateId: string
-    initialCapital: number
-    currentCapital: number
-    riskProfile: string
-    tradingStyle: string
-    maxPositions: number
-    parameters: Record<string, any>
-    holdings: TraderHolding[]
-  }>
-  stocks: Array<{
-    id: string
-    symbol: string
-    name: string
-    templateId: string
-    issuePrice: number
-    currentPrice: number
-    totalShares: number
-    allocatedShares: number
-    availableShares: number
-    category: string
-    holders: StockHolder[]
-  }>
-  statistics?: MarketStatistics
-  metadata: {
-    exportFormat: string
-    exportTool: string
-    exportVersion: string
-    checksum: string | null
-    [key: string]: any
-  }
 }
 
 // 验证结果接口
@@ -165,7 +80,7 @@ class JsonUtils {
    * @param marketEnvironment - 市场环境对象
    * @returns 导出格式的JSON对象
    */
-  static toExportFormat(marketEnvironment: MarketEnvironment): ExportFormat {
+  static toExportFormat(marketEnvironment: LocalMarketEnvironment): ExportFormat {
     if (!marketEnvironment) {
       throw new Error('市场环境对象不能为空')
     }
@@ -174,12 +89,13 @@ class JsonUtils {
     const exportData: ExportFormat = {
       // 基础信息
       id: marketEnvironment.id,
-      name: marketEnvironment.name,
+      name: marketEnvironment.name || '',
       description: marketEnvironment.description || '',
       version: marketEnvironment.version || '1.0.0',
       
       // 时间戳
       createdAt: marketEnvironment.createdAt,
+      updatedAt: marketEnvironment.updatedAt,
       exportedAt: new Date().toISOString(),
       
       // 配置信息
@@ -194,20 +110,22 @@ class JsonUtils {
       traders: marketEnvironment.traders.map(trader => ({
         id: trader.id,
         name: trader.name,
-        templateId: trader.templateId,
+        templateId: trader.templateId || '',
         initialCapital: trader.initialCapital,
-        currentCapital: trader.currentCapital,
+        currentCapital: trader.currentCapital || trader.initialCapital,
         riskProfile: trader.riskProfile,
-        tradingStyle: trader.tradingStyle,
-        maxPositions: trader.maxPositions,
+        tradingStyle: trader.tradingStyle || 'day_trading',
+        maxPositions: trader.maxPositions || 10,
         parameters: trader.parameters || {},
-        holdings: trader.holdings.map(holding => ({
+        holdings: trader.holdings?.map(holding => ({
           stockSymbol: holding.stockSymbol,
-          stockName: holding.stockName,
+          stockName: holding.stockName || '',
           quantity: holding.quantity,
-          averagePrice: holding.averagePrice,
+          averagePrice: holding.averagePrice || 0,
           currentValue: holding.currentValue
-        }))
+        })) || [],
+        createdAt: trader.createdAt,
+        updatedAt: trader.updatedAt
       })),
       
       // 股票数据
@@ -215,19 +133,25 @@ class JsonUtils {
         id: stock.id,
         symbol: stock.symbol,
         name: stock.name,
-        templateId: stock.templateId,
-        issuePrice: stock.issuePrice,
+        sector: stock.sector || 'Technology',
+        templateId: stock.templateId || '',
+        issuePrice: stock.issuePrice || 0,
         currentPrice: stock.currentPrice,
-        totalShares: stock.totalShares,
-        allocatedShares: stock.allocatedShares,
-        availableShares: stock.availableShares,
-        category: stock.category,
-        holders: stock.holders.map(holder => ({
+        previousClose: stock.previousClose || stock.currentPrice,
+        volume: stock.volume || 0,
+        totalShares: stock.totalShares || 0,
+        allocatedShares: stock.allocatedShares || 0,
+        availableShares: stock.availableShares || 0,
+        category: stock.category || 'Technology',
+        isActive: stock.isActive !== undefined ? stock.isActive : true,
+        holders: stock.holders?.map(holder => ({
           traderId: holder.traderId,
           traderName: holder.traderName,
           quantity: holder.quantity,
           percentage: holder.percentage
-        }))
+        })) || [],
+        createdAt: stock.createdAt,
+        updatedAt: stock.updatedAt
       })),
       
       // 统计信息
@@ -245,7 +169,8 @@ class JsonUtils {
       
       // 元数据
       metadata: {
-        ...marketEnvironment.metadata,
+        version: '1.0.0',
+        exportedAt: new Date().toISOString(),
         exportFormat: 'StockTradeSimulator-MarketEnvironment-v1.0',
         exportTool: 'StockTradeSimulator-Server',
         exportVersion: '1.0.0',
@@ -264,7 +189,7 @@ class JsonUtils {
    * @param importData - 导入的JSON数据
    * @returns 市场环境对象
    */
-  static fromImportFormat(importData: ExportFormat): MarketEnvironment {
+  static fromImportFormat(importData: ExportFormat): MarketEnvironmentData {
     if (!importData) {
       throw new Error('导入数据不能为空')
     }
@@ -285,17 +210,16 @@ class JsonUtils {
     }
 
     // 转换为市场环境对象格式
-    const marketEnvironment: MarketEnvironment = {
+    const marketEnvironment: MarketEnvironmentData = {
       id: importData.id,
       name: importData.name,
       description: importData.description || '',
-      version: importData.version || '1.0.0',
-      
-      // 配置信息
-      allocationAlgorithm: importData.configuration?.allocationAlgorithm || 'imported',
-      allocationSeed: importData.configuration?.allocationSeed || 0,
-      totalCapital: importData.configuration?.totalCapital || 0,
-      totalMarketValue: importData.configuration?.totalMarketValue || 0,
+      difficulty: 'medium',
+      maxParticipants: 100,
+      duration: 60,
+      status: 'draft',
+      createdAt: importData.createdAt,
+      updatedAt: importData.updatedAt || importData.createdAt,
       
       // 交易员数据
       traders: importData.traders.map(trader => ({
@@ -304,12 +228,13 @@ class JsonUtils {
         templateId: trader.templateId,
         initialCapital: trader.initialCapital,
         currentCapital: trader.currentCapital || trader.initialCapital,
-        riskProfile: trader.riskProfile,
-        tradingStyle: trader.tradingStyle,
+        riskProfile: trader.riskProfile as RiskProfile,
+        tradingStyle: trader.tradingStyle as TradingStyle,
         maxPositions: trader.maxPositions || 10,
         parameters: trader.parameters || {},
         holdings: trader.holdings || [],
-        createdAt: new Date()
+        createdAt: new Date(),
+        updatedAt: new Date()
       })),
       
       // 股票数据
@@ -317,30 +242,24 @@ class JsonUtils {
         id: stock.id,
         symbol: stock.symbol,
         name: stock.name,
+        sector: stock.sector || 'Unknown',
+        currentPrice: stock.currentPrice || stock.issuePrice || 0,
+        previousClose: stock.previousClose || stock.currentPrice || stock.issuePrice || 0,
+        volume: stock.volume || 0,
+        isActive: stock.isActive !== undefined ? stock.isActive : true,
         templateId: stock.templateId,
         issuePrice: stock.issuePrice,
-        currentPrice: stock.currentPrice || stock.issuePrice,
         totalShares: stock.totalShares,
         allocatedShares: stock.allocatedShares || 0,
         availableShares: stock.availableShares || 0,
         category: stock.category,
         holders: stock.holders || [],
-        createdAt: new Date()
+        createdAt: new Date(),
+        updatedAt: new Date()
       })),
       
       // 统计信息
-      statistics: importData.statistics || undefined,
-      
-      // 元数据
-      metadata: {
-        ...importData.metadata,
-        importedAt: new Date(),
-        originalExportedAt: importData.exportedAt,
-        originalId: importData.id
-      },
-      
-      // 时间戳
-      createdAt: importData.createdAt ? new Date(importData.createdAt) : new Date()
+      statistics: importData.statistics || undefined
     }
 
     return marketEnvironment
@@ -503,7 +422,7 @@ class JsonUtils {
    * @param marketEnvironment - 市场环境对象
    * @returns 文件名
    */
-  static generateExportFilename(marketEnvironment: MarketEnvironment): string {
+  static generateExportFilename(marketEnvironment: MarketEnvironmentData): string {
     const name = marketEnvironment.name || 'market'
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')
     const id = marketEnvironment.id.slice(-8) // 取ID的后8位
@@ -585,8 +504,8 @@ class JsonUtils {
       stockCount: data.stocks ? data.stocks.length : 0,
       totalCapital: data.configuration?.totalCapital || 0,
       totalMarketValue: data.configuration?.totalMarketValue || 0,
-      createdAt: data.createdAt,
-      exportedAt: data.exportedAt,
+      createdAt: typeof data.createdAt === 'string' ? data.createdAt : data.createdAt.toISOString(),
+      exportedAt: typeof data.exportedAt === 'string' ? data.exportedAt : (data.exportedAt ? data.exportedAt.toISOString() : new Date().toISOString()),
       checksum: data.metadata?.checksum
     }
   }

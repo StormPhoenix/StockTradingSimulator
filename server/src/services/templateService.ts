@@ -1,12 +1,83 @@
-import StockTemplate from '../models/StockTemplate.js'
-import AITraderTemplate from '../models/TraderTemplate.js'
-import { NotFoundError, ConflictError, ValidationError } from '../middleware/errorHandler.js'
-import { validators, sanitizationUtils } from '../utils/validationUtils.ts'
+import StockTemplate from '../models/StockTemplate'
+import AITraderTemplate from '../models/TraderTemplate'
+import { NotFoundError, ConflictError, ValidationError } from '../middleware/errorHandler'
+import { validators, sanitizationUtils } from '../utils/validationUtils'
+import type { StockTemplateDocument, AITraderTemplateDocument } from '@shared/models'
+import type { ID, PaginationParams } from '@shared/common'
+import type { RiskProfile, TradingStyle } from '@shared/market'
+
+// 分页查询参数接口
+interface StockTemplateQueryParams extends PaginationParams {
+  search?: string
+  category?: string
+  status?: 'active' | 'inactive'
+  sort?: string
+  order?: string
+}
+
+interface AITraderTemplateQueryParams extends PaginationParams {
+  search?: string
+  riskProfile?: RiskProfile
+  tradingStyle?: TradingStyle
+  status?: 'active' | 'inactive'
+  sort?: string
+  order?: string
+}
+
+// 分页结果接口
+interface PaginationResult<T> {
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+}
+
+interface StockTemplateListResult extends PaginationResult<StockTemplateDocument> {
+  templates: Array<StockTemplateDocument & { id: string; issuePrice: number }>
+}
+
+interface AITraderTemplateListResult extends PaginationResult<AITraderTemplateDocument> {
+  templates: Array<AITraderTemplateDocument & { id: string; initialCapital: number }>
+}
+
+// 创建数据接口
+interface CreateStockTemplateData {
+  name: string
+  symbol: string
+  issuePrice: number
+  totalShares: number
+  category: string
+  description?: string
+  status?: 'active' | 'inactive'
+}
+
+interface CreateAITraderTemplateData {
+  name: string
+  initialCapital: number
+  riskProfile: 'conservative' | 'moderate' | 'aggressive'
+  tradingStyle: 'day_trading' | 'swing_trading' | 'position_trading'
+  maxPositions: number
+  parameters: Record<string, any>
+  description?: string
+  status?: 'active' | 'inactive'
+}
+
+// 资金统计接口
+interface CapitalStatistics {
+  minCapital: number
+  maxCapital: number
+  avgCapital: number
+  totalTemplates: number
+}
 
 // 股票模板服务
 export class StockTemplateService {
   // 获取股票模板列表
-  async getAll(params = {}) {
+  async getAll(params: StockTemplateQueryParams = {}): Promise<StockTemplateListResult> {
     try {
       const {
         page = 1,
@@ -16,10 +87,10 @@ export class StockTemplateService {
         search = '',
         category,
         status = 'active',
-      } = sanitizationUtils.sanitizePagination(params)
+      } = params as StockTemplateQueryParams
       
       // 构建查询条件
-      const query = { status }
+      const query: Record<string, any> = { status }
       
       if (search) {
         query.$or = [
@@ -34,7 +105,7 @@ export class StockTemplateService {
       }
       
       // 构建排序
-      const sortObj = {}
+      const sortObj: Record<string, 1 | -1> = {}
       sortObj[sort] = order === 'desc' ? -1 : 1
       
       // 执行查询
@@ -49,9 +120,9 @@ export class StockTemplateService {
       ])
       
       return {
-        templates: templates.map(template => ({
+        templates: templates.map((template: any) => ({
           ...template,
-          id: template._id,
+          id: template._id.toString(),
           issuePrice: parseFloat(template.issuePrice.toString()),
         })),
         pagination: {
@@ -70,7 +141,7 @@ export class StockTemplateService {
   }
   
   // 根据ID获取股票模板
-  async getById(id) {
+  async getById(id: ID): Promise<StockTemplateDocument & { id: string; issuePrice: number }> {
     try {
       const template = await StockTemplate.findById(id).lean()
       if (!template) {
@@ -79,10 +150,10 @@ export class StockTemplateService {
       
       return {
         ...template,
-        id: template._id,
+        id: template._id.toString(),
         issuePrice: parseFloat(template.issuePrice.toString()),
       }
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'CastError') {
         throw new NotFoundError('股票模板')
       }
@@ -91,7 +162,7 @@ export class StockTemplateService {
   }
   
   // 创建股票模板
-  async create(data, createdBy = null) {
+  async create(data: CreateStockTemplateData, createdBy: ID | null = null): Promise<any> {
     try {
       // 验证数据
       const validation = validators.validateStockTemplate(data)
@@ -116,7 +187,7 @@ export class StockTemplateService {
       await template.save()
       
       return template.toSafeObject()
-    } catch (error) {
+    } catch (error: any) {
       if (error.code === 11000) {
         throw new ConflictError(`股票代码 '${data.symbol}' 已存在`)
       }
@@ -125,7 +196,7 @@ export class StockTemplateService {
   }
   
   // 更新股票模板
-  async update(id, data, updatedBy = null) {
+  async update(id: ID, data: Partial<CreateStockTemplateData>, updatedBy: ID | null = null): Promise<any> {
     try {
       // 验证数据
       const validation = validators.validateStockTemplate(data)
@@ -148,7 +219,7 @@ export class StockTemplateService {
       }
       
       // 更新数据
-      const updateData = {
+      const updateData: Record<string, any> = {
         ...data,
         updatedAt: new Date(),
       }
@@ -163,8 +234,8 @@ export class StockTemplateService {
         { new: true, runValidators: true }
       )
       
-      return template.toSafeObject()
-    } catch (error) {
+      return template?.toSafeObject()
+    } catch (error: any) {
       if (error.name === 'CastError') {
         throw new NotFoundError('股票模板')
       }
@@ -176,7 +247,7 @@ export class StockTemplateService {
   }
   
   // 删除股票模板
-  async delete(id) {
+  async delete(id: ID): Promise<boolean> {
     try {
       const template = await StockTemplate.findById(id)
       if (!template) {
@@ -185,7 +256,7 @@ export class StockTemplateService {
       
       await template.deleteOne()
       return true
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'CastError') {
         throw new NotFoundError('股票模板')
       }
@@ -194,22 +265,22 @@ export class StockTemplateService {
   }
   
   // 根据分类获取模板
-  async getByCategory(category, options = {}) {
+  async getByCategory(category: string, options: Record<string, any> = {}): Promise<any[]> {
     const templates = await StockTemplate.findByCategory(category, options)
-    return templates.map(template => template.toSafeObject())
+    return templates.map((template: any) => template.toSafeObject())
   }
   
   // 搜索模板
-  async search(searchTerm, options = {}) {
+  async search(searchTerm: string, options: Record<string, any> = {}): Promise<any[]> {
     const templates = await StockTemplate.searchByName(searchTerm, options)
-    return templates.map(template => template.toSafeObject())
+    return templates.map((template: any) => template.toSafeObject())
   }
 }
 
 // AI交易员模板服务
 export class AITraderTemplateService {
   // 获取AI交易员模板列表
-  async getAll(params = {}) {
+  async getAll(params: AITraderTemplateQueryParams = {}): Promise<AITraderTemplateListResult> {
     try {
       const {
         page = 1,
@@ -220,10 +291,10 @@ export class AITraderTemplateService {
         riskProfile,
         tradingStyle,
         status = 'active',
-      } = sanitizationUtils.sanitizePagination(params)
+      } = params as AITraderTemplateQueryParams
       
       // 构建查询条件
-      const query = { status }
+      const query: Record<string, any> = { status }
       
       if (search) {
         query.$or = [
@@ -241,7 +312,7 @@ export class AITraderTemplateService {
       }
       
       // 构建排序
-      const sortObj = {}
+      const sortObj: Record<string, 1 | -1> = {}
       sortObj[sort] = order === 'desc' ? -1 : 1
       
       // 执行查询
@@ -256,9 +327,9 @@ export class AITraderTemplateService {
       ])
       
       return {
-        templates: templates.map(template => ({
+        templates: templates.map((template: any) => ({
           ...template,
-          id: template._id,
+          id: template._id.toString(),
           initialCapital: parseFloat(template.initialCapital.toString()),
         })),
         pagination: {
@@ -277,7 +348,7 @@ export class AITraderTemplateService {
   }
   
   // 根据ID获取AI交易员模板
-  async getById(id) {
+  async getById(id: ID): Promise<AITraderTemplateDocument & { id: string; initialCapital: number }> {
     try {
       const template = await AITraderTemplate.findById(id).lean()
       if (!template) {
@@ -286,10 +357,10 @@ export class AITraderTemplateService {
       
       return {
         ...template,
-        id: template._id,
+        id: template._id.toString(),
         initialCapital: parseFloat(template.initialCapital.toString()),
       }
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'CastError') {
         throw new NotFoundError('AI交易员模板')
       }
@@ -298,7 +369,7 @@ export class AITraderTemplateService {
   }
   
   // 创建AI交易员模板
-  async create(data, createdBy = null) {
+  async create(data: CreateAITraderTemplateData, createdBy: ID | null = null): Promise<any> {
     // 验证数据
     const validation = validators.validateTraderTemplate(data)
     if (!validation.isValid) {
@@ -318,7 +389,7 @@ export class AITraderTemplateService {
   }
   
   // 更新AI交易员模板
-  async update(id, data, updatedBy = null) {
+  async update(id: ID, data: Partial<CreateAITraderTemplateData>, updatedBy: ID | null = null): Promise<any> {
     try {
       // 验证数据
       const validation = validators.validateTraderTemplate(data)
@@ -333,7 +404,7 @@ export class AITraderTemplateService {
       }
       
       // 更新数据
-      const updateData = {
+      const updateData: Record<string, any> = {
         ...data,
         updatedAt: new Date(),
       }
@@ -344,8 +415,8 @@ export class AITraderTemplateService {
         { new: true, runValidators: true }
       )
       
-      return template.toSafeObject()
-    } catch (error) {
+      return template?.toSafeObject()
+    } catch (error: any) {
       if (error.name === 'CastError') {
         throw new NotFoundError('AI交易员模板')
       }
@@ -354,7 +425,7 @@ export class AITraderTemplateService {
   }
   
   // 删除AI交易员模板
-  async delete(id) {
+  async delete(id: ID): Promise<boolean> {
     try {
       const template = await AITraderTemplate.findById(id)
       if (!template) {
@@ -363,7 +434,7 @@ export class AITraderTemplateService {
       
       await template.deleteOne()
       return true
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'CastError') {
         throw new NotFoundError('AI交易员模板')
       }
@@ -372,19 +443,19 @@ export class AITraderTemplateService {
   }
   
   // 根据风险偏好获取模板
-  async getByRiskProfile(riskProfile, options = {}) {
+  async getByRiskProfile(riskProfile: 'conservative' | 'moderate' | 'aggressive', options: Record<string, any> = {}): Promise<any[]> {
     const templates = await AITraderTemplate.findByRiskProfile(riskProfile, options)
-    return templates.map(template => template.toSafeObject())
+    return templates.map((template: any) => template.toSafeObject())
   }
   
   // 根据交易风格获取模板
-  async getByTradingStyle(tradingStyle, options = {}) {
+  async getByTradingStyle(tradingStyle: 'day_trading' | 'swing_trading' | 'position_trading', options: Record<string, any> = {}): Promise<any[]> {
     const templates = await AITraderTemplate.findByTradingStyle(tradingStyle, options)
-    return templates.map(template => template.toSafeObject())
+    return templates.map((template: any) => template.toSafeObject())
   }
   
   // 获取资金范围统计
-  async getCapitalStatistics() {
+  async getCapitalStatistics(): Promise<CapitalStatistics> {
     const stats = await AITraderTemplate.getCapitalRange()
     return stats[0] || {
       minCapital: 0,

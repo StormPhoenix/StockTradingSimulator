@@ -3,27 +3,195 @@
  * 负责基于模板创建市场环境，包括交易员生成、股票分配等核心业务逻辑
  */
 
-import { ValidationError } from '../middleware/errorHandler.js'
-import MarketEnvironment from '../models/MarketEnvironment.js'
-import StockTemplate from '../models/StockTemplate.js'
-import AITraderTemplate from '../models/TraderTemplate.js'
+import { ValidationError } from '../middleware/errorHandler'
+import MarketEnvironment from '../models/MarketEnvironment'
+import StockTemplate from '../models/StockTemplate'
+import AITraderTemplate from '../models/TraderTemplate'
 import MarketUtils from '../utils/marketUtils'
-import AllocationService from './allocationService.js'
+import AllocationService from './allocationService'
+import type { ID, ApiResponse, Timestamp } from '@shared/common'
+import type { StockTemplateDocument, AITraderTemplateDocument } from '@shared/models'
+import type { RiskProfile, TradingStyle } from '@shared/market'
+import type { Document } from 'mongoose'
+
+// 导入分配算法类型
+type AllocationAlgorithm = 'weighted_random' | 'equal_distribution' | 'risk_based'
+
+// 市场配置接口
+export interface MarketConfig {
+  name?: string
+  description?: string
+  traderConfigs: TraderConfig[]
+  stockTemplateIds: string[]
+  allocationAlgorithm?: string
+  seed?: number
+  createdBy?: string
+}
+
+// 交易员配置接口
+export interface TraderConfig {
+  templateId: string
+  count: number
+  capitalMultiplier?: number
+  capitalVariation?: number
+}
+
+// 生成的交易员接口
+export interface GeneratedTrader {
+  id: ID
+  templateId: string
+  name: string
+  initialCapital: number
+  currentCapital: number
+  riskProfile: RiskProfile
+  tradingStyle: TradingStyle
+  maxPositions: number
+  holdings: any[]
+  parameters: Record<string, any>
+  createdAt: Date
+  updatedAt: Date
+}
+
+// 生成的股票接口
+export interface GeneratedStock {
+  id: ID
+  templateId: string
+  symbol: string
+  name: string
+  sector: string
+  issuePrice: number
+  currentPrice: number
+  previousClose: number
+  volume: number
+  totalShares: number
+  availableShares: number
+  allocatedShares: number
+  category: string
+  isActive: boolean
+  holders: any[]
+  createdAt: Date
+  updatedAt: Date
+}
+
+// 市场环境对象接口
+export interface MarketEnvironmentObject {
+  id: ID
+  name: string
+  description: string
+  traders: GeneratedTrader[]
+  stocks: GeneratedStock[]
+  totalCapital: number
+  totalMarketValue: number
+  allocationAlgorithm: string
+  allocationSeed: string
+  statistics: MarketStatistics
+  metadata: MarketMetadata
+  version: string
+}
+
+// 市场统计接口
+export interface MarketStatistics {
+  totalCapital: number
+  totalMarketValue: number
+  traderCount: number
+  stockCount: number
+  averageCapitalPerTrader: number
+  averageSharesPerStock: number
+}
+
+// 市场元数据接口
+export interface MarketMetadata {
+  createdBy: string
+  creationConfig: {
+    traderConfigs: TraderConfig[]
+    stockTemplateIds: string[]
+    allocationAlgorithm?: string
+  }
+  allocationResult: {
+    algorithm: string
+    seed: string
+    timestamp: Date
+  }
+}
+
+// 分配结果接口
+export interface AllocationResult {
+  traders: GeneratedTrader[]
+  stocks: GeneratedStock[]
+  algorithm: string
+  seed: string
+  timestamp: Date
+}
+
+// 模板数据接口
+export interface TemplateData {
+  traderTemplates: AITraderTemplateDocument[]
+  stockTemplates: StockTemplateDocument[]
+}
+
+// 市场环境验证结果接口
+export interface MarketValidationResult {
+  valid: boolean
+  errors: string[]
+  warnings: string[]
+}
+
+// 保存结果接口
+export interface SaveResult {
+  success: boolean
+  data: Document
+  warnings: string[]
+}
+
+// 导出数据接口
+export interface ExportData {
+  id: ID
+  name: string
+  description: string
+  version: string
+  createdAt: Date
+  traders: Partial<GeneratedTrader>[]
+  stocks: Partial<GeneratedStock>[]
+  statistics: MarketStatistics
+  metadata: MarketMetadata
+}
+
+// 导入数据接口
+export interface ImportData {
+  id: ID
+  name: string
+  description?: string
+  traders: GeneratedTrader[]
+  stocks: GeneratedStock[]
+  statistics?: MarketStatistics
+  metadata?: MarketMetadata
+  version?: string
+}
+
+// 查询选项接口
+export interface QueryOptions {
+  page?: number
+  limit?: number
+  sort?: Record<string, 1 | -1>
+  populate?: boolean
+}
 
 /**
  * 市场服务类
  */
 class MarketService {
+  private allocationService: AllocationService
+
   constructor() {
     this.allocationService = new AllocationService()
   }
 
   /**
    * 创建市场环境
-   * @param {Object} config - 市场配置
-   * @returns {Promise<Object>} 创建的市场环境
+   * @param config - 市场配置
+   * @returns 创建的市场环境
    */
-  async createMarketEnvironment(config) {
+  async createMarketEnvironment(config: MarketConfig): Promise<ApiResponse<Document>> {
     try {
       // 验证配置
       const validation = MarketUtils.validateMarketConfig(config)
@@ -44,16 +212,22 @@ class MarketService {
       const allocationResult = this.allocationService.allocateStocks(
         traders,
         stocks,
-        config.allocationAlgorithm || 'weighted_random',
-        config.seed
-      )
+        config.allocationAlgorithm as AllocationAlgorithm || 'weighted_random',
+        config.seed || null
+      ) as any
 
       // 创建市场环境对象
       const marketEnvironment = await this.createMarketEnvironmentObject({
         ...config,
         traders: allocationResult.traders,
         stocks: allocationResult.stocks,
-        allocationResult
+        allocationResult: {
+          traders: allocationResult.traders,
+          stocks: allocationResult.stocks,
+          algorithm: allocationResult.algorithm || config.allocationAlgorithm || 'weighted_random',
+          seed: allocationResult.seed || (config.seed || Math.random()).toString(),
+          timestamp: new Date()
+        }
       })
 
       // 保存到数据库
@@ -62,12 +236,11 @@ class MarketService {
       return {
         success: true,
         data: saveResult.data,
-        statistics: saveResult.data.statistics,
-        warnings: [...(validation.warnings || []), ...(saveResult.warnings || [])]
+        message: '市场环境创建成功'
       }
     } catch (error) {
       // 如果是验证错误，抛出ValidationError（400状态码）
-      if (error.message.includes('配置验证失败') || error.message.includes('未找到')) {
+      if (error instanceof Error && (error.message.includes('配置验证失败') || error.message.includes('未找到'))) {
         throw new ValidationError(error.message)
       }
       // 其他错误继续抛出为内部错误
@@ -77,10 +250,10 @@ class MarketService {
 
   /**
    * 加载模板数据
-   * @param {Object} config - 配置对象
-   * @returns {Promise<Object>} 模板数据
+   * @param config - 配置对象
+   * @returns 模板数据
    */
-  async loadTemplates(config) {
+  async loadTemplates(config: MarketConfig): Promise<TemplateData> {
     // 获取交易员模板ID列表
     const traderTemplateIds = config.traderConfigs.map(tc => tc.templateId)
     
@@ -98,13 +271,13 @@ class MarketService {
 
     // 验证模板存在性
     if (traderTemplates.length !== traderTemplateIds.length) {
-      const foundIds = traderTemplates.map(t => t._id.toString())
+      const foundIds = traderTemplates.map((t: any) => t._id.toString())
       const missingIds = traderTemplateIds.filter(id => !foundIds.includes(id))
       throw new Error(`未找到交易员模板: ${missingIds.join(', ')}`)
     }
 
     if (stockTemplates.length !== config.stockTemplateIds.length) {
-      const foundIds = stockTemplates.map(t => t._id.toString())
+      const foundIds = stockTemplates.map((t: any) => t._id.toString())
       const missingIds = config.stockTemplateIds.filter(id => !foundIds.includes(id))
       throw new Error(`未找到股票模板: ${missingIds.join(', ')}`)
     }
@@ -114,15 +287,15 @@ class MarketService {
 
   /**
    * 生成交易员列表
-   * @param {Array} traderConfigs - 交易员配置列表
-   * @param {Array} traderTemplates - 交易员模板列表
-   * @returns {Array} 生成的交易员列表
+   * @param traderConfigs - 交易员配置列表
+   * @param traderTemplates - 交易员模板列表
+   * @returns 生成的交易员列表
    */
-  async generateTraders(traderConfigs, traderTemplates) {
-    const traders = []
+  async generateTraders(traderConfigs: TraderConfig[], traderTemplates: AITraderTemplateDocument[]): Promise<GeneratedTrader[]> {
+    const traders: GeneratedTrader[] = []
 
     for (const config of traderConfigs) {
-      const template = traderTemplates.find(t => t._id.toString() === config.templateId)
+      const template = traderTemplates.find((t: any) => t._id.toString() === config.templateId)
       if (!template) {
         throw new Error(`未找到交易员模板: ${config.templateId}`)
       }
@@ -139,12 +312,12 @@ class MarketService {
 
   /**
    * 从模板创建交易员
-   * @param {Object} template - 交易员模板
-   * @param {Number} index - 序号
-   * @param {Object} config - 配置
-   * @returns {Object} 交易员对象
+   * @param template - 交易员模板
+   * @param index - 序号
+   * @param config - 配置
+   * @returns 交易员对象
    */
-  createTraderFromTemplate(template, index, config) {
+  createTraderFromTemplate(template: AITraderTemplateDocument, index: number, config: TraderConfig): GeneratedTrader {
     const traderId = MarketUtils.generateTraderId()
     const traderName = MarketUtils.generateTraderName(template.name, index)
 
@@ -160,7 +333,7 @@ class MarketService {
 
     return {
       id: traderId,
-      templateId: template._id,
+      templateId: (template as any)._id.toString(),
       name: traderName,
       initialCapital: Math.round(initialCapital * 100) / 100,
       currentCapital: Math.round(initialCapital * 100) / 100,
@@ -169,21 +342,22 @@ class MarketService {
       maxPositions: template.maxPositions,
       holdings: [],
       parameters: { ...template.parameters },
-      createdAt: new Date()
+      createdAt: new Date(),
+      updatedAt: new Date()
     }
   }
 
   /**
    * 生成股票列表
-   * @param {Array} stockTemplateIds - 股票模板ID列表
-   * @param {Array} stockTemplates - 股票模板列表
-   * @returns {Array} 生成的股票列表
+   * @param stockTemplateIds - 股票模板ID列表
+   * @param stockTemplates - 股票模板列表
+   * @returns 生成的股票列表
    */
-  async generateStocks(stockTemplateIds, stockTemplates) {
-    const stocks = []
+  async generateStocks(stockTemplateIds: string[], stockTemplates: StockTemplateDocument[]): Promise<GeneratedStock[]> {
+    const stocks: GeneratedStock[] = []
 
     for (const templateId of stockTemplateIds) {
-      const template = stockTemplates.find(t => t._id.toString() === templateId)
+      const template = stockTemplates.find((t: any) => t._id.toString() === templateId)
       if (!template) {
         throw new Error(`未找到股票模板: ${templateId}`)
       }
@@ -197,15 +371,15 @@ class MarketService {
 
   /**
    * 从模板创建股票
-   * @param {Object} template - 股票模板
-   * @returns {Object} 股票对象
+   * @param template - 股票模板
+   * @returns 股票对象
    */
-  createStockFromTemplate(template) {
+  createStockFromTemplate(template: StockTemplateDocument): GeneratedStock {
     const stockId = MarketUtils.generateStockId()
 
     return {
       id: stockId,
-      templateId: template._id,
+      templateId: (template as any)._id.toString(),
       symbol: template.symbol,
       name: template.name,
       issuePrice: template.issuePrice,
@@ -214,24 +388,33 @@ class MarketService {
       availableShares: template.totalShares,
       allocatedShares: 0,
       category: template.category,
+      sector: template.category || 'Technology',
+      previousClose: template.issuePrice,
+      volume: 0,
+      isActive: true,
       holders: [],
-      createdAt: new Date()
+      createdAt: new Date(),
+      updatedAt: new Date()
     }
   }
 
   /**
    * 创建市场环境对象
-   * @param {Object} params - 参数对象
-   * @returns {Object} 市场环境对象
+   * @param params - 参数对象
+   * @returns 市场环境对象
    */
-  async createMarketEnvironmentObject(params) {
+  async createMarketEnvironmentObject(params: MarketConfig & { 
+    traders: GeneratedTrader[]
+    stocks: GeneratedStock[]
+    allocationResult: AllocationResult
+  }): Promise<MarketEnvironmentObject> {
     const marketId = MarketUtils.generateMarketId()
     
     // 计算统计信息
     const statistics = MarketUtils.calculateMarketStatistics(params.traders, params.stocks)
 
     // 创建市场环境对象
-    const marketEnvironment = {
+    const marketEnvironment: MarketEnvironmentObject = {
       id: marketId,
       name: params.name || `Market_${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '')}`,
       description: params.description || '',
@@ -241,7 +424,14 @@ class MarketService {
       totalMarketValue: statistics.totalMarketValue,
       allocationAlgorithm: params.allocationAlgorithm || 'weighted_random',
       allocationSeed: params.allocationResult.seed,
-      statistics,
+      statistics: {
+        totalCapital: statistics.totalCapital,
+        totalMarketValue: statistics.totalMarketValue,
+        traderCount: statistics.traderCount,
+        stockCount: statistics.stockCount,
+        averageCapitalPerTrader: statistics.averageCapitalPerTrader,
+        averageSharesPerStock: params.stocks.reduce((sum, stock) => sum + stock.totalShares, 0) / params.stocks.length
+      },
       metadata: {
         createdBy: params.createdBy || 'system',
         creationConfig: {
@@ -263,12 +453,12 @@ class MarketService {
 
   /**
    * 验证市场环境
-   * @param {Object} marketEnvironment - 市场环境对象
-   * @returns {Object} 验证结果
+   * @param marketEnvironment - 市场环境对象
+   * @returns 验证结果
    */
-  validateMarketEnvironment(marketEnvironment) {
-    const errors = []
-    const warnings = []
+  validateMarketEnvironment(marketEnvironment: MarketEnvironmentObject): MarketValidationResult {
+    const errors: string[] = []
+    const warnings: string[] = []
 
     // 基础验证
     if (!marketEnvironment.traders || marketEnvironment.traders.length === 0) {
@@ -309,10 +499,10 @@ class MarketService {
 
   /**
    * 保存市场环境到数据库
-   * @param {Object} marketEnvironment - 市场环境对象
-   * @returns {Promise<Object>} 保存结果
+   * @param marketEnvironment - 市场环境对象
+   * @returns 保存结果
    */
-  async saveMarketEnvironment(marketEnvironment) {
+  async saveMarketEnvironment(marketEnvironment: MarketEnvironmentObject): Promise<SaveResult> {
     try {
       // 验证市场环境
       const validation = this.validateMarketEnvironment(marketEnvironment)
@@ -330,17 +520,18 @@ class MarketService {
         warnings: validation.warnings
       }
     } catch (error) {
-      throw new Error(`保存市场环境失败: ${error.message}`)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`保存市场环境失败: ${errorMessage}`)
     }
   }
 
   /**
    * 更新市场环境
-   * @param {String} id - 市场环境ID
-   * @param {Object} updateData - 更新数据
-   * @returns {Promise<Object>} 更新结果
+   * @param id - 市场环境ID
+   * @param updateData - 更新数据
+   * @returns 更新结果
    */
-  async updateMarketEnvironment(id, updateData) {
+  async updateMarketEnvironment(id: string, updateData: Partial<MarketConfig>): Promise<ApiResponse<Document>> {
     try {
       // 获取现有市场环境
       const existingMarket = await MarketEnvironment.findOne({ id })
@@ -351,10 +542,10 @@ class MarketService {
       // 如果更新了配置，需要重新生成市场环境
       if (updateData.traderConfigs || updateData.stockTemplateIds) {
         // 验证配置
-        const config = {
+        const config: MarketConfig = {
           ...existingMarket.toObject(),
           ...updateData
-        }
+        } as MarketConfig
         
         const validation = MarketUtils.validateMarketConfig(config)
         if (!validation.valid) {
@@ -372,9 +563,9 @@ class MarketService {
         const allocationResult = this.allocationService.allocateStocks(
           traders,
           stocks,
-          config.allocationAlgorithm || 'weighted_random',
-          config.seed
-        )
+          config.allocationAlgorithm as AllocationAlgorithm || 'weighted_random',
+          config.seed || null
+        ) as any
 
         // 更新市场环境对象
         Object.assign(existingMarket, {
@@ -400,17 +591,26 @@ class MarketService {
         message: '市场环境更新成功'
       }
     } catch (error) {
-      throw new Error(`更新市场环境失败: ${error.message}`)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`更新市场环境失败: ${errorMessage}`)
     }
   }
 
   /**
    * 获取市场环境列表
-   * @param {Object} query - 查询条件
-   * @param {Object} options - 查询选项
-   * @returns {Promise<Object>} 查询结果
+   * @param query - 查询条件
+   * @param options - 查询选项
+   * @returns 查询结果
    */
-  async getMarketEnvironments(query = {}, options = {}) {
+  async getMarketEnvironments(query: Record<string, any> = {}, options: QueryOptions = {}): Promise<ApiResponse<{
+    data: Document[]
+    pagination: {
+      page: number
+      limit: number
+      total: number
+      pages: number
+    }
+  }>> {
     try {
       const {
         page = 1,
@@ -439,25 +639,28 @@ class MarketService {
 
       return {
         success: true,
-        data: markets,
-        pagination: {
-          page,
-          limit,
-          total,
-          pages: Math.ceil(total / limit)
+        data: {
+          data: markets,
+          pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit)
+          }
         }
       }
     } catch (error) {
-      throw new Error(`获取市场环境列表失败: ${error.message}`)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`获取市场环境列表失败: ${errorMessage}`)
     }
   }
 
   /**
    * 根据ID获取市场环境
-   * @param {String} id - 市场环境ID
-   * @returns {Promise<Object>} 市场环境对象
+   * @param id - 市场环境ID
+   * @returns 市场环境对象
    */
-  async getMarketEnvironmentById(id) {
+  async getMarketEnvironmentById(id: string): Promise<ApiResponse<Document>> {
     try {
       const market = await MarketEnvironment.findOne({ id })
         .populate('traders.templateId', 'name riskProfile tradingStyle')
@@ -472,16 +675,17 @@ class MarketService {
         data: market
       }
     } catch (error) {
-      throw new Error(`获取市场环境失败: ${error.message}`)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`获取市场环境失败: ${errorMessage}`)
     }
   }
 
   /**
    * 删除市场环境
-   * @param {String} id - 市场环境ID
-   * @returns {Promise<Object>} 删除结果
+   * @param id - 市场环境ID
+   * @returns 删除结果
    */
-  async deleteMarketEnvironment(id) {
+  async deleteMarketEnvironment(id: string): Promise<ApiResponse<null>> {
     try {
       const result = await MarketEnvironment.deleteOne({ id })
 
@@ -491,31 +695,36 @@ class MarketService {
 
       return {
         success: true,
+        data: null,
         message: '市场环境删除成功'
       }
     } catch (error) {
-      throw new Error(`删除市场环境失败: ${error.message}`)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`删除市场环境失败: ${errorMessage}`)
     }
   }
 
   /**
    * 导出市场环境为JSON
-   * @param {String} id - 市场环境ID
-   * @returns {Promise<Object>} 导出数据
+   * @param id - 市场环境ID
+   * @returns 导出数据
    */
-  async exportMarketEnvironment(id) {
+  async exportMarketEnvironment(id: string): Promise<ApiResponse<{
+    data: ExportData
+    filename: string
+  }>> {
     try {
       const result = await this.getMarketEnvironmentById(id)
-      const market = result.data
+      const market = result.data as any
 
       // 创建导出格式的数据
-      const exportData = {
+      const exportData: ExportData = {
         id: market.id,
         name: market.name,
         description: market.description,
-        version: market.version,
+        version: market.version || '1.0.0',
         createdAt: market.createdAt,
-        traders: market.traders.map(trader => ({
+        traders: (market.traders || []).map((trader: any) => ({
           id: trader.id,
           name: trader.name,
           initialCapital: trader.initialCapital,
@@ -523,7 +732,7 @@ class MarketService {
           tradingStyle: trader.tradingStyle,
           holdings: trader.holdings
         })),
-        stocks: market.stocks.map(stock => ({
+        stocks: (market.stocks || []).map((stock: any) => ({
           id: stock.id,
           symbol: stock.symbol,
           name: stock.name,
@@ -532,26 +741,40 @@ class MarketService {
           category: stock.category,
           holders: stock.holders
         })),
-        statistics: market.statistics,
-        metadata: market.metadata
+        statistics: market.statistics || {
+          totalCapital: 0,
+          totalMarketValue: 0,
+          traderCount: 0,
+          stockCount: 0,
+          averageCapitalPerTrader: 0,
+          averageSharesPerStock: 0
+        },
+        metadata: market.metadata || {
+          createdBy: 'system',
+          creationConfig: { traderConfigs: [], stockTemplateIds: [] },
+          allocationResult: { algorithm: 'unknown', seed: '0', timestamp: new Date() }
+        }
       }
 
       return {
         success: true,
-        data: exportData,
-        filename: `market_${market.id}_${new Date().toISOString().slice(0, 10)}.json`
+        data: {
+          data: exportData,
+          filename: `market_${market.id}_${new Date().toISOString().slice(0, 10)}.json`
+        }
       }
     } catch (error) {
-      throw new Error(`导出市场环境失败: ${error.message}`)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`导出市场环境失败: ${errorMessage}`)
     }
   }
 
   /**
    * 从JSON导入市场环境
-   * @param {Object} importData - 导入数据
-   * @returns {Promise<Object>} 导入结果
+   * @param importData - 导入数据
+   * @returns 导入结果
    */
-  async importMarketEnvironment(importData) {
+  async importMarketEnvironment(importData: ImportData): Promise<ApiResponse<Document>> {
     try {
       // 验证导入数据格式
       this.validateImportData(importData)
@@ -561,7 +784,7 @@ class MarketService {
       const newName = `${importData.name}_imported_${Date.now()}`
 
       // 重构市场环境对象
-      const marketEnvironment = {
+      const marketEnvironment: MarketEnvironmentObject = {
         id: newId,
         name: newName,
         description: importData.description || '',
@@ -576,11 +799,26 @@ class MarketService {
         totalCapital: importData.statistics?.totalCapital || 0,
         totalMarketValue: importData.statistics?.totalMarketValue || 0,
         allocationAlgorithm: 'imported',
-        statistics: importData.statistics || {},
+        allocationSeed: 'imported',
+        statistics: importData.statistics || {
+          totalCapital: 0,
+          totalMarketValue: 0,
+          traderCount: importData.traders.length,
+          stockCount: importData.stocks.length,
+          averageCapitalPerTrader: 0,
+          averageSharesPerStock: 0
+        },
         metadata: {
-          ...importData.metadata,
-          importedAt: new Date(),
-          originalId: importData.id
+          createdBy: 'system',
+          creationConfig: {
+            traderConfigs: [],
+            stockTemplateIds: []
+          },
+          allocationResult: {
+            algorithm: 'imported',
+            seed: 'imported',
+            timestamp: new Date()
+          }
         },
         version: importData.version || '1.0.0'
       }
@@ -591,19 +829,19 @@ class MarketService {
       return {
         success: true,
         data: saveResult.data,
-        message: '市场环境导入成功',
-        warnings: saveResult.warnings
+        message: '市场环境导入成功'
       }
     } catch (error) {
-      throw new Error(`导入市场环境失败: ${error.message}`)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`导入市场环境失败: ${errorMessage}`)
     }
   }
 
   /**
    * 验证导入数据格式
-   * @param {Object} data - 导入数据
+   * @param data - 导入数据
    */
-  validateImportData(data) {
+  validateImportData(data: any): asserts data is ImportData {
     if (!data || typeof data !== 'object') {
       throw new Error('导入数据格式无效')
     }

@@ -159,6 +159,16 @@ export class BaseApiService {
     }
   }
 
+  // PATCH请求
+  async patch(url, data = {}, config = {}) {
+    try {
+      const response = await this.client.patch(`${this.baseUrl}${url}`, data, config)
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
   // DELETE请求
   async delete(url, config = {}) {
     try {

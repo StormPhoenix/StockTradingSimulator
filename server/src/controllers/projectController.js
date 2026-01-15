@@ -5,7 +5,7 @@
  * including request validation, service calls, and response formatting.
  */
 
-import * as projectService from '../services/projectService.js';
+import * as projectService from '../services/projectService';
 import { asyncHandler } from '../middleware/errorHandler.js';
 
 /**

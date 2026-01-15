@@ -3,8 +3,8 @@
  * 处理股票模板和AI交易员模板的CRUD操作
  */
 
-import templateServiceModule from '../services/templateService.js'
-import { validators } from '../utils/validationUtils.ts'
+import templateServiceModule from '../services/templateService'
+import { validators } from '../utils/validationUtils'
 
 const { stockTemplateService, aiTraderTemplateService } = templateServiceModule
 const { validateStockTemplate, validateTraderTemplate } = validators

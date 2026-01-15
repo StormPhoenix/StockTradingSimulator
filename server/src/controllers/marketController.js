@@ -3,7 +3,7 @@
  * 处理市场环境相关的HTTP请求
  */
 
-import MarketService from '../services/marketService.js'
+import MarketService from '../services/marketService'
 
 /**
  * 市场控制器类

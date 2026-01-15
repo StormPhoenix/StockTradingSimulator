@@ -4,7 +4,7 @@
  */
 
 import { defineStore } from 'pinia';
-import templateService from '../services/templateService.js';
+import templateService from '../services/templateService';
 
 export const useTemplatesStore = defineStore('templates', {
   state: () => ({

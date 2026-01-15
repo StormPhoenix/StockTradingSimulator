@@ -5,7 +5,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import marketService from '../services/marketService.js'
+import marketService from '../services/marketService'
 
 export const useMarketStore = defineStore('market', () => {
   // 状态

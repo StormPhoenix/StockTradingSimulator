@@ -3,7 +3,87 @@
  * 提供市场环境相关的API调用功能
  */
 
+import type { ID } from '@shared/common'
 import apiClient from './api.js'
+
+// API响应接口
+interface ApiResponse<T = any> {
+  success: boolean
+  data?: T
+  message?: string
+  warnings?: string[]
+  statistics?: any
+}
+
+// 分页信息接口
+interface PaginationInfo {
+  page: number
+  limit: number
+  total: number
+  pages: number
+}
+
+// 市场环境查询参数接口
+interface MarketQueryParams {
+  page?: number
+  limit?: number
+  search?: string
+  [key: string]: any
+}
+
+// 市场环境配置接口
+interface MarketConfig {
+  name: string
+  description?: string
+  traders: any[]
+  stocks: any[]
+  [key: string]: any
+}
+
+// 导出结果接口
+interface ExportResult {
+  success: boolean
+  data: any
+  filename: string
+}
+
+// 验证结果接口
+interface ValidationResult {
+  valid: boolean
+  errors: string[]
+  warnings: string[]
+  info: string[]
+  summary: {
+    totalIssues: number
+    criticalErrors: number
+    warnings: number
+    informational: number
+  }
+}
+
+// 导入数据接口
+interface ImportData {
+  id?: ID
+  name?: string
+  description?: string
+  traders?: any[]
+  stocks?: any[]
+  version?: string
+  [key: string]: any
+}
+
+// 搜索选项接口
+interface SearchOptions {
+  page?: number
+  limit?: number
+  [key: string]: any
+}
+
+// 复制选项接口
+interface DuplicateOptions {
+  name?: string
+  description?: string
+}
 
 /**
  * 市场服务类
@@ -11,10 +91,10 @@ import apiClient from './api.js'
 class MarketService {
   /**
    * 创建市场环境
-   * @param {Object} config - 市场配置
-   * @returns {Promise<Object>} API响应
+   * @param config - 市场配置
+   * @returns API响应
    */
-  async createMarketEnvironment(config) {
+  async createMarketEnvironment(config: MarketConfig): Promise<ApiResponse> {
     try {
       const response = await apiClient.post('/market', config)
       return {
@@ -24,7 +104,7 @@ class MarketService {
         warnings: response.data.warnings,
         message: response.data.message
       }
-    } catch (error) {
+    } catch (error: any) {
       // 提取具体的错误信息
       let errorMessage = '创建市场环境失败'
 
@@ -47,30 +127,30 @@ class MarketService {
 
   /**
    * 获取市场环境列表
-   * @param {Object} params - 查询参数
-   * @returns {Promise<Object>} API响应
+   * @param params - 查询参数
+   * @returns API响应
    */
-  async getMarketEnvironments(params = {}) {
+  async getMarketEnvironments(params: MarketQueryParams = {}): Promise<ApiResponse<any[]> & { pagination: PaginationInfo }> {
     try {
       const response = await apiClient.get('/market', { params })
 
-      // 处理不同的响应格式
-      let resultPagination = { page: 1, limit: 20, total: 0, pages: 0 }
+      // 处理后端API响应格式
+      let resultData: any[] = []
+      let resultPagination: PaginationInfo = { page: 1, limit: 20, total: 0, pages: 0 }
 
-      // 如果 response.data 直接是数组
-      resultPagination = {
-        page: 1,
-        limit: 20,
-        total: response.data.length,
-        pages: Math.ceil(response.data.length / 20)
+      // 检查响应数据结构
+      if (response.data && response.data.data) {
+        // 标准格式：{ success: true, data: { data: [...], pagination: {...} } }
+        // 简化格式：{ success: true, data: [...] }
+        resultData = response.data.data
       }
 
       return {
         success: true,
-        data: response.data,
+        data: resultData,
         pagination: resultPagination
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('获取市场环境列表失败:', error)
       console.error('错误详情:', error.response?.data)
 
@@ -81,11 +161,11 @@ class MarketService {
 
   /**
    * 更新市场环境
-   * @param {String} id - 市场环境ID
-   * @param {Object} updateData - 更新数据
-   * @returns {Promise<Object>} API响应
+   * @param id - 市场环境ID
+   * @param updateData - 更新数据
+   * @returns API响应
    */
-  async updateMarketEnvironment(id, updateData) {
+  async updateMarketEnvironment(id: ID, updateData: Partial<MarketConfig>): Promise<ApiResponse> {
     try {
       const response = await apiClient.put(`/market/${id}`, updateData)
       return {
@@ -93,7 +173,7 @@ class MarketService {
         data: response.data.data,
         message: response.data.message
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('更新市场环境失败:', error)
 
       // 提取具体的错误信息
@@ -118,17 +198,17 @@ class MarketService {
 
   /**
    * 根据ID获取市场环境详情
-   * @param {String} id - 市场环境ID
-   * @returns {Promise<Object>} API响应
+   * @param id - 市场环境ID
+   * @returns API响应
    */
-  async getMarketEnvironmentById(id) {
+  async getMarketEnvironmentById(id: ID): Promise<ApiResponse> {
     try {
       const response = await apiClient.get(`/market/${id}`)
       return {
         success: response.success,
         data: response.data
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('获取市场环境详情失败:', error)
       throw new Error(error.response?.data?.message || '获取市场环境详情失败')
     }
@@ -136,17 +216,17 @@ class MarketService {
 
   /**
    * 删除市场环境
-   * @param {String} id - 市场环境ID
-   * @returns {Promise<Object>} API响应
+   * @param id - 市场环境ID
+   * @returns API响应
    */
-  async deleteMarketEnvironment(id) {
+  async deleteMarketEnvironment(id: ID): Promise<ApiResponse> {
     try {
       const response = await apiClient.delete(`/market/${id}`)
       return {
         success: response.success,
         message: response.message
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('删除市场环境失败:', error)
       throw new Error(error.response?.data?.message || '删除市场环境失败')
     }
@@ -154,10 +234,10 @@ class MarketService {
 
   /**
    * 导出市场环境
-   * @param {String} id - 市场环境ID
-   * @returns {Promise<Object>} 导出数据
+   * @param id - 市场环境ID
+   * @returns 导出数据
    */
-  async exportMarketEnvironment(id) {
+  async exportMarketEnvironment(id: ID): Promise<ExportResult> {
     try {
       console.log('开始导出市场环境，ID:', id)
       const response = await apiClient.get(`/market/${id}/export`)
@@ -209,7 +289,7 @@ class MarketService {
       console.error('响应数据的键:', Object.keys(response.data))
       throw new Error('无法识别的导出数据格式')
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('导出市场环境失败:', error)
       console.error('错误详情:', error.response?.data)
       console.error('错误状态码:', error.response?.status)
@@ -221,10 +301,10 @@ class MarketService {
 
   /**
    * 导入市场环境
-   * @param {Object} importData - 导入数据
-   * @returns {Promise<Object>} API响应
+   * @param importData - 导入数据
+   * @returns API响应
    */
-  async importMarketEnvironment(importData) {
+  async importMarketEnvironment(importData: ImportData): Promise<ApiResponse> {
     try {
       const response = await apiClient.post('/market/import', importData)
       return {
@@ -233,7 +313,7 @@ class MarketService {
         message: response.data.message,
         warnings: response.data.warnings
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('导入市场环境失败:', error)
       throw new Error(error.response?.data?.message || '导入市场环境失败')
     }
@@ -241,17 +321,17 @@ class MarketService {
 
   /**
    * 验证市场环境
-   * @param {String} id - 市场环境ID
-   * @returns {Promise<Object>} 验证结果
+   * @param id - 市场环境ID
+   * @returns 验证结果
    */
-  async validateMarketEnvironment(id) {
+  async validateMarketEnvironment(id: ID): Promise<ApiResponse<ValidationResult>> {
     try {
       const response = await apiClient.post(`/market/${id}/validate`)
       return {
         success: true,
         data: response.data.data
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('验证市场环境失败:', error)
       throw new Error(error.response?.data?.message || '验证市场环境失败')
     }
@@ -259,15 +339,15 @@ class MarketService {
 
   /**
    * 验证导入数据
-   * @param {Object} importData - 导入数据
-   * @returns {Promise<Object>} 验证结果
+   * @param importData - 导入数据
+   * @returns 验证结果
    */
-  async validateImportData(importData) {
+  async validateImportData(importData: ImportData): Promise<ApiResponse<ValidationResult>> {
     try {
       // 前端简单验证
-      const errors = []
-      const warnings = []
-      const info = []
+      const errors: string[] = []
+      const warnings: string[] = []
+      const info: string[] = []
 
       // 基础字段验证
       if (!importData.id) errors.push('缺少市场环境ID')
@@ -311,7 +391,7 @@ class MarketService {
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('验证导入数据失败:', error)
       return {
         success: false,
@@ -333,16 +413,16 @@ class MarketService {
 
   /**
    * 获取市场统计摘要
-   * @returns {Promise<Object>} 统计数据
+   * @returns 统计数据
    */
-  async getMarketStatsSummary() {
+  async getMarketStatsSummary(): Promise<ApiResponse> {
     try {
       const response = await apiClient.get('/market/stats/summary')
       return {
         success: true,
         data: response.data.data
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('获取市场统计失败:', error)
       throw new Error(error.response?.data?.message || '获取市场统计失败')
     }
@@ -350,10 +430,10 @@ class MarketService {
 
   /**
    * 获取市场趋势数据
-   * @param {String} period - 时间周期
-   * @returns {Promise<Object>} 趋势数据
+   * @param period - 时间周期
+   * @returns 趋势数据
    */
-  async getMarketTrends(period = '30d') {
+  async getMarketTrends(period: string = '30d'): Promise<ApiResponse> {
     try {
       const response = await apiClient.get('/market/stats/trends', {
         params: { period }
@@ -362,7 +442,7 @@ class MarketService {
         success: true,
         data: response.data.data
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('获取市场趋势失败:', error)
       throw new Error(error.response?.data?.message || '获取市场趋势失败')
     }
@@ -370,10 +450,10 @@ class MarketService {
 
   /**
    * 批量删除市场环境
-   * @param {Array} ids - 市场环境ID列表
-   * @returns {Promise<Object>} API响应
+   * @param ids - 市场环境ID列表
+   * @returns API响应
    */
-  async batchDeleteMarketEnvironments(ids) {
+  async batchDeleteMarketEnvironments(ids: ID[]): Promise<ApiResponse> {
     try {
       const response = await apiClient.delete('/market/batch', {
         data: { ids }
@@ -383,7 +463,7 @@ class MarketService {
         data: response.data.data,
         message: response.data.message
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('批量删除市场环境失败:', error)
       throw new Error(error.response?.data?.message || '批量删除市场环境失败')
     }
@@ -391,11 +471,11 @@ class MarketService {
 
   /**
    * 搜索市场环境
-   * @param {String} keyword - 搜索关键词
-   * @param {Object} options - 搜索选项
-   * @returns {Promise<Object>} 搜索结果
+   * @param keyword - 搜索关键词
+   * @param options - 搜索选项
+   * @returns 搜索结果
    */
-  async searchMarketEnvironments(keyword, options = {}) {
+  async searchMarketEnvironments(keyword: string, options: SearchOptions = {}): Promise<ApiResponse<any[]> & { pagination?: PaginationInfo }> {
     try {
       const params = {
         search: keyword,
@@ -408,7 +488,7 @@ class MarketService {
         data: response.data.data,
         pagination: response.data.pagination
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('搜索市场环境失败:', error)
       throw new Error(error.response?.data?.message || '搜索市场环境失败')
     }
@@ -416,11 +496,11 @@ class MarketService {
 
   /**
    * 复制市场环境
-   * @param {String} id - 源市场环境ID
-   * @param {Object} options - 复制选项
-   * @returns {Promise<Object>} API响应
+   * @param id - 源市场环境ID
+   * @param options - 复制选项
+   * @returns API响应
    */
-  async duplicateMarketEnvironment(id, options = {}) {
+  async duplicateMarketEnvironment(id: ID, options: DuplicateOptions = {}): Promise<ApiResponse> {
     try {
       // 先导出原市场环境
       const exportResult = await this.exportMarketEnvironment(id)
@@ -442,7 +522,7 @@ class MarketService {
         data: importResult.data,
         message: '市场环境复制成功'
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('复制市场环境失败:', error)
       throw new Error(error.message || '复制市场环境失败')
     }

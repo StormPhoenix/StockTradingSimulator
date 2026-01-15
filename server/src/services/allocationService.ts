@@ -4,11 +4,67 @@
  */
 
 import crypto from 'crypto'
+import type { ID } from '@shared/common'
+import type { 
+  Trader, 
+  Stock, 
+  Holding, 
+  Holder, 
+  RiskProfile 
+} from '@shared/market'
+
+// 分配后的交易员接口
+interface AllocatedTrader extends Trader {
+  holdings: Holding[]
+}
+
+// 分配后的股票接口
+interface AllocatedStock extends Stock {
+  holders: Holder[]
+  allocatedShares: number
+  availableShares: number
+}
+
+// 分配结果接口
+interface AllocationResult {
+  traders: AllocatedTrader[]
+  stocks: AllocatedStock[]
+  algorithm: string
+  seed: number
+  timestamp: string
+}
+
+// 分配统计接口
+interface AllocationStatistics {
+  totalTraders: number
+  totalStocks: number
+  totalCapital: number
+  totalMarketValue: number
+  averageHoldingsPerTrader: number
+  averageHoldersPerStock: number
+  capitalDistribution: Record<string, number>
+  stockDistribution: Record<string, number>
+  allocationFairness: number
+  giniCoefficient: number
+}
+
+// 分配算法类型
+type AllocationAlgorithm = 'weighted_random' | 'equal_distribution' | 'risk_based'
+
+// 风险偏好分组
+type TradersByRisk = Record<string, AllocatedTrader[]>
+
+// 股票分类分组
+type StocksByCategory = Record<string, AllocatedStock[]>
 
 /**
  * 分配算法类
  */
 class AllocationService {
+  private algorithms: Record<AllocationAlgorithm, (traders: Trader[], stocks: Stock[]) => { traders: AllocatedTrader[]; stocks: AllocatedStock[] }>
+  private randomSeed?: number
+  private randomState?: number
+
   constructor() {
     this.algorithms = {
       weighted_random: this.weightedRandomAllocation.bind(this),
@@ -19,13 +75,18 @@ class AllocationService {
 
   /**
    * 执行股票分配
-   * @param {Array} traders - 交易员列表
-   * @param {Array} stocks - 股票列表
-   * @param {String} algorithm - 分配算法名称
-   * @param {Number} seed - 随机种子（可选）
-   * @returns {Object} 分配结果
+   * @param traders - 交易员列表
+   * @param stocks - 股票列表
+   * @param algorithm - 分配算法名称
+   * @param seed - 随机种子（可选）
+   * @returns 分配结果
    */
-  allocateStocks(traders, stocks, algorithm = 'weighted_random', seed = null) {
+  allocateStocks(
+    traders: Trader[], 
+    stocks: Stock[], 
+    algorithm: AllocationAlgorithm = 'weighted_random', 
+    seed: number | null = null
+  ): AllocationResult {
     if (!traders || traders.length === 0) {
       throw new Error('交易员列表不能为空')
     }
@@ -61,17 +122,17 @@ class AllocationService {
    * 加权随机分配算法
    * 基于交易员的初始资金进行加权随机分配
    */
-  weightedRandomAllocation(traders, stocks) {
-    const allocatedTraders = traders.map(trader => ({
+  private weightedRandomAllocation(traders: Trader[], stocks: Stock[]): { traders: AllocatedTrader[]; stocks: AllocatedStock[] } {
+    const allocatedTraders: AllocatedTrader[] = traders.map(trader => ({
       ...trader,
-      holdings: []
+      holdings: [] as Holding[]
     }))
 
-    const allocatedStocks = stocks.map(stock => ({
+    const allocatedStocks: AllocatedStock[] = stocks.map(stock => ({
       ...stock,
-      holders: [],
+      holders: [] as Holder[],
       allocatedShares: 0,
-      availableShares: stock.totalShares
+      availableShares: stock.totalShares || 0
     }))
 
     // 为每只股票进行分配
@@ -89,17 +150,17 @@ class AllocationService {
    * 平均分配算法
    * 尽可能平均地将股票分配给所有交易员
    */
-  equalDistributionAllocation(traders, stocks) {
-    const allocatedTraders = traders.map(trader => ({
+  private equalDistributionAllocation(traders: Trader[], stocks: Stock[]): { traders: AllocatedTrader[]; stocks: AllocatedStock[] } {
+    const allocatedTraders: AllocatedTrader[] = traders.map(trader => ({
       ...trader,
-      holdings: []
+      holdings: [] as Holding[]
     }))
 
-    const allocatedStocks = stocks.map(stock => ({
+    const allocatedStocks: AllocatedStock[] = stocks.map(stock => ({
       ...stock,
-      holders: [],
+      holders: [] as Holder[],
       allocatedShares: 0,
-      availableShares: stock.totalShares
+      availableShares: stock.totalShares || 0
     }))
 
     // 为每只股票进行平均分配
@@ -117,17 +178,17 @@ class AllocationService {
    * 基于风险的分配算法
    * 根据交易员的风险偏好和股票类别进行匹配分配
    */
-  riskBasedAllocation(traders, stocks) {
-    const allocatedTraders = traders.map(trader => ({
+  private riskBasedAllocation(traders: Trader[], stocks: Stock[]): { traders: AllocatedTrader[]; stocks: AllocatedStock[] } {
+    const allocatedTraders: AllocatedTrader[] = traders.map(trader => ({
       ...trader,
-      holdings: []
+      holdings: [] as Holding[]
     }))
 
-    const allocatedStocks = stocks.map(stock => ({
+    const allocatedStocks: AllocatedStock[] = stocks.map(stock => ({
       ...stock,
-      holders: [],
+      holders: [] as Holder[],
       allocatedShares: 0,
-      availableShares: stock.totalShares
+      availableShares: stock.totalShares || 0
     }))
 
     // 按风险偏好分组交易员
@@ -148,7 +209,7 @@ class AllocationService {
   /**
    * 为单只股票分配给交易员（加权随机）
    */
-  allocateStockToTraders(stock, traders) {
+  private allocateStockToTraders(stock: AllocatedStock, traders: AllocatedTrader[]): void {
     const totalCapital = traders.reduce((sum, trader) => sum + trader.initialCapital, 0)
     let remainingShares = stock.totalShares
 
@@ -160,7 +221,7 @@ class AllocationService {
       const trader = traders[i]
       
       // 计算分配数量（带随机因子）
-      let allocation
+      let allocation: number
       if (i === traders.length - 1) {
         // 最后一个交易员获得剩余所有股票
         allocation = remainingShares
@@ -203,7 +264,7 @@ class AllocationService {
   /**
    * 平均分配单只股票
    */
-  equallyAllocateStock(stock, traders) {
+  private equallyAllocateStock(stock: AllocatedStock, traders: AllocatedTrader[]): void {
     const baseAllocation = Math.floor(stock.totalShares / traders.length)
     let remainingShares = stock.totalShares - (baseAllocation * traders.length)
 
@@ -245,7 +306,7 @@ class AllocationService {
   /**
    * 按风险偏好分组交易员
    */
-  groupTradersByRisk(traders) {
+  private groupTradersByRisk(traders: AllocatedTrader[]): TradersByRisk {
     return traders.reduce((groups, trader) => {
       const risk = trader.riskProfile
       if (!groups[risk]) {
@@ -253,13 +314,13 @@ class AllocationService {
       }
       groups[risk].push(trader)
       return groups
-    }, {})
+    }, {} as TradersByRisk)
   }
 
   /**
    * 按类别分组股票
    */
-  groupStocksByCategory(stocks) {
+  private groupStocksByCategory(stocks: AllocatedStock[]): StocksByCategory {
     return stocks.reduce((groups, stock) => {
       const category = stock.category || 'other'
       if (!groups[category]) {
@@ -267,15 +328,15 @@ class AllocationService {
       }
       groups[category].push(stock)
       return groups
-    }, {})
+    }, {} as StocksByCategory)
   }
 
   /**
    * 执行基于风险的分配
    */
-  performRiskBasedAllocation(tradersByRisk, stocksByCategory) {
+  private performRiskBasedAllocation(tradersByRisk: TradersByRisk, stocksByCategory: StocksByCategory): void {
     // 风险偏好与股票类别的匹配规则
-    const riskCategoryMapping = {
+    const riskCategoryMapping: Record<string, string[]> = {
       conservative: ['finance', 'consumer'],
       moderate: ['tech', 'healthcare'],
       aggressive: ['energy', 'tech']
@@ -286,7 +347,7 @@ class AllocationService {
       const preferredCategories = riskCategoryMapping[riskProfile] || ['other']
       
       // 获取偏好的股票
-      const preferredStocks = []
+      const preferredStocks: AllocatedStock[] = []
       for (const category of preferredCategories) {
         if (stocksByCategory[category]) {
           preferredStocks.push(...stocksByCategory[category])
@@ -308,7 +369,7 @@ class AllocationService {
   /**
    * 为特定交易员组分配股票
    */
-  allocateStockToTradersGroup(stock, traders) {
+  private allocateStockToTradersGroup(stock: AllocatedStock, traders: AllocatedTrader[]): void {
     if (traders.length === 0 || stock.availableShares === 0) return
 
     const totalCapital = traders.reduce((sum, trader) => sum + trader.initialCapital, 0)
@@ -318,7 +379,7 @@ class AllocationService {
       const trader = traders[i]
       const weight = trader.initialCapital / totalCapital
       
-      let allocation
+      let allocation: number
       if (i === traders.length - 1) {
         allocation = remainingShares
       } else {
@@ -370,7 +431,7 @@ class AllocationService {
   /**
    * 验证分配结果
    */
-  validateAllocation(traders, stocks) {
+  private validateAllocation(traders: AllocatedTrader[], stocks: AllocatedStock[]): void {
     // 验证股票分配完整性
     for (const stock of stocks) {
       const totalAllocated = stock.holders.reduce((sum, holder) => sum + holder.quantity, 0)
@@ -403,7 +464,7 @@ class AllocationService {
   /**
    * 设置随机种子
    */
-  setSeed(seed) {
+  private setSeed(seed: number): void {
     this.randomSeed = seed
     this.randomState = seed
   }
@@ -411,14 +472,14 @@ class AllocationService {
   /**
    * 生成随机种子
    */
-  generateSeed() {
+  private generateSeed(): number {
     return Math.floor(Math.random() * 1000000)
   }
 
   /**
    * 获取随机浮点数
    */
-  getRandomFloat(min, max) {
+  private getRandomFloat(min: number, max: number): number {
     if (this.randomState !== undefined) {
       // 使用线性同余生成器确保可重现性
       this.randomState = (this.randomState * 1664525 + 1013904223) % Math.pow(2, 32)
@@ -432,15 +493,15 @@ class AllocationService {
   /**
    * 获取随机整数
    */
-  getRandomInt(min, max) {
+  private getRandomInt(min: number, max: number): number {
     return Math.floor(this.getRandomFloat(min, max + 1))
   }
 
   /**
    * 计算分配统计信息
    */
-  calculateAllocationStatistics(traders, stocks) {
-    const stats = {
+  calculateAllocationStatistics(traders: AllocatedTrader[], stocks: AllocatedStock[]): AllocationStatistics {
+    const stats: AllocationStatistics = {
       totalTraders: traders.length,
       totalStocks: stocks.length,
       totalCapital: traders.reduce((sum, trader) => sum + trader.initialCapital, 0),
@@ -488,7 +549,7 @@ class AllocationService {
   /**
    * 计算基尼系数
    */
-  calculateGiniCoefficient(values) {
+  private calculateGiniCoefficient(values: number[]): number {
     if (values.length === 0) return 0
     
     const sortedValues = [...values].sort((a, b) => a - b)
@@ -508,7 +569,7 @@ class AllocationService {
   /**
    * 获取资金范围
    */
-  getCapitalRange(capital) {
+  private getCapitalRange(capital: number): string {
     if (capital < 10000) return '< 1万'
     if (capital < 100000) return '1-10万'
     if (capital < 1000000) return '10-100万'
