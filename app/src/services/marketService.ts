@@ -4,7 +4,7 @@
  */
 
 import type { ID } from '@shared/common'
-import apiClient from './api.js'
+import apiClient from './api'
 
 // API响应接口
 interface ApiResponse<T = any> {

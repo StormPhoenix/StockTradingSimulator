@@ -5,8 +5,8 @@
  * including project information retrieval and health checks.
  */
 
-import api, { healthCheck } from './api.js'
-import { apiEndpoints } from '../config/api.js'
+import api, { healthCheck } from './api'
+import { apiEndpoints } from '../config/api'
 import type { ID } from '@shared/common'
 
 // 项目查询选项接口
@@ -45,10 +45,10 @@ interface ProjectStats {
 
 // 健康检查结果接口
 interface HealthCheckResult {
-  status: 'healthy' | 'unhealthy'
+  status: string
+  timestamp?: string
   data?: any
   error?: string
-  timestamp: string
 }
 
 // 验证结果接口

@@ -4,7 +4,7 @@
  */
 
 import type { ID } from '@shared/common'
-import apiService from './api.js'
+import apiService from './api'
 
 // 查询参数接口
 interface StockTemplateQueryParams {

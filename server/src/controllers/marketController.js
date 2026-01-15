@@ -142,14 +142,14 @@ class MarketController {
       
       // 设置下载响应头
       res.setHeader('Content-Type', 'application/json; charset=utf-8')
-      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`)
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`)
       res.setHeader('Cache-Control', 'no-cache')
       
-      // 返回完整的结果，包含success、data和filename
+      // 返回前端期望的格式：{ success: true, data: exportData, filename: string }
       res.json({
         success: result.success,
-        data: result.data,
-        filename: result.filename
+        data: result.data.data,  // 导出的实际数据
+        filename: result.data.filename  // 文件名
       })
     } catch (error) {
       next(error)

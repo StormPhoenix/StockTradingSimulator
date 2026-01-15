@@ -169,7 +169,7 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Search } from '@element-plus/icons-vue';
-import { useTemplatesStore } from '../../stores/templates.js';
+import { useTemplatesStore } from '../../stores/templates';
 
 const templatesStore = useTemplatesStore();
 
