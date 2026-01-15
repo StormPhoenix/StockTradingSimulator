@@ -1,8 +1,35 @@
-import mongoose from 'mongoose'
-import { BaseSchema, validators, commonFields, registerModel } from './index.js'
+import mongoose, { Document, Model, Types } from 'mongoose'
+import { BaseSchema, validators, commonFields, registerModel } from './index'
+
+// 类型定义
+export interface IStockTemplate {
+  name: string
+  symbol: string
+  issuePrice: number
+  totalShares: number
+  category?: 'tech' | 'finance' | 'healthcare' | 'energy' | 'consumer'
+  status: 'active' | 'inactive'
+  createdBy?: string
+  description?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Document 接口
+export interface IStockTemplateDocument extends IStockTemplate, Document {
+  marketValue: number
+  toSafeObject(): any
+}
+
+// Model 接口
+export interface IStockTemplateModel extends Model<IStockTemplateDocument> {
+  findBySymbol(symbol: string): any
+  findByCategory(category: string, options?: any): any
+  searchByName(searchTerm: string, options?: any): any
+}
 
 // 股票模板Schema
-const stockTemplateSchema = new BaseSchema({
+const stockTemplateSchema = new BaseSchema<IStockTemplateDocument>({
   // 股票名称
   name: {
     type: String,
@@ -30,8 +57,8 @@ const stockTemplateSchema = new BaseSchema({
     min: [0.01, '发行价格至少0.01元'],
     max: [999999.99, '发行价格不能超过999999.99元'],
     validate: validators.price,
-    get: (value) => value ? parseFloat(value.toString()) : value,
-    set: (value) => value ? mongoose.Types.Decimal128.fromString(value.toString()) : value,
+    get: (value: any) => value ? parseFloat(value.toString()) : value,
+    set: (value: any) => value ? mongoose.Types.Decimal128.fromString(value.toString()) : value,
   },
   
   // 总股本
@@ -63,12 +90,12 @@ stockTemplateSchema.index({ category: 1, status: 1 })
 stockTemplateSchema.index({ name: 'text', description: 'text' })
 
 // 虚拟字段
-stockTemplateSchema.virtual('marketValue').get(function() {
+stockTemplateSchema.virtual('marketValue').get(function(this: IStockTemplateDocument) {
   return this.issuePrice * this.totalShares
 })
 
 // 实例方法
-stockTemplateSchema.methods.toSafeObject = function() {
+stockTemplateSchema.methods.toSafeObject = function(this: IStockTemplateDocument) {
   const obj = this.toObject()
   return {
     id: obj.id,
@@ -87,16 +114,22 @@ stockTemplateSchema.methods.toSafeObject = function() {
 }
 
 // 静态方法
-stockTemplateSchema.statics.findBySymbol = function(symbol) {
+stockTemplateSchema.statics.findBySymbol = function(symbol: string) {
   return this.findOne({ symbol: symbol.toUpperCase(), status: 'active' })
 }
 
-stockTemplateSchema.statics.findByCategory = function(category, options = {}) {
+stockTemplateSchema.statics.findByCategory = function(
+  category: string,
+  options: any = {}
+) {
   const query = { category, status: 'active' }
   return this.find(query, null, options)
 }
 
-stockTemplateSchema.statics.searchByName = function(searchTerm, options = {}) {
+stockTemplateSchema.statics.searchByName = function(
+  searchTerm: string,
+  options: any = {}
+) {
   const query = {
     $text: { $search: searchTerm },
     status: 'active',
@@ -104,17 +137,8 @@ stockTemplateSchema.statics.searchByName = function(searchTerm, options = {}) {
   return this.find(query, null, options)
 }
 
-// 查询助手
-stockTemplateSchema.query.active = function() {
-  return this.where({ status: 'active' })
-}
-
-stockTemplateSchema.query.byCategory = function(category) {
-  return this.where({ category })
-}
-
 // 中间件
-stockTemplateSchema.pre('save', function(next) {
+stockTemplateSchema.pre('save', function(this: IStockTemplateDocument, next) {
   // 确保symbol是大写
   if (this.symbol) {
     this.symbol = this.symbol.toUpperCase()
@@ -134,15 +158,16 @@ stockTemplateSchema.pre('save', function(next) {
 
 stockTemplateSchema.pre('findOneAndUpdate', function(next) {
   // 确保更新时symbol也是大写
-  if (this.getUpdate().$set && this.getUpdate().$set.symbol) {
-    this.getUpdate().$set.symbol = this.getUpdate().$set.symbol.toUpperCase()
+  const update = this.getUpdate() as any
+  if (update.$set && update.$set.symbol) {
+    update.$set.symbol = update.$set.symbol.toUpperCase()
   }
   
   next()
 })
 
 // 删除前检查是否被使用
-stockTemplateSchema.pre('deleteOne', { document: true, query: false }, async function(next) {
+stockTemplateSchema.pre('deleteOne', { document: true, query: false }, async function(this: IStockTemplateDocument, next) {
   try {
     // 这里可以检查是否有市场环境在使用这个模板
     // const marketCount = await MarketEnvironment.countDocuments({ 'stocks.templateId': this._id })
@@ -151,11 +176,11 @@ stockTemplateSchema.pre('deleteOne', { document: true, query: false }, async fun
     // }
     next()
   } catch (error) {
-    next(error)
+    next(error as Error)
   }
 })
 
 // 注册模型
-const StockTemplate = registerModel('StockTemplate', stockTemplateSchema)
+const StockTemplate = registerModel<IStockTemplateDocument>('StockTemplate', stockTemplateSchema) as IStockTemplateModel
 
 export default StockTemplate

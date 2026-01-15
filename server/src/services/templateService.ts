@@ -152,7 +152,7 @@ export class StockTemplateService {
         ...template,
         id: template._id.toString(),
         issuePrice: parseFloat(template.issuePrice.toString()),
-      }
+      } as unknown as StockTemplateDocument & { id: string; issuePrice: number }
     } catch (error: any) {
       if (error.name === 'CastError') {
         throw new NotFoundError('股票模板')
@@ -359,7 +359,7 @@ export class AITraderTemplateService {
         ...template,
         id: template._id.toString(),
         initialCapital: parseFloat(template.initialCapital.toString()),
-      }
+      } as unknown as AITraderTemplateDocument & { id: string; initialCapital: number }
     } catch (error: any) {
       if (error.name === 'CastError') {
         throw new NotFoundError('AI交易员模板')

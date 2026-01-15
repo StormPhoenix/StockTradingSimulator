@@ -3,10 +3,101 @@
  * 用于表示完整的市场环境状态，包含所有交易员和股票
  */
 
-import mongoose from 'mongoose'
+import mongoose, { Document, Schema, Model } from 'mongoose'
+
+// 类型定义
+export interface IStockHolding {
+  stockSymbol: string
+  stockName: string
+  quantity: number
+  averagePrice: number
+  currentValue: number
+}
+
+export interface IShareHolder {
+  traderId: string
+  traderName: string
+  quantity: number
+  percentage: number
+}
+
+export interface IAITrader {
+  id: string
+  templateId: mongoose.Types.ObjectId
+  name: string
+  initialCapital: number
+  currentCapital: number
+  riskProfile: 'conservative' | 'moderate' | 'aggressive'
+  tradingStyle?: 'day_trading' | 'swing_trading' | 'position_trading'
+  maxPositions: number
+  holdings: IStockHolding[]
+  parameters: Record<string, any>
+  createdAt: Date
+}
+
+export interface IStock {
+  id: string
+  templateId: mongoose.Types.ObjectId
+  symbol: string
+  name: string
+  issuePrice: number
+  currentPrice: number
+  totalShares: number
+  availableShares: number
+  allocatedShares: number
+  category?: 'tech' | 'finance' | 'healthcare' | 'energy' | 'consumer'
+  holders: IShareHolder[]
+  createdAt: Date
+}
+
+export interface IStatistics {
+  traderCount: number
+  stockCount: number
+  averageCapitalPerTrader: number
+  capitalDistribution: Record<string, number>
+  stockDistribution: Record<string, number>
+  allocationFairness?: number
+  giniCoefficient?: number
+}
+
+export interface IMarketEnvironment {
+  id: string
+  name?: string
+  description?: string
+  traders: IAITrader[]
+  stocks: IStock[]
+  totalCapital: number
+  totalMarketValue: number
+  allocationAlgorithm: 'weighted_random' | 'equal_distribution' | 'risk_based'
+  allocationSeed?: number
+  statistics: IStatistics
+  metadata: Record<string, any>
+  version: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Document 接口
+export interface IMarketEnvironmentDocument extends Omit<IMarketEnvironment, 'id'>, Document {
+  isValid: boolean
+  calculateTotalCapital(): number
+  calculateTotalMarketValue(): number
+  updateStatistics(): void
+  calculateCapitalDistribution(): Record<string, number>
+  calculateStockDistribution(): Record<string, number>
+  calculateAllocationFairness(): number
+  calculateGiniCoefficient(): number
+  getCapitalRange(capital: number): string
+}
+
+// Model 接口
+export interface IMarketEnvironmentModel extends Model<IMarketEnvironmentDocument> {
+  findByTraderCount(min: number, max: number): Promise<IMarketEnvironmentDocument[]>
+  findByStockCount(min: number, max: number): Promise<IMarketEnvironmentDocument[]>
+}
 
 // 股票持仓结构
-const StockHoldingSchema = new mongoose.Schema({
+const StockHoldingSchema = new Schema<IStockHolding>({
   stockSymbol: {
     type: String,
     required: true,
@@ -30,18 +121,18 @@ const StockHoldingSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 0.01,
-    set: v => Math.round(v * 100) / 100 // 保留2位小数
+    set: (v: number) => Math.round(v * 100) / 100 // 保留2位小数
   },
   currentValue: {
     type: Number,
     required: true,
     min: 0,
-    set: v => Math.round(v * 100) / 100 // 保留2位小数
+    set: (v: number) => Math.round(v * 100) / 100 // 保留2位小数
   }
 }, { _id: false })
 
 // 股东结构
-const ShareHolderSchema = new mongoose.Schema({
+const ShareHolderSchema = new Schema<IShareHolder>({
   traderId: {
     type: String,
     required: true,
@@ -66,12 +157,12 @@ const ShareHolderSchema = new mongoose.Schema({
     required: true,
     min: 0,
     max: 100,
-    set: v => Math.round(v * 10000) / 10000 // 保留4位小数
+    set: (v: number) => Math.round(v * 10000) / 10000 // 保留4位小数
   }
 }, { _id: false })
 
 // AI交易员运行时对象
-const AITraderSchema = new mongoose.Schema({
+const AITraderSchema = new Schema<IAITrader>({
   id: {
     type: String,
     required: true,
@@ -79,7 +170,7 @@ const AITraderSchema = new mongoose.Schema({
     trim: true
   },
   templateId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'AITraderTemplate',
     required: true
   },
@@ -94,13 +185,13 @@ const AITraderSchema = new mongoose.Schema({
     required: true,
     min: 1000,
     max: 100000000,
-    set: v => Math.round(v * 100) / 100 // 保留2位小数
+    set: (v: number) => Math.round(v * 100) / 100 // 保留2位小数
   },
   currentCapital: {
     type: Number,
     required: true,
     min: 0,
-    set: v => Math.round(v * 100) / 100 // 保留2位小数
+    set: (v: number) => Math.round(v * 100) / 100 // 保留2位小数
   },
   riskProfile: {
     type: String,
@@ -123,7 +214,7 @@ const AITraderSchema = new mongoose.Schema({
   },
   holdings: [StockHoldingSchema],
   parameters: {
-    type: mongoose.Schema.Types.Mixed,
+    type: Schema.Types.Mixed,
     default: {}
   },
   createdAt: {
@@ -133,7 +224,7 @@ const AITraderSchema = new mongoose.Schema({
 }, { _id: false })
 
 // 股票运行时对象
-const StockSchema = new mongoose.Schema({
+const StockSchema = new Schema<IStock>({
   id: {
     type: String,
     required: true,
@@ -141,7 +232,7 @@ const StockSchema = new mongoose.Schema({
     trim: true
   },
   templateId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'StockTemplate',
     required: true
   },
@@ -163,13 +254,13 @@ const StockSchema = new mongoose.Schema({
     required: true,
     min: 0.01,
     max: 999999.99,
-    set: v => Math.round(v * 100) / 100 // 保留2位小数
+    set: (v: number) => Math.round(v * 100) / 100 // 保留2位小数
   },
   currentPrice: {
     type: Number,
     required: true,
     min: 0.01,
-    set: v => Math.round(v * 100) / 100 // 保留2位小数
+    set: (v: number) => Math.round(v * 100) / 100 // 保留2位小数
   },
   totalShares: {
     type: Number,
@@ -211,7 +302,7 @@ const StockSchema = new mongoose.Schema({
 }, { _id: false })
 
 // 统计信息结构
-const StatisticsSchema = new mongoose.Schema({
+const StatisticsSchema = new Schema<IStatistics>({
   traderCount: {
     type: Number,
     required: true,
@@ -234,32 +325,32 @@ const StatisticsSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 0,
-    set: v => Math.round(v * 100) / 100 // 保留2位小数
+    set: (v: number) => Math.round(v * 100) / 100 // 保留2位小数
   },
   capitalDistribution: {
-    type: mongoose.Schema.Types.Mixed,
+    type: Schema.Types.Mixed,
     default: {}
   },
   stockDistribution: {
-    type: mongoose.Schema.Types.Mixed,
+    type: Schema.Types.Mixed,
     default: {}
   },
   allocationFairness: {
     type: Number,
     min: 0,
     max: 1,
-    set: v => Math.round(v * 10000) / 10000 // 保留4位小数
+    set: (v: number) => Math.round(v * 10000) / 10000 // 保留4位小数
   },
   giniCoefficient: {
     type: Number,
     min: 0,
     max: 1,
-    set: v => Math.round(v * 10000) / 10000 // 保留4位小数
+    set: (v: number) => Math.round(v * 10000) / 10000 // 保留4位小数
   }
 }, { _id: false })
 
 // 市场环境主模型
-const MarketEnvironmentSchema = new mongoose.Schema({
+const MarketEnvironmentSchema = new Schema<IMarketEnvironmentDocument, IMarketEnvironmentModel>({
   id: {
     type: String,
     required: true,
@@ -270,7 +361,7 @@ const MarketEnvironmentSchema = new mongoose.Schema({
     type: String,
     trim: true,
     maxlength: 200,
-    default: function() {
+    default: function(this: IMarketEnvironmentDocument) {
       const now = new Date()
       const timestamp = now.toISOString().replace(/[:.]/g, '').slice(0, 15)
       return `Market_${timestamp}`
@@ -287,13 +378,13 @@ const MarketEnvironmentSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 0,
-    set: v => Math.round(v * 100) / 100 // 保留2位小数
+    set: (v: number) => Math.round(v * 100) / 100 // 保留2位小数
   },
   totalMarketValue: {
     type: Number,
     required: true,
     min: 0,
-    set: v => Math.round(v * 100) / 100 // 保留2位小数
+    set: (v: number) => Math.round(v * 100) / 100 // 保留2位小数
   },
   allocationAlgorithm: {
     type: String,
@@ -309,7 +400,7 @@ const MarketEnvironmentSchema = new mongoose.Schema({
   },
   statistics: StatisticsSchema,
   metadata: {
-    type: mongoose.Schema.Types.Mixed,
+    type: Schema.Types.Mixed,
     default: {}
   },
   version: {
@@ -329,20 +420,20 @@ MarketEnvironmentSchema.index({ 'statistics.traderCount': 1, 'statistics.stockCo
 MarketEnvironmentSchema.index({ name: 'text', description: 'text' })
 
 // 虚拟字段
-MarketEnvironmentSchema.virtual('isValid').get(function() {
+MarketEnvironmentSchema.virtual('isValid').get(function(this: IMarketEnvironmentDocument) {
   return this.traders.length > 0 && this.stocks.length > 0
 })
 
 // 实例方法
-MarketEnvironmentSchema.methods.calculateTotalCapital = function() {
+MarketEnvironmentSchema.methods.calculateTotalCapital = function(this: IMarketEnvironmentDocument): number {
   return this.traders.reduce((total, trader) => total + trader.initialCapital, 0)
 }
 
-MarketEnvironmentSchema.methods.calculateTotalMarketValue = function() {
+MarketEnvironmentSchema.methods.calculateTotalMarketValue = function(this: IMarketEnvironmentDocument): number {
   return this.stocks.reduce((total, stock) => total + (stock.currentPrice * stock.totalShares), 0)
 }
 
-MarketEnvironmentSchema.methods.updateStatistics = function() {
+MarketEnvironmentSchema.methods.updateStatistics = function(this: IMarketEnvironmentDocument): void {
   const traderCount = this.traders.length
   const stockCount = this.stocks.length
   const totalCapital = this.calculateTotalCapital()
@@ -361,8 +452,8 @@ MarketEnvironmentSchema.methods.updateStatistics = function() {
   this.totalMarketValue = this.calculateTotalMarketValue()
 }
 
-MarketEnvironmentSchema.methods.calculateCapitalDistribution = function() {
-  const distribution = {}
+MarketEnvironmentSchema.methods.calculateCapitalDistribution = function(this: IMarketEnvironmentDocument): Record<string, number> {
+  const distribution: Record<string, number> = {}
   this.traders.forEach(trader => {
     const range = this.getCapitalRange(trader.initialCapital)
     distribution[range] = (distribution[range] || 0) + 1
@@ -370,8 +461,8 @@ MarketEnvironmentSchema.methods.calculateCapitalDistribution = function() {
   return distribution
 }
 
-MarketEnvironmentSchema.methods.calculateStockDistribution = function() {
-  const distribution = {}
+MarketEnvironmentSchema.methods.calculateStockDistribution = function(this: IMarketEnvironmentDocument): Record<string, number> {
+  const distribution: Record<string, number> = {}
   this.stocks.forEach(stock => {
     const category = stock.category || 'other'
     distribution[category] = (distribution[category] || 0) + 1
@@ -379,7 +470,7 @@ MarketEnvironmentSchema.methods.calculateStockDistribution = function() {
   return distribution
 }
 
-MarketEnvironmentSchema.methods.calculateAllocationFairness = function() {
+MarketEnvironmentSchema.methods.calculateAllocationFairness = function(this: IMarketEnvironmentDocument): number {
   // 使用 Jain's Fairness Index 计算分配公平性
   if (this.traders.length === 0) return 1
   
@@ -390,7 +481,7 @@ MarketEnvironmentSchema.methods.calculateAllocationFairness = function() {
   return (sum * sum) / (this.traders.length * sumSquares)
 }
 
-MarketEnvironmentSchema.methods.calculateGiniCoefficient = function() {
+MarketEnvironmentSchema.methods.calculateGiniCoefficient = function(this: IMarketEnvironmentDocument): number {
   // 计算基尼系数
   if (this.traders.length === 0) return 0
   
@@ -408,7 +499,7 @@ MarketEnvironmentSchema.methods.calculateGiniCoefficient = function() {
   return index / (n * sum)
 }
 
-MarketEnvironmentSchema.methods.getCapitalRange = function(capital) {
+MarketEnvironmentSchema.methods.getCapitalRange = function(this: IMarketEnvironmentDocument, capital: number): string {
   if (capital < 10000) return '< 1万'
   if (capital < 100000) return '1-10万'
   if (capital < 1000000) return '10-100万'
@@ -417,20 +508,28 @@ MarketEnvironmentSchema.methods.getCapitalRange = function(capital) {
 }
 
 // 静态方法
-MarketEnvironmentSchema.statics.findByTraderCount = function(min, max) {
+MarketEnvironmentSchema.statics.findByTraderCount = function(
+  this: IMarketEnvironmentModel,
+  min: number,
+  max: number
+): Promise<IMarketEnvironmentDocument[]> {
   return this.find({
     'statistics.traderCount': { $gte: min, $lte: max }
   })
 }
 
-MarketEnvironmentSchema.statics.findByStockCount = function(min, max) {
+MarketEnvironmentSchema.statics.findByStockCount = function(
+  this: IMarketEnvironmentModel,
+  min: number,
+  max: number
+): Promise<IMarketEnvironmentDocument[]> {
   return this.find({
     'statistics.stockCount': { $gte: min, $lte: max }
   })
 }
 
 // 中间件
-MarketEnvironmentSchema.pre('save', function(next) {
+MarketEnvironmentSchema.pre('save', function(this: IMarketEnvironmentDocument, next) {
   // 更新统计信息
   this.updateStatistics()
   
@@ -454,7 +553,7 @@ MarketEnvironmentSchema.pre('save', function(next) {
   next()
 })
 
-MarketEnvironmentSchema.pre('validate', function(next) {
+MarketEnvironmentSchema.pre('validate', function(this: IMarketEnvironmentDocument, next) {
   // 生成唯一ID
   if (!this.id) {
     this.id = `market_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -464,6 +563,6 @@ MarketEnvironmentSchema.pre('validate', function(next) {
 })
 
 // 导出模型
-const MarketEnvironment = mongoose.model('MarketEnvironment', MarketEnvironmentSchema)
+const MarketEnvironment = mongoose.model<IMarketEnvironmentDocument, IMarketEnvironmentModel>('MarketEnvironment', MarketEnvironmentSchema)
 
 export default MarketEnvironment

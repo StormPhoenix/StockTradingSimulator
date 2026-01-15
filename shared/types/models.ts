@@ -146,7 +146,7 @@ export interface StockTemplateDocument extends Document {
   symbol: string
   issuePrice: number
   totalShares: number
-  category: string
+  category: 'tech' | 'finance' | 'healthcare' | 'energy' | 'consumer'
   description?: string
   status: 'active' | 'inactive'
   createdAt: Timestamp

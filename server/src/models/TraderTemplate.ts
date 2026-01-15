@@ -1,8 +1,39 @@
-import mongoose from 'mongoose'
-import { BaseSchema, validators, commonFields, registerModel } from './index.js'
+import mongoose, { Document, Model, Types } from 'mongoose'
+import { BaseSchema, validators, commonFields, registerModel } from './index'
+
+// 类型定义
+export interface ITraderTemplate {
+  name: string
+  initialCapital: number
+  riskProfile: 'conservative' | 'moderate' | 'aggressive'
+  tradingStyle: 'day_trading' | 'swing_trading' | 'position_trading'
+  maxPositions: number
+  parameters: Record<string, any>
+  status: 'active' | 'inactive'
+  createdBy?: string
+  description?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Document 接口
+export interface ITraderTemplateDocument extends ITraderTemplate, Document {
+  riskProfileLabel: string
+  tradingStyleLabel: string
+  toSafeObject(): any
+  generateTrader(sequence?: number): any
+}
+
+// Model 接口
+export interface ITraderTemplateModel extends Model<ITraderTemplateDocument> {
+  findByRiskProfile(riskProfile: string, options?: any): any
+  findByTradingStyle(tradingStyle: string, options?: any): any
+  searchByName(searchTerm: string, options?: any): any
+  getCapitalRange(): any
+}
 
 // AI交易员模板Schema
-const traderTemplateSchema = new BaseSchema({
+const traderTemplateSchema = new BaseSchema<ITraderTemplateDocument>({
   // 模板名称
   name: {
     type: String,
@@ -20,8 +51,8 @@ const traderTemplateSchema = new BaseSchema({
     min: [1000, '初始资金至少1000元'],
     max: [100000000, '初始资金不能超过1亿元'],
     validate: validators.capital,
-    get: (value) => value ? parseFloat(value.toString()) : value,
-    set: (value) => value ? mongoose.Types.Decimal128.fromString(value.toString()) : value,
+    get: (value: any) => value ? parseFloat(value.toString()) : value,
+    set: (value: any) => value ? mongoose.Types.Decimal128.fromString(value.toString()) : value,
   },
   
   // 风险偏好 (默认稳健型)
@@ -57,7 +88,7 @@ const traderTemplateSchema = new BaseSchema({
     type: mongoose.Schema.Types.Mixed,
     default: {},
     validate: {
-      validator: function(value) {
+      validator: function(value: any) {
         // 验证是否为有效的JSON对象
         return value === null || typeof value === 'object'
       },
@@ -75,8 +106,8 @@ traderTemplateSchema.index({ tradingStyle: 1, status: 1 })
 traderTemplateSchema.index({ name: 'text', description: 'text' })
 
 // 虚拟字段
-traderTemplateSchema.virtual('riskProfileLabel').get(function() {
-  const labels = {
+traderTemplateSchema.virtual('riskProfileLabel').get(function(this: ITraderTemplateDocument) {
+  const labels: Record<string, string> = {
     conservative: '保守型',
     moderate: '稳健型',
     aggressive: '激进型',
@@ -84,8 +115,8 @@ traderTemplateSchema.virtual('riskProfileLabel').get(function() {
   return labels[this.riskProfile] || this.riskProfile
 })
 
-traderTemplateSchema.virtual('tradingStyleLabel').get(function() {
-  const labels = {
+traderTemplateSchema.virtual('tradingStyleLabel').get(function(this: ITraderTemplateDocument) {
+  const labels: Record<string, string> = {
     day_trading: '日内交易',
     swing_trading: '波段交易',
     position_trading: '长期持有',
@@ -94,7 +125,7 @@ traderTemplateSchema.virtual('tradingStyleLabel').get(function() {
 })
 
 // 实例方法
-traderTemplateSchema.methods.toSafeObject = function() {
+traderTemplateSchema.methods.toSafeObject = function(this: ITraderTemplateDocument) {
   const obj = this.toObject()
   return {
     id: obj.id,
@@ -114,7 +145,7 @@ traderTemplateSchema.methods.toSafeObject = function() {
   }
 }
 
-traderTemplateSchema.methods.generateTrader = function(sequence = 1) {
+traderTemplateSchema.methods.generateTrader = function(this: ITraderTemplateDocument, sequence: number = 1) {
   return {
     templateId: this._id,
     name: `${this.name}_${String(sequence).padStart(3, '0')}`,
@@ -124,22 +155,31 @@ traderTemplateSchema.methods.generateTrader = function(sequence = 1) {
     tradingStyle: this.tradingStyle,
     maxPositions: this.maxPositions,
     parameters: { ...this.parameters },
-    holdings: [],
+    holdings: [] as any[],
   }
 }
 
 // 静态方法
-traderTemplateSchema.statics.findByRiskProfile = function(riskProfile, options = {}) {
+traderTemplateSchema.statics.findByRiskProfile = function(
+  riskProfile: string,
+  options: any = {}
+) {
   const query = { riskProfile, status: 'active' }
   return this.find(query, null, options)
 }
 
-traderTemplateSchema.statics.findByTradingStyle = function(tradingStyle, options = {}) {
+traderTemplateSchema.statics.findByTradingStyle = function(
+  tradingStyle: string,
+  options: any = {}
+) {
   const query = { tradingStyle, status: 'active' }
   return this.find(query, null, options)
 }
 
-traderTemplateSchema.statics.searchByName = function(searchTerm, options = {}) {
+traderTemplateSchema.statics.searchByName = function(
+  searchTerm: string,
+  options: any = {}
+) {
   const query = {
     $text: { $search: searchTerm },
     status: 'active',
@@ -162,28 +202,8 @@ traderTemplateSchema.statics.getCapitalRange = function() {
   ])
 }
 
-// 查询助手
-traderTemplateSchema.query.active = function() {
-  return this.where({ status: 'active' })
-}
-
-traderTemplateSchema.query.byRiskProfile = function(riskProfile) {
-  return this.where({ riskProfile })
-}
-
-traderTemplateSchema.query.byTradingStyle = function(tradingStyle) {
-  return this.where({ tradingStyle })
-}
-
-traderTemplateSchema.query.withCapitalRange = function(min, max) {
-  const query = {}
-  if (min !== undefined) query.$gte = min
-  if (max !== undefined) query.$lte = max
-  return this.where({ initialCapital: query })
-}
-
 // 中间件
-traderTemplateSchema.pre('save', function(next) {
+traderTemplateSchema.pre('save', function(this: ITraderTemplateDocument, next) {
   // 验证initialCapital精度
   if (this.initialCapital) {
     const capitalStr = this.initialCapital.toString()
@@ -206,7 +226,7 @@ traderTemplateSchema.pre('save', function(next) {
 })
 
 // 删除前检查是否被使用
-traderTemplateSchema.pre('deleteOne', { document: true, query: false }, async function(next) {
+traderTemplateSchema.pre('deleteOne', { document: true, query: false }, async function(this: ITraderTemplateDocument, next) {
   try {
     // 这里可以检查是否有市场环境在使用这个模板
     // const marketCount = await MarketEnvironment.countDocuments({ 'traders.templateId': this._id })
@@ -215,11 +235,11 @@ traderTemplateSchema.pre('deleteOne', { document: true, query: false }, async fu
     // }
     next()
   } catch (error) {
-    next(error)
+    next(error as Error)
   }
 })
 
 // 注册模型
-const AITraderTemplate = registerModel('AITraderTemplate', traderTemplateSchema)
+const AITraderTemplate = registerModel<ITraderTemplateDocument>('AITraderTemplate', traderTemplateSchema) as ITraderTemplateModel
 
 export default AITraderTemplate

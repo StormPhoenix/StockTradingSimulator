@@ -282,7 +282,10 @@ class MarketService {
       throw new Error(`未找到股票模板: ${missingIds.join(', ')}`)
     }
 
-    return { traderTemplates, stockTemplates }
+    return { 
+      traderTemplates: traderTemplates as AITraderTemplateDocument[], 
+      stockTemplates: stockTemplates as StockTemplateDocument[] 
+    }
   }
 
   /**
