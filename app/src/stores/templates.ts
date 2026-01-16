@@ -4,10 +4,101 @@
  */
 
 import { defineStore } from 'pinia';
+// @ts-ignore - templateService is still JavaScript
 import templateService from '../services/templateService';
 
+// 类型定义
+interface StockTemplate {
+  _id: string;
+  name: string;
+  symbol: string;
+  category: string;
+  issuePrice: number;
+  status: 'active' | 'inactive' | 'draft';
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface TraderTemplate {
+  _id: string;
+  name: string;
+  description: string;
+  status: 'active' | 'inactive' | 'draft';
+  parameters: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
+interface StockTemplatesFilters {
+  status: string;
+  category: string;
+  search: string;
+}
+
+interface TraderTemplatesFilters {
+  status: string;
+  search: string;
+}
+
+interface TemplateStats {
+  stockTemplates: {
+    total: number;
+    active: number;
+    inactive: number;
+    draft: number;
+  };
+  traderTemplates: {
+    total: number;
+    active: number;
+    inactive: number;
+    draft: number;
+  };
+}
+
+interface ApiResponse<T> {
+  data: T;
+  pagination?: Pagination;
+  message?: string;
+}
+
+interface TemplatesState {
+  // 股票模板相关状态
+  stockTemplates: StockTemplate[];
+  stockTemplatesPagination: Pagination;
+  stockTemplatesLoading: boolean;
+  stockTemplatesFilters: StockTemplatesFilters;
+  
+  // AI交易员模板相关状态
+  traderTemplates: TraderTemplate[];
+  traderTemplatesPagination: Pagination;
+  traderTemplatesLoading: boolean;
+  traderTemplatesFilters: TraderTemplatesFilters;
+  
+  // 当前编辑的模板
+  currentStockTemplate: StockTemplate | null;
+  currentTraderTemplate: TraderTemplate | null;
+  
+  // 选中的模板（用于批量操作）
+  selectedStockTemplates: string[];
+  selectedTraderTemplates: string[];
+  
+  // 统计信息
+  templateStats: TemplateStats | null;
+  
+  // 错误状态
+  error: string | null;
+}
+
 export const useTemplatesStore = defineStore('templates', {
-  state: () => ({
+  state: (): TemplatesState => ({
     // 股票模板相关状态
     stockTemplates: [],
     stockTemplatesPagination: {
@@ -97,7 +188,7 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 获取股票模板列表
      */
-    async fetchStockTemplates(params = {}) {
+    async fetchStockTemplates(params: Record<string, any> = {}): Promise<ApiResponse<StockTemplate[]>> {
       this.stockTemplatesLoading = true;
       this.error = null;
       
@@ -109,10 +200,10 @@ export const useTemplatesStore = defineStore('templates', {
           ...params
         };
         
-        const response = await templateService.getStockTemplates(queryParams);
+        const response: ApiResponse<StockTemplate[]> = await templateService.getStockTemplates(queryParams as any);
         
         // 确保 issuePrice 字段是数字类型
-        const processedData = (response.data || []).map(template => ({
+        const processedData: StockTemplate[] = (response.data || []).map((template: any) => ({
           ...template,
           issuePrice: typeof template.issuePrice === 'number' 
             ? template.issuePrice 
@@ -126,7 +217,7 @@ export const useTemplatesStore = defineStore('templates', {
         }
         
         return response;
-      } catch (error) {
+      } catch (error: any) {
         this.error = error.message;
         throw error;
       } finally {
@@ -137,12 +228,12 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 获取股票模板详情
      */
-    async fetchStockTemplateById(id) {
+    async fetchStockTemplateById(id: string): Promise<StockTemplate> {
       try {
-        const response = await templateService.getStockTemplateById(id);
+        const response: ApiResponse<StockTemplate> = await templateService.getStockTemplateById(id);
         this.currentStockTemplate = response.data;
         return response.data;
-      } catch (error) {
+      } catch (error: any) {
         this.error = error.message;
         throw error;
       }
@@ -151,16 +242,16 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 创建股票模板
      */
-    async createStockTemplate(templateData) {
+    async createStockTemplate(templateData: Partial<StockTemplate>): Promise<StockTemplate> {
       try {
-        const response = await templateService.createStockTemplate(templateData);
+        const response: ApiResponse<StockTemplate> = await templateService.createStockTemplate(templateData as any);
         
         // 添加到列表中
         this.stockTemplates.unshift(response.data);
         this.stockTemplatesPagination.total++;
         
         return response.data;
-      } catch (error) {
+      } catch (error: any) {
         this.error = error.message;
         throw error;
       }
@@ -169,15 +260,15 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 更新股票模板
      */
-    async updateStockTemplate(id, templateData) {
+    async updateStockTemplate(id: string, templateData: Partial<StockTemplate>): Promise<StockTemplate> {
       try {
-        const response = await templateService.updateStockTemplate(id, templateData);
+        const response: ApiResponse<StockTemplate> = await templateService.updateStockTemplate(id, templateData as any);
         
         // 更新列表中的数据
         const index = this.stockTemplates.findIndex(t => t._id === id);
         if (index !== -1) {
           // 确保 issuePrice 是数字类型
-          const updatedTemplate = {
+          const updatedTemplate: StockTemplate = {
             ...response.data,
             issuePrice: typeof response.data.issuePrice === 'number' 
               ? response.data.issuePrice 
@@ -192,7 +283,7 @@ export const useTemplatesStore = defineStore('templates', {
         }
         
         return response.data;
-      } catch (error) {
+      } catch (error: any) {
         this.error = error.message;
         throw error;
       }
@@ -201,7 +292,7 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 删除股票模板
      */
-    async deleteStockTemplate(id) {
+    async deleteStockTemplate(id: string): Promise<boolean> {
       try {
         await templateService.deleteStockTemplate(id);
         
@@ -218,7 +309,7 @@ export const useTemplatesStore = defineStore('templates', {
         this.selectedStockTemplates = this.selectedStockTemplates.filter(selectedId => selectedId !== id);
         
         return true;
-      } catch (error) {
+      } catch (error: any) {
         this.error = error.message;
         throw error;
       }
@@ -229,7 +320,7 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 获取AI交易员模板列表
      */
-    async fetchTraderTemplates(params = {}) {
+    async fetchTraderTemplates(params: Record<string, any> = {}): Promise<ApiResponse<TraderTemplate[]>> {
       this.traderTemplatesLoading = true;
       this.error = null;
       
@@ -241,7 +332,7 @@ export const useTemplatesStore = defineStore('templates', {
           ...params
         };
         
-        const response = await templateService.getTraderTemplates(queryParams);
+        const response: ApiResponse<TraderTemplate[]> = await templateService.getTraderTemplates(queryParams as any);
         
         this.traderTemplates = response.data || [];
         // 确保分页信息存在，如果不存在则保持当前分页状态
@@ -250,7 +341,7 @@ export const useTemplatesStore = defineStore('templates', {
         }
         
         return response;
-      } catch (error) {
+      } catch (error: any) {
         this.error = error.message;
         throw error;
       } finally {
@@ -261,12 +352,12 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 获取AI交易员模板详情
      */
-    async fetchTraderTemplateById(id) {
+    async fetchTraderTemplateById(id: string): Promise<TraderTemplate> {
       try {
-        const response = await templateService.getTraderTemplateById(id);
+        const response: ApiResponse<TraderTemplate> = await templateService.getTraderTemplateById(id);
         this.currentTraderTemplate = response.data;
         return response.data;
-      } catch (error) {
+      } catch (error: any) {
         this.error = error.message;
         throw error;
       }
@@ -275,16 +366,16 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 创建AI交易员模板
      */
-    async createTraderTemplate(templateData) {
+    async createTraderTemplate(templateData: Partial<TraderTemplate>): Promise<TraderTemplate> {
       try {
-        const response = await templateService.createTraderTemplate(templateData);
+        const response: ApiResponse<TraderTemplate> = await templateService.createTraderTemplate(templateData as any);
         
         // 添加到列表中
         this.traderTemplates.unshift(response.data);
         this.traderTemplatesPagination.total++;
         
         return response.data;
-      } catch (error) {
+      } catch (error: any) {
         this.error = error.message;
         throw error;
       }
@@ -293,9 +384,9 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 更新AI交易员模板
      */
-    async updateTraderTemplate(id, templateData) {
+    async updateTraderTemplate(id: string, templateData: Partial<TraderTemplate>): Promise<TraderTemplate> {
       try {
-        const response = await templateService.updateTraderTemplate(id, templateData);
+        const response: ApiResponse<TraderTemplate> = await templateService.updateTraderTemplate(id, templateData as any);
         
         // 更新列表中的数据
         const index = this.traderTemplates.findIndex(t => t._id === id);
@@ -309,7 +400,7 @@ export const useTemplatesStore = defineStore('templates', {
         }
         
         return response.data;
-      } catch (error) {
+      } catch (error: any) {
         this.error = error.message;
         throw error;
       }
@@ -318,7 +409,7 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 删除AI交易员模板
      */
-    async deleteTraderTemplate(id) {
+    async deleteTraderTemplate(id: string): Promise<boolean> {
       try {
         await templateService.deleteTraderTemplate(id);
         
@@ -335,7 +426,7 @@ export const useTemplatesStore = defineStore('templates', {
         this.selectedTraderTemplates = this.selectedTraderTemplates.filter(selectedId => selectedId !== id);
         
         return true;
-      } catch (error) {
+      } catch (error: any) {
         this.error = error.message;
         throw error;
       }
@@ -346,7 +437,7 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 批量删除模板
      */
-    async batchDeleteTemplates(type) {
+    async batchDeleteTemplates(type: 'stock' | 'trader'): Promise<{ deletedCount: number }> {
       try {
         const ids = type === 'stock' ? this.selectedStockTemplates : this.selectedTraderTemplates;
         
@@ -354,7 +445,7 @@ export const useTemplatesStore = defineStore('templates', {
           throw new Error('请选择要删除的模板');
         }
         
-        const response = await templateService.batchDeleteTemplates(type, ids);
+        const response: ApiResponse<{ deletedCount: number }> = await templateService.batchDeleteTemplates(type, ids);
         
         // 更新本地状态
         if (type === 'stock') {
@@ -368,7 +459,7 @@ export const useTemplatesStore = defineStore('templates', {
         }
         
         return response.data;
-      } catch (error) {
+      } catch (error: any) {
         this.error = error.message;
         throw error;
       }
@@ -377,7 +468,7 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 批量更新模板状态
      */
-    async batchUpdateTemplateStatus(type, status) {
+    async batchUpdateTemplateStatus(type: 'stock' | 'trader', status: 'active' | 'inactive' | 'draft'): Promise<{ updatedCount: number }> {
       try {
         const ids = type === 'stock' ? this.selectedStockTemplates : this.selectedTraderTemplates;
         
@@ -385,7 +476,7 @@ export const useTemplatesStore = defineStore('templates', {
           throw new Error('请选择要更新的模板');
         }
         
-        const response = await templateService.batchUpdateTemplateStatus(type, ids, status);
+        const response: ApiResponse<{ updatedCount: number }> = await templateService.batchUpdateTemplateStatus(type, ids, status as any);
         
         // 更新本地状态
         if (type === 'stock') {
@@ -405,7 +496,7 @@ export const useTemplatesStore = defineStore('templates', {
         }
         
         return response.data;
-      } catch (error) {
+      } catch (error: any) {
         this.error = error.message;
         throw error;
       }
@@ -416,7 +507,7 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 设置股票模板筛选条件
      */
-    setStockTemplatesFilters(filters) {
+    setStockTemplatesFilters(filters: Partial<StockTemplatesFilters>): void {
       this.stockTemplatesFilters = { ...this.stockTemplatesFilters, ...filters };
       this.stockTemplatesPagination.page = 1; // 重置到第一页
     },
@@ -424,7 +515,7 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 设置AI交易员模板筛选条件
      */
-    setTraderTemplatesFilters(filters) {
+    setTraderTemplatesFilters(filters: Partial<TraderTemplatesFilters>): void {
       this.traderTemplatesFilters = { ...this.traderTemplatesFilters, ...filters };
       this.traderTemplatesPagination.page = 1; // 重置到第一页
     },
@@ -432,14 +523,14 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 设置股票模板分页
      */
-    setStockTemplatesPagination(pagination) {
+    setStockTemplatesPagination(pagination: Partial<Pagination>): void {
       this.stockTemplatesPagination = { ...this.stockTemplatesPagination, ...pagination };
     },
     
     /**
      * 设置AI交易员模板分页
      */
-    setTraderTemplatesPagination(pagination) {
+    setTraderTemplatesPagination(pagination: Partial<Pagination>): void {
       this.traderTemplatesPagination = { ...this.traderTemplatesPagination, ...pagination };
     },
     
@@ -448,7 +539,7 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 切换股票模板选择状态
      */
-    toggleStockTemplateSelection(id) {
+    toggleStockTemplateSelection(id: string): void {
       const index = this.selectedStockTemplates.indexOf(id);
       if (index === -1) {
         this.selectedStockTemplates.push(id);
@@ -460,7 +551,7 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 全选/取消全选股票模板
      */
-    toggleAllStockTemplatesSelection() {
+    toggleAllStockTemplatesSelection(): void {
       if (this.selectedStockTemplates.length === this.stockTemplates.length) {
         this.selectedStockTemplates = [];
       } else {
@@ -471,7 +562,7 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 切换AI交易员模板选择状态
      */
-    toggleTraderTemplateSelection(id) {
+    toggleTraderTemplateSelection(id: string): void {
       const index = this.selectedTraderTemplates.indexOf(id);
       if (index === -1) {
         this.selectedTraderTemplates.push(id);
@@ -483,7 +574,7 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 全选/取消全选AI交易员模板
      */
-    toggleAllTraderTemplatesSelection() {
+    toggleAllTraderTemplatesSelection(): void {
       if (this.selectedTraderTemplates.length === this.traderTemplates.length) {
         this.selectedTraderTemplates = [];
       } else {
@@ -496,12 +587,12 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 获取模板统计信息
      */
-    async fetchTemplateStats() {
+    async fetchTemplateStats(): Promise<TemplateStats> {
       try {
-        const response = await templateService.getTemplateStats();
+        const response: ApiResponse<TemplateStats> = await templateService.getTemplateStats();
         this.templateStats = response.data;
         return response.data;
-      } catch (error) {
+      } catch (error: any) {
         this.error = error.message;
         throw error;
       }
@@ -512,14 +603,14 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 清除错误状态
      */
-    clearError() {
+    clearError(): void {
       this.error = null;
     },
     
     /**
      * 重置股票模板状态
      */
-    resetStockTemplatesState() {
+    resetStockTemplatesState(): void {
       this.stockTemplates = [];
       this.stockTemplatesPagination = {
         page: 1,
@@ -539,7 +630,7 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 重置AI交易员模板状态
      */
-    resetTraderTemplatesState() {
+    resetTraderTemplatesState(): void {
       this.traderTemplates = [];
       this.traderTemplatesPagination = {
         page: 1,
@@ -558,7 +649,7 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 重置所有状态
      */
-    resetAllState() {
+    resetAllState(): void {
       this.resetStockTemplatesState();
       this.resetTraderTemplatesState();
       this.templateStats = null;

@@ -7,13 +7,91 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import marketService from '../services/marketService'
 
+// Define types
+interface MarketEnvironment {
+  id: string
+  _id?: string
+  name: string
+  description: string
+  allocationAlgorithm?: string
+  version?: string
+  createdAt: string | Date
+  updatedAt: string | Date
+  statistics?: {
+    traderCount: number
+    stockCount: number
+  }
+  totalCapital?: number
+  totalMarketValue?: number
+  traders?: Array<{
+    name: string
+    initialCapital: number
+    riskProfile: string
+    tradingStyle: string
+    holdings?: any[]
+    templateId?: { name: string }
+  }>
+  stocks?: Array<{
+    symbol: string
+    name: string
+    issuePrice: number
+    totalShares: number
+    category: string
+    holders?: any[]
+    templateId?: { name: string }
+  }>
+}
+
+interface Pagination {
+  page: number
+  limit: number
+  total: number
+  pages: number
+}
+
+interface Statistics {
+  totalMarkets: number
+  totalTraders: number
+  totalStocks: number
+  totalCapital: number
+  averageTraders: number
+  averageStocks: number
+}
+
+interface ApiResponse<T = any> {
+  success: boolean
+  data?: T
+  pagination?: Pagination
+  message?: string
+  filename?: string
+}
+
+interface CreateMarketEnvironmentRequest {
+  name: string
+  description: string
+  allocationAlgorithm: string
+  traderConfigs: Array<{
+    templateId: string
+    count: number
+    capitalMultiplier: number
+    capitalVariation: number
+  }>
+  stockTemplateIds: string[]
+}
+
+interface SearchOptions {
+  page?: number
+  limit?: number
+  [key: string]: any
+}
+
 export const useMarketStore = defineStore('market', () => {
   // 状态
-  const marketEnvironments = ref([])
-  const currentMarket = ref(null)
-  const loading = ref(false)
-  const error = ref(null)
-  const pagination = ref({
+  const marketEnvironments = ref<MarketEnvironment[]>([])
+  const currentMarket = ref<MarketEnvironment | null>(null)
+  const loading = ref<boolean>(false)
+  const error = ref<string | null>(null)
+  const pagination = ref<Pagination>({
     page: 1,
     limit: 20,
     total: 0,
@@ -21,7 +99,7 @@ export const useMarketStore = defineStore('market', () => {
   })
 
   // 统计数据
-  const statistics = ref({
+  const statistics = ref<Statistics>({
     totalMarkets: 0,
     totalTraders: 0,
     totalStocks: 0,
@@ -39,15 +117,13 @@ export const useMarketStore = defineStore('market', () => {
 
   /**
    * 创建市场环境
-   * @param {Object} config - 市场配置
-   * @returns {Promise<Object>} 创建结果
    */
-  const createMarketEnvironment = async (config) => {
+  const createMarketEnvironment = async (config: CreateMarketEnvironmentRequest): Promise<ApiResponse<MarketEnvironment>> => {
     try {
       loading.value = true
       error.value = null
 
-      const result = await marketService.createMarketEnvironment(config)
+      const result = await marketService.createMarketEnvironment(config as any)
       
       if (result.success) {
         // 添加到列表开头
@@ -59,7 +135,7 @@ export const useMarketStore = defineStore('market', () => {
 
       return result
     } catch (err) {
-      error.value = err.message
+      error.value = (err as Error).message
       throw err
     } finally {
       loading.value = false
@@ -68,10 +144,8 @@ export const useMarketStore = defineStore('market', () => {
 
   /**
    * 获取市场环境列表
-   * @param {Object} params - 查询参数
-   * @returns {Promise<Object>} 查询结果
    */
-  const getMarketEnvironments = async (params = {}) => {
+  const getMarketEnvironments = async (params: Record<string, any> = {}): Promise<ApiResponse<MarketEnvironment[]>> => {
     try {
       loading.value = true
       error.value = null
@@ -90,7 +164,7 @@ export const useMarketStore = defineStore('market', () => {
       return result
     } catch (err) {
       console.error('获取市场环境列表失败:', err)
-      error.value = err.message
+      error.value = (err as Error).message
       // 确保在错误时也有默认值
       marketEnvironments.value = []
       pagination.value = { page: 1, limit: 20, total: 0, pages: 0 }
@@ -102,10 +176,8 @@ export const useMarketStore = defineStore('market', () => {
 
   /**
    * 获取市场环境详情
-   * @param {String} id - 市场环境ID
-   * @returns {Promise<Object>} 市场环境详情
    */
-  const getMarketEnvironmentById = async (id) => {
+  const getMarketEnvironmentById = async (id: string): Promise<ApiResponse<MarketEnvironment>> => {
     try {
       loading.value = true
       error.value = null
@@ -118,7 +190,7 @@ export const useMarketStore = defineStore('market', () => {
 
       return result
     } catch (err) {
-      error.value = err.message
+      error.value = (err as Error).message
       throw err
     } finally {
       loading.value = false
@@ -127,11 +199,8 @@ export const useMarketStore = defineStore('market', () => {
 
   /**
    * 更新市场环境
-   * @param {String} id - 市场环境ID
-   * @param {Object} updateData - 更新数据
-   * @returns {Promise<Object>} 更新结果
    */
-  const updateMarketEnvironment = async (id, updateData) => {
+  const updateMarketEnvironment = async (id: string, updateData: Partial<MarketEnvironment>): Promise<ApiResponse<MarketEnvironment>> => {
     try {
       loading.value = true
       error.value = null
@@ -153,7 +222,7 @@ export const useMarketStore = defineStore('market', () => {
 
       return result
     } catch (err) {
-      error.value = err.message
+      error.value = (err as Error).message
       throw err
     } finally {
       loading.value = false
@@ -162,10 +231,8 @@ export const useMarketStore = defineStore('market', () => {
 
   /**
    * 删除市场环境
-   * @param {String} id - 市场环境ID
-   * @returns {Promise<Object>} 删除结果
    */
-  const deleteMarketEnvironment = async (id) => {
+  const deleteMarketEnvironment = async (id: string): Promise<ApiResponse> => {
     try {
       loading.value = true
       error.value = null
@@ -190,7 +257,7 @@ export const useMarketStore = defineStore('market', () => {
 
       return result
     } catch (err) {
-      error.value = err.message
+      error.value = (err as Error).message
       throw err
     } finally {
       loading.value = false
@@ -199,26 +266,22 @@ export const useMarketStore = defineStore('market', () => {
 
   /**
    * 导出市场环境
-   * @param {String} id - 市场环境ID
-   * @returns {Promise<Object>} 导出结果
    */
-  const exportMarketEnvironment = async (id) => {
+  const exportMarketEnvironment = async (id: string): Promise<ApiResponse> => {
     try {
       error.value = null
       const result = await marketService.exportMarketEnvironment(id)
       return result
     } catch (err) {
-      error.value = err.message
+      error.value = (err as Error).message
       throw err
     }
   }
 
   /**
    * 导入市场环境
-   * @param {Object} importData - 导入数据
-   * @returns {Promise<Object>} 导入结果
    */
-  const importMarketEnvironment = async (importData) => {
+  const importMarketEnvironment = async (importData: any): Promise<ApiResponse<MarketEnvironment>> => {
     try {
       loading.value = true
       error.value = null
@@ -235,7 +298,7 @@ export const useMarketStore = defineStore('market', () => {
 
       return result
     } catch (err) {
-      error.value = err.message
+      error.value = (err as Error).message
       throw err
     } finally {
       loading.value = false
@@ -244,41 +307,36 @@ export const useMarketStore = defineStore('market', () => {
 
   /**
    * 验证市场环境
-   * @param {String} id - 市场环境ID
-   * @returns {Promise<Object>} 验证结果
    */
-  const validateMarketEnvironment = async (id) => {
+  const validateMarketEnvironment = async (id: string): Promise<ApiResponse> => {
     try {
       error.value = null
       const result = await marketService.validateMarketEnvironment(id)
       return result
     } catch (err) {
-      error.value = err.message
+      error.value = (err as Error).message
       throw err
     }
   }
 
   /**
    * 验证导入数据
-   * @param {Object} importData - 导入数据
-   * @returns {Promise<Object>} 验证结果
    */
-  const validateImportData = async (importData) => {
+  const validateImportData = async (importData: any): Promise<any> => {
     try {
       error.value = null
       const result = await marketService.validateImportData(importData)
       return result.data
     } catch (err) {
-      error.value = err.message
+      error.value = (err as Error).message
       throw err
     }
   }
 
   /**
    * 获取市场统计
-   * @returns {Promise<Object>} 统计数据
    */
-  const fetchStatistics = async () => {
+  const fetchStatistics = async (): Promise<ApiResponse<Statistics> | undefined> => {
     try {
       const result = await marketService.getMarketStatsSummary()
       
@@ -295,26 +353,22 @@ export const useMarketStore = defineStore('market', () => {
 
   /**
    * 获取市场趋势
-   * @param {String} period - 时间周期
-   * @returns {Promise<Object>} 趋势数据
    */
-  const getMarketTrends = async (period = '30d') => {
+  const getMarketTrends = async (period: string = '30d'): Promise<ApiResponse> => {
     try {
       error.value = null
       const result = await marketService.getMarketTrends(period)
       return result
     } catch (err) {
-      error.value = err.message
+      error.value = (err as Error).message
       throw err
     }
   }
 
   /**
    * 批量删除市场环境
-   * @param {Array} ids - 市场环境ID列表
-   * @returns {Promise<Object>} 删除结果
    */
-  const batchDeleteMarketEnvironments = async (ids) => {
+  const batchDeleteMarketEnvironments = async (ids: string[]): Promise<ApiResponse> => {
     try {
       loading.value = true
       error.value = null
@@ -338,7 +392,7 @@ export const useMarketStore = defineStore('market', () => {
 
       return result
     } catch (err) {
-      error.value = err.message
+      error.value = (err as Error).message
       throw err
     } finally {
       loading.value = false
@@ -347,11 +401,8 @@ export const useMarketStore = defineStore('market', () => {
 
   /**
    * 搜索市场环境
-   * @param {String} keyword - 搜索关键词
-   * @param {Object} options - 搜索选项
-   * @returns {Promise<Object>} 搜索结果
    */
-  const searchMarketEnvironments = async (keyword, options = {}) => {
+  const searchMarketEnvironments = async (keyword: string, options: SearchOptions = {}): Promise<ApiResponse<MarketEnvironment[]>> => {
     try {
       loading.value = true
       error.value = null
@@ -365,7 +416,7 @@ export const useMarketStore = defineStore('market', () => {
 
       return result
     } catch (err) {
-      error.value = err.message
+      error.value = (err as Error).message
       throw err
     } finally {
       loading.value = false
@@ -374,11 +425,8 @@ export const useMarketStore = defineStore('market', () => {
 
   /**
    * 复制市场环境
-   * @param {String} id - 源市场环境ID
-   * @param {Object} options - 复制选项
-   * @returns {Promise<Object>} 复制结果
    */
-  const duplicateMarketEnvironment = async (id, options = {}) => {
+  const duplicateMarketEnvironment = async (id: string, options: Record<string, any> = {}): Promise<ApiResponse<MarketEnvironment>> => {
     try {
       loading.value = true
       error.value = null
@@ -395,7 +443,7 @@ export const useMarketStore = defineStore('market', () => {
 
       return result
     } catch (err) {
-      error.value = err.message
+      error.value = (err as Error).message
       throw err
     } finally {
       loading.value = false
@@ -404,9 +452,8 @@ export const useMarketStore = defineStore('market', () => {
 
   /**
    * 刷新市场环境列表
-   * @returns {Promise<void>}
    */
-  const refreshMarketEnvironments = async () => {
+  const refreshMarketEnvironments = async (): Promise<void> => {
     await getMarketEnvironments({
       page: pagination.value.page,
       limit: pagination.value.limit
@@ -416,21 +463,21 @@ export const useMarketStore = defineStore('market', () => {
   /**
    * 清空错误状态
    */
-  const clearError = () => {
+  const clearError = (): void => {
     error.value = null
   }
 
   /**
    * 清空当前市场
    */
-  const clearCurrentMarket = () => {
+  const clearCurrentMarket = (): void => {
     currentMarket.value = null
   }
 
   /**
    * 重置状态
    */
-  const resetState = () => {
+  const resetState = (): void => {
     marketEnvironments.value = []
     currentMarket.value = null
     loading.value = false

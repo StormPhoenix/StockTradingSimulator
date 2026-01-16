@@ -167,7 +167,12 @@ export class StockTemplateService {
       // 验证数据
       const validation = validators.validateStockTemplate(data)
       if (!validation.isValid) {
-        throw new ValidationError('股票模板数据验证失败', validation.getAllErrors())
+        const errorDetails = validation.getAllErrors().map(err => ({
+          field: err.field,
+          message: err.message,
+          value: (data as any)[err.field]
+        }))
+        throw new ValidationError('股票模板数据验证失败', errorDetails)
       }
       
       // 检查股票代码是否已存在
@@ -201,7 +206,12 @@ export class StockTemplateService {
       // 验证数据
       const validation = validators.validateStockTemplate(data)
       if (!validation.isValid) {
-        throw new ValidationError('股票模板数据验证失败', validation.getAllErrors())
+        const errorDetails = validation.getAllErrors().map(err => ({
+          field: err.field,
+          message: err.message,
+          value: (data as any)[err.field]
+        }))
+        throw new ValidationError('股票模板数据验证失败', errorDetails)
       }
       
       // 检查模板是否存在
@@ -373,7 +383,12 @@ export class AITraderTemplateService {
     // 验证数据
     const validation = validators.validateTraderTemplate(data)
     if (!validation.isValid) {
-      throw new ValidationError('AI交易员模板数据验证失败', validation.getAllErrors())
+      const errorDetails = validation.getAllErrors().map(err => ({
+        field: err.field,
+        message: err.message,
+        value: (data as any)[err.field]
+      }))
+      throw new ValidationError('AI交易员模板数据验证失败', errorDetails)
     }
     
     // 创建模板
@@ -394,7 +409,12 @@ export class AITraderTemplateService {
       // 验证数据
       const validation = validators.validateTraderTemplate(data)
       if (!validation.isValid) {
-        throw new ValidationError('AI交易员模板数据验证失败', validation.getAllErrors())
+        const errorDetails = validation.getAllErrors().map(err => ({
+          field: err.field,
+          message: err.message,
+          value: (data as any)[err.field]
+        }))
+        throw new ValidationError('AI交易员模板数据验证失败', errorDetails)
       }
       
       // 检查模板是否存在

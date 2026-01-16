@@ -1,7 +1,17 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+
+// 定义路由元信息类型
+interface RouteMeta {
+  title?: string
+  icon?: string
+  requiresAuth?: boolean
+  roles?: string[]
+  [key: string]: any
+  [key: symbol]: any
+}
 
 // 路由配置
-const routes = [
+const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'Home',
@@ -24,7 +34,7 @@ const routes = [
         meta: {
           title: '股票模板管理',
           icon: 'TrendCharts',
-        },
+        } as RouteMeta,
       },
       {
         path: 'trader-templates',
@@ -33,7 +43,7 @@ const routes = [
         meta: {
           title: 'AI交易员模板管理',
           icon: 'User',
-        },
+        } as RouteMeta,
       },
     ],
   },
@@ -54,7 +64,7 @@ const routes = [
         meta: {
           title: '市场环境管理',
           icon: 'Setting',
-        },
+        } as RouteMeta,
       },
 
     ],
@@ -82,8 +92,9 @@ const router = createRouter({
 // 全局前置守卫
 router.beforeEach((to, from, next) => {
   // 设置页面标题
-  if (to.meta?.title) {
-    document.title = `${to.meta.title} - 股票交易模拟器`
+  const meta = to.meta as RouteMeta
+  if (meta?.title) {
+    document.title = `${meta.title} - 股票交易模拟器`
   } else {
     document.title = '股票交易模拟器'
   }
@@ -102,7 +113,7 @@ router.afterEach((to, from) => {
 })
 
 // 路由错误处理
-router.onError((error) => {
+router.onError((error: Error) => {
   console.error('❌ Router Error:', error)
 })
 

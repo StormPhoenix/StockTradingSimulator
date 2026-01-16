@@ -1,25 +1,29 @@
 import Joi from 'joi'
-import { ValidationError } from './errorHandler.js'
+import { ValidationError } from './errorHandler'
 
 // 通用验证规则
 export const commonSchemas = {
   // MongoDB ObjectId
-  objectId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).message('Invalid ObjectId format'),
-  
+  objectId: Joi.string()
+    .pattern(/^[0-9a-fA-F]{24}$/)
+    .message('Invalid ObjectId format'),
+
   // 分页参数
   pagination: Joi.object({
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(10),
-    sort: Joi.string().valid('name', 'symbol', 'createdAt', 'updatedAt', 'initialCapital').default('createdAt'),
+    sort: Joi.string()
+      .valid('name', 'symbol', 'createdAt', 'updatedAt', 'initialCapital')
+      .default('createdAt'),
     order: Joi.string().valid('asc', 'desc').default('desc'),
   }),
-  
+
   // 搜索参数
   search: Joi.object({
     search: Joi.string().max(100).allow(''),
     status: Joi.string().valid('active', 'inactive'),
   }),
-  
+
   // 股票模板验证
   stockTemplate: Joi.object({
     name: Joi.string().min(1).max(100).required().messages({
@@ -28,10 +32,13 @@ export const commonSchemas = {
       'string.max': '股票名称最多100个字符',
       'any.required': '股票名称是必填项',
     }),
-    symbol: Joi.string().pattern(/^[A-Z0-9]{1,10}$/).required().messages({
-      'string.pattern.base': '股票代码必须是1-10位大写字母和数字组合',
-      'any.required': '股票代码是必填项',
-    }),
+    symbol: Joi.string()
+      .pattern(/^[A-Z0-9]{1,10}$/)
+      .required()
+      .messages({
+        'string.pattern.base': '股票代码必须是1-10位大写字母和数字组合',
+        'any.required': '股票代码是必填项',
+      }),
     issuePrice: Joi.number().positive().max(999999.99).precision(2).required().messages({
       'number.positive': '发行价格必须大于0',
       'number.max': '发行价格不能超过999999.99',
@@ -51,7 +58,7 @@ export const commonSchemas = {
     }),
     status: Joi.string().valid('active', 'inactive').default('active'),
   }),
-  
+
   // AI交易员模板验证
   traderTemplate: Joi.object({
     name: Joi.string().min(1).max(100).required().messages({
@@ -83,7 +90,7 @@ export const commonSchemas = {
     parameters: Joi.object().unknown(true),
     status: Joi.string().valid('active', 'inactive').default('active'),
   }),
-  
+
   // 市场初始化验证
   marketInitialization: Joi.object({
     name: Joi.string().max(100).allow('').messages({
@@ -92,41 +99,59 @@ export const commonSchemas = {
     description: Joi.string().max(500).allow('').messages({
       'string.max': '描述信息最多500个字符',
     }),
-    stockTemplates: Joi.array().items(
-      Joi.object({
-        templateId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required().messages({
-          'string.pattern.base': '股票模板ID格式无效',
-          'any.required': '股票模板ID是必填项',
-        }),
-      })
-    ).min(1).max(100).required().messages({
-      'array.min': '至少选择1个股票模板',
-      'array.max': '最多选择100个股票模板',
-      'any.required': '股票模板列表是必填项',
-    }),
-    traderTemplates: Joi.array().items(
-      Joi.object({
-        templateId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required().messages({
-          'string.pattern.base': 'AI交易员模板ID格式无效',
-          'any.required': 'AI交易员模板ID是必填项',
-        }),
-        quantity: Joi.number().integer().min(1).max(1000).required().messages({
-          'number.integer': '生成数量必须是整数',
-          'number.min': '生成数量至少为1',
-          'number.max': '生成数量不能超过1000',
-          'any.required': '生成数量是必填项',
-        }),
-      })
-    ).min(1).max(50).required().messages({
-      'array.min': '至少选择1个AI交易员模板',
-      'array.max': '最多选择50个AI交易员模板',
-      'any.required': 'AI交易员模板列表是必填项',
-    }),
+    stockTemplates: Joi.array()
+      .items(
+        Joi.object({
+          templateId: Joi.string()
+            .pattern(/^[0-9a-fA-F]{24}$/)
+            .required()
+            .messages({
+              'string.pattern.base': '股票模板ID格式无效',
+              'any.required': '股票模板ID是必填项',
+            }),
+        })
+      )
+      .min(1)
+      .max(100)
+      .required()
+      .messages({
+        'array.min': '至少选择1个股票模板',
+        'array.max': '最多选择100个股票模板',
+        'any.required': '股票模板列表是必填项',
+      }),
+    traderTemplates: Joi.array()
+      .items(
+        Joi.object({
+          templateId: Joi.string()
+            .pattern(/^[0-9a-fA-F]{24}$/)
+            .required()
+            .messages({
+              'string.pattern.base': 'AI交易员模板ID格式无效',
+              'any.required': 'AI交易员模板ID是必填项',
+            }),
+          quantity: Joi.number().integer().min(1).max(1000).required().messages({
+            'number.integer': '生成数量必须是整数',
+            'number.min': '生成数量至少为1',
+            'number.max': '生成数量不能超过1000',
+            'any.required': '生成数量是必填项',
+          }),
+        })
+      )
+      .min(1)
+      .max(50)
+      .required()
+      .messages({
+        'array.min': '至少选择1个AI交易员模板',
+        'array.max': '最多选择50个AI交易员模板',
+        'any.required': 'AI交易员模板列表是必填项',
+      }),
     allocationSeed: Joi.number().integer().messages({
       'number.integer': '随机种子必须是整数',
     }),
     options: Joi.object({
-      algorithm: Joi.string().valid('weighted_random', 'proportional', 'round_robin').default('weighted_random'),
+      algorithm: Joi.string()
+        .valid('weighted_random', 'proportional', 'round_robin')
+        .default('weighted_random'),
       fairnessThreshold: Joi.number().min(0).max(1).default(0.8),
     }),
   }),
@@ -136,23 +161,23 @@ export const commonSchemas = {
 export const validate = (schema, source = 'body') => {
   return (req, res, next) => {
     const data = req[source]
-    
+
     const { error, value } = schema.validate(data, {
       abortEarly: false, // 返回所有错误
       stripUnknown: true, // 移除未知字段
       convert: true, // 自动类型转换
     })
-    
+
     if (error) {
       const details = error.details.map(detail => ({
         field: detail.path.join('.'),
         message: detail.message,
         value: detail.context?.value,
       }))
-      
+
       throw new ValidationError('Validation failed', details)
     }
-    
+
     // 将验证后的数据替换原始数据
     req[source] = value
     next()
@@ -160,67 +185,73 @@ export const validate = (schema, source = 'body') => {
 }
 
 // 参数验证中间件
-export const validateParams = (schema) => validate(schema, 'params')
-export const validateQuery = (schema) => validate(schema, 'query')
-export const validateBody = (schema) => validate(schema, 'body')
+export const validateParams = schema => validate(schema, 'params')
+export const validateQuery = schema => validate(schema, 'query')
+export const validateBody = schema => validate(schema, 'body')
 
 // 组合验证中间件
-export const validateRequest = (schemas) => {
+export const validateRequest = schemas => {
   return (req, res, next) => {
     const errors = []
-    
+
     // 验证params
     if (schemas.params) {
       const { error } = schemas.params.validate(req.params, { abortEarly: false })
       if (error) {
-        errors.push(...error.details.map(detail => ({
-          source: 'params',
-          field: detail.path.join('.'),
-          message: detail.message,
-        })))
+        errors.push(
+          ...error.details.map(detail => ({
+            source: 'params',
+            field: detail.path.join('.'),
+            message: detail.message,
+          }))
+        )
       }
     }
-    
+
     // 验证query
     if (schemas.query) {
-      const { error, value } = schemas.query.validate(req.query, { 
+      const { error, value } = schemas.query.validate(req.query, {
         abortEarly: false,
         stripUnknown: true,
         convert: true,
       })
       if (error) {
-        errors.push(...error.details.map(detail => ({
-          source: 'query',
-          field: detail.path.join('.'),
-          message: detail.message,
-        })))
+        errors.push(
+          ...error.details.map(detail => ({
+            source: 'query',
+            field: detail.path.join('.'),
+            message: detail.message,
+          }))
+        )
       } else {
         req.query = value
       }
     }
-    
+
     // 验证body
     if (schemas.body) {
-      const { error, value } = schemas.body.validate(req.body, { 
+      const { error, value } = schemas.body.validate(req.body, {
         abortEarly: false,
         stripUnknown: true,
         convert: true,
       })
       if (error) {
-        errors.push(...error.details.map(detail => ({
-          source: 'body',
-          field: detail.path.join('.'),
-          message: detail.message,
-        })))
+        errors.push(
+          ...error.details.map(detail => ({
+            source: 'body',
+            field: detail.path.join('.'),
+            message: detail.message,
+          }))
+        )
       } else {
         req.body = value
       }
     }
-    
+
     if (errors.length > 0) {
       throw new ValidationError('Request validation failed', errors)
     }
-    
+
     next()
   }
 }

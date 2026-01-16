@@ -113,8 +113,8 @@ export const getAllProjects = asyncHandler(async (req: Request<{}, {}, {}, Proje
  * @route GET /api/v1/projects/:id
  * @access Public
  */
-export const getProjectById = asyncHandler(async (req: Request<{ id: string }>, res: Response): Promise<void> => {
-  const { id } = req.params
+export const getProjectById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params as { id: string }
   
   const project = await projectService.getProjectById(id)
   
@@ -155,9 +155,9 @@ export const createProject = asyncHandler(async (req: Request<{}, {}, CreateProj
  * @route PUT /api/v1/projects/:id
  * @access Public (will be protected in future)
  */
-export const updateProject = asyncHandler(async (req: Request<{ id: string }, {}, UpdateProjectRequest>, res: Response): Promise<void> => {
-  const { id } = req.params
-  const updateData = req.body
+export const updateProject = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params as { id: string }
+  const updateData = req.body as UpdateProjectRequest
   
   const project = await projectService.updateProject(id, updateData)
   
@@ -175,8 +175,8 @@ export const updateProject = asyncHandler(async (req: Request<{ id: string }, {}
  * @route DELETE /api/v1/projects/:id
  * @access Public (will be protected in future)
  */
-export const deleteProject = asyncHandler(async (req: Request<{ id: string }>, res: Response): Promise<void> => {
-  const { id } = req.params
+export const deleteProject = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params as { id: string }
   
   const project = await projectService.deleteProject(id)
   
@@ -194,8 +194,8 @@ export const deleteProject = asyncHandler(async (req: Request<{ id: string }>, r
  * @route PATCH /api/v1/projects/:id/activate
  * @access Public (will be protected in future)
  */
-export const activateProject = asyncHandler(async (req: Request<{ id: string }>, res: Response): Promise<void> => {
-  const { id } = req.params
+export const activateProject = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params as { id: string }
   
   const project = await projectService.activateProject(id)
   

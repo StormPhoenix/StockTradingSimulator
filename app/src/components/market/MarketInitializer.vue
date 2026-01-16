@@ -533,28 +533,126 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Delete, ArrowDown, Refresh } from '@element-plus/icons-vue'
+// @ts-ignore - stores are still JS files
 import { useMarketStore } from '@/stores/market'
+// @ts-ignore - stores are still JS files  
 import { useTemplatesStore } from '@/stores/templates'
+
+// Define local types based on what the component actually uses
+interface MarketEnvironment {
+  id: string
+  name: string
+  description: string
+  allocationAlgorithm?: string
+  version?: string
+  createdAt: string | Date
+  updatedAt: string | Date
+  statistics?: {
+    traderCount: number
+    stockCount: number
+  }
+  totalCapital?: number
+  totalMarketValue?: number
+  traders?: Array<{
+    name: string
+    initialCapital: number
+    riskProfile: string
+    tradingStyle: string
+    holdings?: any[]
+    templateId?: { name: string }
+  }>
+  stocks?: Array<{
+    symbol: string
+    name: string
+    issuePrice: number
+    totalShares: number
+    category: string
+    holders?: any[]
+    templateId?: { name: string }
+  }>
+}
+interface TraderTemplate {
+  _id: string
+  name: string
+  initialCapital: number
+  riskProfile: string
+  tradingStyle: string
+  description?: string
+  status: 'active' | 'inactive'
+}
+
+interface StockTemplate {
+  _id: string
+  name: string
+  symbol: string
+  issuePrice: number
+  totalShares: number
+  category: string
+  description?: string
+  status: 'active' | 'inactive'
+}
+
+interface TraderConfig {
+  templateId: string
+  templateName: string
+  riskProfile: string
+  tradingStyle: string
+  initialCapital: number
+  description: string
+  count: number
+  capitalMultiplier: number
+  capitalVariation: number
+  readonly: boolean
+}
+
+interface StockConfig {
+  templateId: string
+  templateName: string
+  symbol: string
+  category: string
+  issuePrice: number
+  totalShares: number
+  readonly: boolean
+}
+
+interface CreateMarketEnvironmentRequest {
+  name: string
+  description: string
+  allocationAlgorithm: 'weighted_random' | 'equal_distribution' | 'risk_based'
+  traderConfigs: Array<{
+    templateId: string
+    count: number
+    capitalMultiplier: number
+    capitalVariation: number
+  }>
+  stockTemplateIds: string[]
+}
 
 const marketStore = useMarketStore()
 const templatesStore = useTemplatesStore()
 
 // 模板数据
-const availableTraderTemplates = ref([])
-const availableStockTemplates = ref([])
+const availableTraderTemplates = ref<TraderTemplate[]>([])
+const availableStockTemplates = ref<StockTemplate[]>([])
 
 // 响应式数据
-const loading = ref(false)
+const loading = ref<boolean>(false)
 // 使用store中的响应式数据
 const marketEnvironments = computed(() => marketStore.marketEnvironments)
-const selectedEnvironments = ref([])
+const selectedEnvironments = ref<MarketEnvironment[]>([])
 const hasSelected = computed(() => selectedEnvironments.value.length > 0)
 
-const filters = reactive({
+interface Filters {
+  search: string
+  traderCount: string
+  stockCount: string
+}
+
+const filters = reactive<Filters>({
   search: '',
   traderCount: '',
   stockCount: ''
@@ -563,15 +661,23 @@ const filters = reactive({
 // 使用store中的分页数据
 const pagination = computed(() => marketStore.pagination)
 // 对话框相关
-const dialogVisible = ref(false)
-const submitting = ref(false)
+const dialogVisible = ref<boolean>(false)
+const submitting = ref<boolean>(false)
 const formRef = ref()
 
 // 详情对话框相关
-const detailDialogVisible = ref(false)
-const currentMarketDetail = ref(null)
+const detailDialogVisible = ref<boolean>(false)
+const currentMarketDetail = ref<MarketEnvironment | null>(null)
 
-const form = reactive({
+interface MarketForm {
+  name: string
+  description: string
+  allocationAlgorithm: 'weighted_random' | 'equal_distribution' | 'risk_based'
+  traderConfigs: TraderConfig[]
+  stockConfigs: StockConfig[]
+}
+
+const form = reactive<MarketForm>({
   name: '',
   description: '',
   allocationAlgorithm: 'weighted_random',
@@ -590,7 +696,7 @@ const rules = {
 }
 
 // 方法
-const fetchData = async () => {
+const fetchData = async (): Promise<void> => {
   try {
     loading.value = true
     console.log('开始获取市场环境数据...')
@@ -606,47 +712,47 @@ const fetchData = async () => {
     
   } catch (error) {
     console.error('获取市场环境列表失败:', error)
-    ElMessage.error('获取数据失败：' + error.message)
+    ElMessage.error('获取数据失败：' + (error as Error).message)
     // 重置数据
-    marketEnvironments.value = []
-    pagination.total = 0
-    pagination.pages = 0
+    // marketEnvironments.value = [] // This is computed, can't assign
+    // pagination.total = 0 // This is computed, can't assign
+    // pagination.pages = 0 // This is computed, can't assign
   } finally {
     loading.value = false
   }
 }
 
-const handleSearch = () => {
-  pagination.page = 1
+const handleSearch = (): void => {
+  marketStore.pagination.page = 1
   fetchData()
 }
 
-const handleFilter = () => {
-  pagination.page = 1
+const handleFilter = (): void => {
+  marketStore.pagination.page = 1
   fetchData()
 }
 
-const handleSelectionChange = (selection) => {
+const handleSelectionChange = (selection: MarketEnvironment[]): void => {
   selectedEnvironments.value = selection
 }
 
-const handleSizeChange = (size) => {
+const handleSizeChange = (size: number): void => {
   marketStore.pagination.limit = size
   marketStore.pagination.page = 1
   fetchData()
 }
 
-const handleCurrentChange = (page) => {
+const handleCurrentChange = (page: number): void => {
   marketStore.pagination.page = page
   fetchData()
 }
 
-const showCreateDialog = () => {
+const showCreateDialog = (): void => {
   resetForm()
   dialogVisible.value = true
 }
 
-const handleViewDetail = async (row) => {
+const handleViewDetail = async (row: MarketEnvironment): Promise<void> => {
   try {
     loading.value = true
     console.log('查看市场环境详情:', row)
@@ -664,13 +770,13 @@ const handleViewDetail = async (row) => {
     
   } catch (error) {
     console.error('查看详情失败:', error)
-    ElMessage.error('获取详情失败：' + error.message)
+    ElMessage.error('获取详情失败：' + (error as Error).message)
   } finally {
     loading.value = false
   }
 }
 
-const handleDelete = async (row) => {
+const handleDelete = async (row: MarketEnvironment): Promise<void> => {
   try {
     await ElMessageBox.confirm('确定要删除这个市场环境吗？', '提示', {
       confirmButtonText: '确定',
@@ -683,12 +789,12 @@ const handleDelete = async (row) => {
     fetchData()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败：' + error.message)
+      ElMessage.error('删除失败：' + (error as Error).message)
     }
   }
 }
 
-const handleExport = async (row) => {
+const handleExport = async (row: MarketEnvironment): Promise<void> => {
   try {
     const result = await marketStore.exportMarketEnvironment(row.id)
     
@@ -698,11 +804,11 @@ const handleExport = async (row) => {
       ElMessage.success('导出成功')
     }
   } catch (error) {
-    ElMessage.error('导出失败：' + error.message)
+    ElMessage.error('导出失败：' + (error as Error).message)
   }
 }
 
-const handleBatchDelete = async () => {
+const handleBatchDelete = async (): Promise<void> => {
   try {
     await ElMessageBox.confirm('确定要删除选中的市场环境吗？', '提示', {
       confirmButtonText: '确定',
@@ -720,12 +826,12 @@ const handleBatchDelete = async () => {
     fetchData()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('批量删除失败：' + error.message)
+      ElMessage.error('批量删除失败：' + (error as Error).message)
     }
   }
 }
 
-const handleBatchExport = async () => {
+const handleBatchExport = async (): Promise<void> => {
   if (selectedEnvironments.value.length === 0) {
     ElMessage.warning('请选择要导出的市场环境')
     return
@@ -749,11 +855,11 @@ const handleBatchExport = async () => {
     ElMessage.success(`批量导出完成：成功 ${successCount} 个`)
     selectedEnvironments.value = []
   } catch (error) {
-    ElMessage.error('批量导出失败：' + error.message)
+    ElMessage.error('批量导出失败：' + (error as Error).message)
   }
 }
 
-const handleSubmit = async () => {
+const handleSubmit = async (): Promise<void> => {
   try {
     await formRef.value.validate()
     
@@ -770,7 +876,7 @@ const handleSubmit = async () => {
     submitting.value = true
     
     // 转换数据格式以匹配后端API期望的格式
-    const submitData = {
+    const submitData: CreateMarketEnvironmentRequest = {
       name: form.name,
       description: form.description,
       allocationAlgorithm: form.allocationAlgorithm,
@@ -806,14 +912,14 @@ const handleSubmit = async () => {
     
   } catch (error) {
     console.error('提交失败:', error)
-    ElMessage.error('操作失败：' + error.message)
+    ElMessage.error('操作失败：' + (error as Error).message)
   } finally {
     submitting.value = false
   }
 }
 
 // 加载模板数据
-const loadTemplates = async () => {
+const loadTemplates = async (): Promise<void> => {
   try {
     await Promise.all([
       templatesStore.fetchTraderTemplates({ limit: 1000 }),
@@ -821,22 +927,22 @@ const loadTemplates = async () => {
     ])
     
     // 直接从store的state中获取数据
-    availableTraderTemplates.value = templatesStore.traderTemplates
-    availableStockTemplates.value = templatesStore.stockTemplates
+    availableTraderTemplates.value = templatesStore.traderTemplates as any
+    availableStockTemplates.value = templatesStore.stockTemplates as any
   } catch (error) {
     console.error('加载模板失败:', error)
-    ElMessage.error('加载模板失败：' + error.message)
+    ElMessage.error('加载模板失败：' + (error as Error).message)
   }
 }
 
 // 添加交易员配置
-const addTraderConfig = (command) => {
+const addTraderConfig = (command: TraderTemplate | string): void => {
   if (command === 'refresh') {
     loadTemplates()
     return
   }
   
-  const template = command
+  const template = command as TraderTemplate
   if (!form.traderConfigs.find(config => config.templateId === template._id)) {
     form.traderConfigs.push({
       templateId: template._id,
@@ -855,13 +961,13 @@ const addTraderConfig = (command) => {
 }
 
 // 添加股票配置
-const addStockConfig = (command) => {
+const addStockConfig = (command: StockTemplate | string): void => {
   if (command === 'refresh') {
     loadTemplates()
     return
   }
   
-  const template = command
+  const template = command as StockTemplate
   if (!form.stockConfigs.find(config => config.templateId === template._id)) {
     form.stockConfigs.push({
       templateId: template._id,
@@ -876,26 +982,26 @@ const addStockConfig = (command) => {
   }
 }
 
-const removeTraderConfig = (index) => {
+const removeTraderConfig = (index: number): void => {
   form.traderConfigs.splice(index, 1)
 }
 
-const removeStockConfig = (index) => {
+const removeStockConfig = (index: number): void => {
   form.stockConfigs.splice(index, 1)
 }
 
-const resetForm = () => {
+const resetForm = (): void => {
   Object.assign(form, {
     name: '',
     description: '',
-    allocationAlgorithm: 'weighted_random',
+    allocationAlgorithm: 'weighted_random' as const,
     traderConfigs: [],
     stockConfigs: []
   })
 }
 
 // 下载JSON文件
-const downloadJsonFile = (data, filename) => {
+const downloadJsonFile = (data: any, filename: string): void => {
   const jsonString = JSON.stringify(data, null, 2)
   const blob = new Blob([jsonString], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -911,7 +1017,7 @@ const downloadJsonFile = (data, filename) => {
 }
 
 // 工具函数
-const formatCurrency = (amount) => {
+const formatCurrency = (amount: number | string): string => {
   if (typeof amount !== 'number') return '¥0.00'
   return `¥${amount.toLocaleString('zh-CN', {
     minimumFractionDigits: 2,
@@ -919,15 +1025,15 @@ const formatCurrency = (amount) => {
   })}`
 }
 
-const formatDateTime = (date) => {
+const formatDateTime = (date: string | Date | null | undefined): string => {
   if (!date) return '-'
   const d = new Date(date)
   return d.toLocaleString('zh-CN')
 }
 
 // 获取风险偏好标签类型
-const getRiskProfileTagType = (riskProfile) => {
-  const typeMap = {
+const getRiskProfileTagType = (riskProfile: string): string => {
+  const typeMap: Record<string, string> = {
     '保守型': 'success',
     '稳健型': 'primary',
     '积极型': 'warning',
@@ -937,8 +1043,8 @@ const getRiskProfileTagType = (riskProfile) => {
 }
 
 // 获取分配算法名称
-const getAllocationAlgorithmName = (algorithm) => {
-  const nameMap = {
+const getAllocationAlgorithmName = (algorithm: string): string => {
+  const nameMap: Record<string, string> = {
     'weighted_random': '加权随机分配',
     'equal_distribution': '平均分配',
     'risk_based': '风险基础分配'
@@ -947,7 +1053,7 @@ const getAllocationAlgorithmName = (algorithm) => {
 }
 
 // 从详情页导出
-const handleExportFromDetail = async () => {
+const handleExportFromDetail = async (): Promise<void> => {
   if (currentMarketDetail.value) {
     await handleExport(currentMarketDetail.value)
   }

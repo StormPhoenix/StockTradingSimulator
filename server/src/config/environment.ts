@@ -11,15 +11,79 @@ import path from 'path';
 // Load environment variables from .env file
 dotenv.config();
 
+interface EnvironmentConfig {
+  // Application Environment
+  NODE_ENV: string;
+  
+  // Server Configuration
+  PORT: number;
+  HOST: string;
+  
+  // Database Configuration
+  MONGODB_URI: string;
+  
+  // CORS Configuration
+  CORS_ORIGIN: string;
+  
+  // Rate Limiting
+  RATE_LIMIT_WINDOW_MS: number;
+  RATE_LIMIT_MAX_REQUESTS: number;
+  
+  // API Configuration
+  API_VERSION: string;
+  API_PREFIX: string;
+  
+  // Logging Configuration
+  LOG_LEVEL: string;
+  LOG_FORMAT: string;
+  
+  // Security Configuration
+  JWT_SECRET: string;
+  BCRYPT_ROUNDS: number;
+  
+  // Development Configuration
+  ENABLE_SWAGGER: boolean;
+  ENABLE_DEBUG: boolean;
+  
+  // Feature Flags
+  ENABLE_RATE_LIMITING: boolean;
+  ENABLE_CORS: boolean;
+  ENABLE_HELMET: boolean;
+  
+  // File Upload Configuration
+  MAX_FILE_SIZE: number;
+  UPLOAD_DIR: string;
+  
+  // Session Configuration
+  SESSION_SECRET: string;
+  SESSION_MAX_AGE: number;
+  
+  // External Services (future use)
+  REDIS_URL: string;
+  EMAIL_SERVICE_URL: string;
+  MARKET_DATA_API_KEY: string;
+  
+  // Monitoring and Analytics
+  SENTRY_DSN: string;
+  ANALYTICS_ID: string;
+  
+  // Computed Properties
+  readonly isDevelopment: boolean;
+  readonly isProduction: boolean;
+  readonly isTest: boolean;
+  readonly baseURL: string;
+  readonly apiURL: string;
+}
+
 /**
  * Environment configuration with validation and defaults
  */
-const environment = {
+const environment: EnvironmentConfig = {
   // Application Environment
   NODE_ENV: process.env.NODE_ENV || 'development',
   
   // Server Configuration
-  PORT: parseInt(process.env.PORT) || 3000,
+  PORT: parseInt(process.env.PORT || '3000') || 3000,
   HOST: process.env.HOST || 'localhost',
   
   // Database Configuration
@@ -29,8 +93,8 @@ const environment = {
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
   
   // Rate Limiting
-  RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+  RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000') || 15 * 60 * 1000, // 15 minutes
+  RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100') || 100,
   
   // API Configuration
   API_VERSION: process.env.API_VERSION || 'v1',
@@ -42,7 +106,7 @@ const environment = {
   
   // Security Configuration
   JWT_SECRET: process.env.JWT_SECRET || 'your-jwt-secret-key-here',
-  BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS) || 12,
+  BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS || '12') || 12,
   
   // Development Configuration
   ENABLE_SWAGGER: process.env.ENABLE_SWAGGER === 'true' || false,
@@ -54,12 +118,12 @@ const environment = {
   ENABLE_HELMET: process.env.ENABLE_HELMET !== 'false',
   
   // File Upload Configuration
-  MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024, // 10MB
+  MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE || '10485760') || 10 * 1024 * 1024, // 10MB
   UPLOAD_DIR: process.env.UPLOAD_DIR || './uploads',
   
   // Session Configuration
   SESSION_SECRET: process.env.SESSION_SECRET || 'your-session-secret-here',
-  SESSION_MAX_AGE: parseInt(process.env.SESSION_MAX_AGE) || 24 * 60 * 60 * 1000, // 24 hours
+  SESSION_MAX_AGE: parseInt(process.env.SESSION_MAX_AGE || '86400000') || 24 * 60 * 60 * 1000, // 24 hours
   
   // External Services (future use)
   REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
@@ -71,23 +135,23 @@ const environment = {
   ANALYTICS_ID: process.env.ANALYTICS_ID || '',
   
   // Computed Properties
-  get isDevelopment() {
+  get isDevelopment(): boolean {
     return this.NODE_ENV === 'development';
   },
   
-  get isProduction() {
+  get isProduction(): boolean {
     return this.NODE_ENV === 'production';
   },
   
-  get isTest() {
+  get isTest(): boolean {
     return this.NODE_ENV === 'test';
   },
   
-  get baseURL() {
+  get baseURL(): string {
     return `http://${this.HOST}:${this.PORT}`;
   },
   
-  get apiURL() {
+  get apiURL(): string {
     return `${this.baseURL}${this.API_PREFIX}/${this.API_VERSION}`;
   }
 };
@@ -97,8 +161,8 @@ const environment = {
  * 
  * @throws {Error} If required variables are missing
  */
-export const validateEnvironment = () => {
-  const requiredVars = [
+export const validateEnvironment = (): void => {
+  const requiredVars: string[] = [
     'MONGODB_URI'
   ];
   
@@ -130,9 +194,9 @@ export const validateEnvironment = () => {
 /**
  * Get environment configuration
  * 
- * @returns {object} Environment configuration object
+ * @returns {EnvironmentConfig} Environment configuration object
  */
-export const getEnvironment = () => {
+export const getEnvironment = (): EnvironmentConfig => {
   return { ...environment };
 };
 
@@ -140,10 +204,10 @@ export const getEnvironment = () => {
  * Get specific environment variable with default
  * 
  * @param {string} key - Environment variable key
- * @param {*} defaultValue - Default value if not found
- * @returns {*} Environment variable value or default
+ * @param {any} defaultValue - Default value if not found
+ * @returns {string | null} Environment variable value or default
  */
-export const getEnvVar = (key, defaultValue = null) => {
+export const getEnvVar = (key: string, defaultValue: any = null): string | null => {
   return process.env[key] || defaultValue;
 };
 
@@ -153,7 +217,7 @@ export const getEnvVar = (key, defaultValue = null) => {
  * @param {string} env - Environment name to check
  * @returns {boolean} True if running in specified environment
  */
-export const isEnvironment = (env) => {
+export const isEnvironment = (env: string): boolean => {
   return environment.NODE_ENV === env;
 };
 
@@ -161,9 +225,9 @@ export const isEnvironment = (env) => {
  * Load environment-specific configuration file
  * 
  * @param {string} configPath - Path to config directory
- * @returns {object} Environment-specific configuration
+ * @returns {any} Environment-specific configuration
  */
-export const loadEnvironmentConfig = (configPath = './config') => {
+export const loadEnvironmentConfig = (configPath: string = './config'): any => {
   const envConfigFile = path.join(configPath, `${environment.NODE_ENV}.js`);
   
   try {
@@ -178,7 +242,7 @@ export const loadEnvironmentConfig = (configPath = './config') => {
 /**
  * Print environment information (development only)
  */
-export const printEnvironmentInfo = () => {
+export const printEnvironmentInfo = (): void => {
   if (!environment.isDevelopment) return;
   
   console.log('\n📋 Environment Configuration:');
@@ -195,7 +259,7 @@ export const printEnvironmentInfo = () => {
 // Validate environment on import
 try {
   validateEnvironment();
-} catch (error) {
+} catch (error: any) {
   console.error('❌ Environment validation failed:', error.message);
   process.exit(1);
 }

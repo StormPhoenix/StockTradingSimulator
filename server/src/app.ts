@@ -6,9 +6,9 @@ import compression from 'compression'
 import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
 
-import { connectDatabase } from './config/database.js'
-import { apiConfig } from './config/api.js'
-import errorHandler from './middleware/errorHandler.js'
+import { connectDatabase } from './config/database'
+import { apiConfig } from './config/api'
+import errorHandler from './middleware/errorHandler'
 import routes from './routes/index'
 import healthRoutes from './routes/healthRoutes'
 
