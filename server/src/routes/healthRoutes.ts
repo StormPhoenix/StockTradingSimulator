@@ -43,7 +43,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response): Promise<void> 
     version: '1.0.0',
     services: {
       database: {
-        status: dbConnected ? 'connected' : 'disconnected',
+        connectionStatus: dbConnected ? 'connected' : 'disconnected',
         ...dbInfo
       },
       memory: {
@@ -103,7 +103,7 @@ router.get('/detailed', asyncHandler(async (req: Request, res: Response): Promis
     },
     services: {
       database: {
-        status: dbConnected ? 'connected' : 'disconnected',
+        connectionStatus: dbConnected ? 'connected' : 'disconnected',
         ...dbInfo
       }
     },

@@ -57,14 +57,14 @@ const batchDeleteSchema = Joi.object({
 })
 
 // 路由定义
-router.post('/', validateRequest(createMarketSchema), marketController.createMarketEnvironment)
+router.post('/', validateRequest({ body: createMarketSchema }), marketController.createMarketEnvironment)
 router.get('/', validateRequest({ query: querySchema }), marketController.getMarketEnvironments)
 router.get('/stats/summary', marketController.getMarketStatsSummary)
 router.get('/stats/trends', marketController.getMarketTrends)
 router.post('/import', marketController.importMarketEnvironment)
-router.delete('/batch', validateRequest(batchDeleteSchema), marketController.batchDeleteMarketEnvironments)
+router.delete('/batch', validateRequest({ body: batchDeleteSchema }), marketController.batchDeleteMarketEnvironments)
 router.get('/:id', marketController.getMarketEnvironmentById)
-router.put('/:id', validateRequest(updateMarketSchema), marketController.updateMarketEnvironment)
+router.put('/:id', validateRequest({ body: updateMarketSchema }), marketController.updateMarketEnvironment)
 router.delete('/:id', marketController.deleteMarketEnvironment)
 router.get('/:id/export', marketController.exportMarketEnvironment)
 router.post('/:id/validate', marketController.validateMarketEnvironment)

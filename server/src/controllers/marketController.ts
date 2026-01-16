@@ -101,8 +101,8 @@ class MarketController {
       
       res.json({
         success: true,
-        data: result.data.data,
-        pagination: result.data.pagination
+        data: result.data?.data || [],
+        pagination: result.data?.pagination || { total: 0, page: 1, limit: 10, pages: 0 }
       })
     } catch (error) {
       next(error)
@@ -176,14 +176,14 @@ class MarketController {
       
       // 设置下载响应头
       res.setHeader('Content-Type', 'application/json; charset=utf-8')
-      res.setHeader('Content-Disposition', `attachment; filename="${result.data.filename}"`)
+      res.setHeader('Content-Disposition', `attachment; filename="${result.data?.filename || 'export.json'}"`)
       res.setHeader('Cache-Control', 'no-cache')
       
       // 返回前端期望的格式：{ success: true, data: exportData, filename: string }
       res.json({
         success: result.success,
-        data: result.data.data,  // 导出的实际数据
-        filename: result.data.filename  // 文件名
+        data: result.data?.data || {},  // 导出的实际数据
+        filename: result.data?.filename || 'export.json'  // 文件名
       })
     } catch (error) {
       next(error)
@@ -240,7 +240,7 @@ class MarketController {
   async getMarketStatsSummary(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await this.marketService.getMarketEnvironments({}, { limit: 1000 })
-      const markets = result.data.data
+      const markets = result.data?.data || []
       
       const summary = {
         totalMarkets: markets.length,
@@ -345,7 +345,7 @@ class MarketController {
       }
 
       const result = await this.marketService.getMarketEnvironments(query, { limit: 1000 })
-      const markets = result.data.data
+      const markets = result.data?.data || []
       
       // 按日期分组统计
       const trends: Record<string, any> = {}

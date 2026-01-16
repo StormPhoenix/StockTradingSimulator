@@ -174,12 +174,14 @@ class JsonUtils {
         exportFormat: 'StockTradeSimulator-MarketEnvironment-v1.0',
         exportTool: 'StockTradeSimulator-Server',
         exportVersion: '1.0.0',
-        checksum: null // 将在后面计算
+        checksum: undefined // 将在后面计算
       }
     }
 
     // 计算校验和
-    exportData.metadata.checksum = this.calculateChecksum(exportData)
+    if (exportData.metadata) {
+      exportData.metadata.checksum = this.calculateChecksum(exportData)
+    }
 
     return exportData
   }
@@ -201,7 +203,11 @@ class JsonUtils {
     if (importData.metadata?.checksum) {
       const originalChecksum = importData.metadata.checksum
       const tempData = { ...importData }
-      tempData.metadata = { ...tempData.metadata, checksum: null }
+      tempData.metadata = { 
+        ...tempData.metadata, 
+        checksum: undefined,
+        version: tempData.metadata?.version || '1.0.0'
+      } as ExportMetadata
       const calculatedChecksum = this.calculateChecksum(tempData)
       
       if (originalChecksum !== calculatedChecksum) {
@@ -452,7 +458,7 @@ class JsonUtils {
     if (exportData.traders && exportData.stocks) {
       // 验证持仓一致性
       exportData.traders.forEach(trader => {
-        trader.holdings.forEach(holding => {
+        trader.holdings?.forEach(holding => {
           const stock = exportData.stocks.find(s => s.symbol === holding.stockSymbol)
           if (!stock) {
             errors.push(`交易员 ${trader.name} 持有不存在的股票 ${holding.stockSymbol}`)
@@ -462,7 +468,7 @@ class JsonUtils {
 
       // 验证股票分配一致性
       exportData.stocks.forEach(stock => {
-        const totalAllocated = stock.holders.reduce((sum, holder) => sum + holder.quantity, 0)
+        const totalAllocated = stock.holders?.reduce((sum, holder) => sum + holder.quantity, 0) || 0
         if (totalAllocated !== stock.totalShares) {
           warnings.push(`股票 ${stock.symbol} 的分配数量与总股数不匹配`)
         }
@@ -497,9 +503,9 @@ class JsonUtils {
    */
   static createDataSummary(data: ExportFormat): DataSummary {
     return {
-      id: data.id,
-      name: data.name,
-      version: data.version,
+      id: data.id || '',
+      name: data.name || '',
+      version: data.version || '1.0.0',
       traderCount: data.traders ? data.traders.length : 0,
       stockCount: data.stocks ? data.stocks.length : 0,
       totalCapital: data.configuration?.totalCapital || 0,

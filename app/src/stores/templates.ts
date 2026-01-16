@@ -150,7 +150,7 @@ export const useTemplatesStore = defineStore('templates', {
     },
     
     stockTemplatesByCategory: (state) => {
-      const grouped = {};
+      const grouped: Record<string, typeof state.stockTemplates> = {};
       state.stockTemplates.forEach(template => {
         const category = template.category || 'other';
         if (!grouped[category]) {

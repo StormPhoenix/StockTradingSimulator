@@ -5,7 +5,7 @@
 
 import express, { Request, Response, NextFunction } from 'express'
 import templateController from '../controllers/templateController'
-import { validateRequest } from '../middleware/validation'
+import { validateRequest, commonSchemas } from '../middleware/validation'
 
 const router = express.Router()
 
@@ -75,7 +75,7 @@ router.get('/stocks/:id', templateController.getStockTemplateById)
  * @body {object} stockTemplate - 股票模板数据
  */
 router.post('/stocks', 
-  validateRequest('stockTemplate'),
+  validateRequest({ body: commonSchemas.stockTemplate }),
   templateController.createStockTemplate
 )
 
@@ -86,7 +86,7 @@ router.post('/stocks',
  * @body {object} stockTemplate - 更新的股票模板数据
  */
 router.put('/stocks/:id',
-  validateRequest('stockTemplateUpdate'),
+  validateRequest({ body: commonSchemas.stockTemplate }),
   templateController.updateStockTemplate
 )
 
@@ -123,7 +123,7 @@ router.get('/traders/:id', templateController.getTraderTemplateById)
  * @body {object} traderTemplate - AI交易员模板数据
  */
 router.post('/traders',
-  validateRequest('traderTemplate'),
+  validateRequest({ body: commonSchemas.traderTemplate }),
   templateController.createTraderTemplate
 )
 
@@ -134,7 +134,7 @@ router.post('/traders',
  * @body {object} traderTemplate - 更新的AI交易员模板数据
  */
 router.put('/traders/:id',
-  validateRequest('traderTemplateUpdate'),
+  validateRequest({ body: commonSchemas.traderTemplate }),
   templateController.updateTraderTemplate
 )
 
@@ -155,7 +155,7 @@ router.delete('/traders/:id', templateController.deleteTraderTemplate)
  * @body {string[]} batchDelete.ids - 模板ID数组
  */
 router.post('/batch/delete',
-  validateRequest('batchDelete'),
+  validateRequest({ body: commonSchemas.batchDelete }),
   templateController.batchDeleteTemplates
 )
 
@@ -168,7 +168,7 @@ router.post('/batch/delete',
  * @body {string} batchStatus.status - 新状态 (active/inactive)
  */
 router.post('/batch/status',
-  validateRequest('batchStatus'),
+  validateRequest({ body: commonSchemas.batchStatus }),
   templateController.batchUpdateTemplateStatus
 )
 

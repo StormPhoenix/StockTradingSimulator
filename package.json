@@ -18,7 +18,8 @@
   "devDependencies": {
     "@types/node": "^25.0.8",
     "concurrently": "^8.2.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-coverage-report": "^1.1.1"
   },
   "engines": {
     "node": ">=18.0.0"

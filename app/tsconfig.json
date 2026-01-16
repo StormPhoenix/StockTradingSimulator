@@ -4,10 +4,10 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "allowJs": true,
+    "allowJs": false,
     "checkJs": false,
-    "strict": false,
-    "noImplicitAny": false,
+    "strict": true,
+    "noImplicitAny": true,
     "skipLibCheck": true,
     "paths": {
       "@/*": ["./src/*"],

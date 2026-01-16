@@ -5,11 +5,64 @@
  * with validation, defaults, and type conversion for Vite environment variables.
  */
 
+// Environment configuration interface
+interface EnvironmentConfig {
+  // Development Server Configuration
+  DEV_PORT: number
+  PREVIEW_PORT: number
+
+  // API Configuration
+  API_BASE_URL: string
+  API_TIMEOUT: number
+  API_PREFIX: string
+  API_VERSION: string
+
+  // Application Configuration
+  APP_TITLE: string
+  APP_VERSION: string
+  BASE_PATH: string
+
+  // Environment Detection
+  NODE_ENV: string
+
+  // Feature Flags
+  ENABLE_DEBUG: boolean
+  ENABLE_MOCK_DATA: boolean
+  ENABLE_PWA: boolean
+  ENABLE_ANALYTICS: boolean
+
+  // Performance Configuration
+  ENABLE_PERFORMANCE_MONITORING: boolean
+  API_RETRY_ATTEMPTS: number
+  API_RETRY_DELAY: number
+
+  // UI Configuration
+  THEME: string
+  LANGUAGE: string
+
+  // External Services (future use)
+  SENTRY_DSN: string
+  ANALYTICS_ID: string
+  WEBSOCKET_URL: string
+
+  // Build Information (injected by Vite)
+  BUILD_TIME: string
+  COMMIT_HASH: string
+
+  // Computed Properties
+  readonly isDevelopment: boolean
+  readonly isProduction: boolean
+  readonly isTest: boolean
+  readonly apiURL: string
+  readonly healthURL: string
+  readonly fullTitle: string
+}
+
 /**
  * Frontend environment configuration
  * All Vite environment variables must be prefixed with VITE_
  */
-const environment = {
+const environment: EnvironmentConfig = {
   // Development Server Configuration
   DEV_PORT: parseInt(import.meta.env.VITE_DEV_PORT) || 5173,
   PREVIEW_PORT: parseInt(import.meta.env.VITE_PREVIEW_PORT) || 4173,
@@ -17,8 +70,8 @@ const environment = {
   // API Configuration
   API_BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001',
   API_TIMEOUT: parseInt(import.meta.env.VITE_API_TIMEOUT) || 10000,
-  API_PREFIX: parseInt(import.meta.env.VITE_API_PREFIX) || 10000,
-  API_VERSION: parseInt(import.meta.env.VITE_API_VERSION) || 10000,
+  API_PREFIX: import.meta.env.VITE_API_PREFIX || 'api',
+  API_VERSION: import.meta.env.VITE_API_VERSION || 'v1',
 
   // Application Configuration
   APP_TITLE: import.meta.env.VITE_APP_TITLE || 'Stock Trading Simulator',
@@ -53,27 +106,27 @@ const environment = {
   COMMIT_HASH: import.meta.env.VITE_COMMIT_HASH || 'unknown',
 
   // Computed Properties
-  get isDevelopment() {
+  get isDevelopment(): boolean {
     return this.NODE_ENV === 'development' || import.meta.env.DEV;
   },
 
-  get isProduction() {
+  get isProduction(): boolean {
     return this.NODE_ENV === 'production' || import.meta.env.PROD;
   },
 
-  get isTest() {
+  get isTest(): boolean {
     return this.NODE_ENV === 'test';
   },
 
-  get apiURL() {
+  get apiURL(): string {
     return `${this.API_BASE_URL}/${this.API_PREFIX}/${this.API_VERSION}`;
   },
 
-  get healthURL() {
+  get healthURL(): string {
     return `${this.API_BASE_URL}/health`;
   },
 
-  get fullTitle() {
+  get fullTitle(): string {
     return `${this.APP_TITLE} v${this.APP_VERSION}`;
   }
 };
@@ -83,8 +136,8 @@ const environment = {
  *
  * @throws {Error} If validation fails
  */
-export const validateEnvironment = () => {
-  const errors = [];
+export const validateEnvironment = (): void => {
+  const errors: string[] = [];
 
   // Validate API base URL
   try {
@@ -128,40 +181,40 @@ export const validateEnvironment = () => {
 /**
  * Get environment configuration
  *
- * @returns {object} Environment configuration object
+ * @returns Environment configuration object
  */
-export const getEnvironment = () => {
+export const getEnvironment = (): EnvironmentConfig => {
   return { ...environment };
 };
 
 /**
  * Get specific environment variable with default
  *
- * @param {string} key - Environment variable key (with VITE_ prefix)
- * @param {*} defaultValue - Default value if not found
- * @returns {*} Environment variable value or default
+ * @param key - Environment variable key (with VITE_ prefix)
+ * @param defaultValue - Default value if not found
+ * @returns Environment variable value or default
  */
-export const getEnvVar = (key, defaultValue = null) => {
+export const getEnvVar = (key: string, defaultValue: any = null): any => {
   return import.meta.env[key] || defaultValue;
 };
 
 /**
  * Check if running in specific environment
  *
- * @param {string} env - Environment name to check
- * @returns {boolean} True if running in specified environment
+ * @param env - Environment name to check
+ * @returns True if running in specified environment
  */
-export const isEnvironment = (env) => {
+export const isEnvironment = (env: string): boolean => {
   return environment.NODE_ENV === env;
 };
 
 /**
  * Get feature flag value
  *
- * @param {string} flag - Feature flag name
- * @returns {boolean} Feature flag value
+ * @param flag - Feature flag name
+ * @returns Feature flag value
  */
-export const getFeatureFlag = (flag) => {
+export const getFeatureFlag = (flag: string): boolean => {
   const envKey = `VITE_ENABLE_${flag.toUpperCase()}`;
   return import.meta.env[envKey] === 'true';
 };
@@ -169,7 +222,7 @@ export const getFeatureFlag = (flag) => {
 /**
  * Print environment information (development only)
  */
-export const printEnvironmentInfo = () => {
+export const printEnvironmentInfo = (): void => {
   if (!environment.isDevelopment) return;
 
   console.log('\n📋 Frontend Environment Configuration:');
@@ -184,12 +237,39 @@ export const printEnvironmentInfo = () => {
   console.log('');
 };
 
+// Runtime configuration interface
+export interface RuntimeConfig {
+  app: {
+    title: string
+    version: string
+    buildTime: string
+    commitHash: string
+  }
+  api: {
+    baseURL: string
+    timeout: number
+    retryAttempts: number
+    retryDelay: number
+  }
+  features: {
+    debug: boolean
+    mockData: boolean
+    pwa: boolean
+    analytics: boolean
+    performanceMonitoring: boolean
+  }
+  ui: {
+    theme: string
+    language: string
+  }
+}
+
 /**
  * Create runtime configuration object for use in components
  *
- * @returns {object} Runtime configuration
+ * @returns Runtime configuration
  */
-export const createRuntimeConfig = () => {
+export const createRuntimeConfig = (): RuntimeConfig => {
   return {
     app: {
       title: environment.APP_TITLE,
@@ -221,7 +301,7 @@ export const createRuntimeConfig = () => {
 try {
   validateEnvironment();
 } catch (error) {
-  console.error('❌ Frontend environment validation failed:', error.message);
+  console.error('❌ Frontend environment validation failed:', (error as Error).message);
   // Don't exit in browser environment, just log the error
 }
 

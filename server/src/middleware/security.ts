@@ -5,15 +5,51 @@
  * helmet security headers, and other security best practices.
  */
 
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+import helmet from 'helmet'
+import rateLimit, { type RateLimitRequestHandler } from 'express-rate-limit'
+import type { Application, Request, Response, NextFunction } from 'express'
+
+// Rate limiter options interface
+interface RateLimiterOptions {
+  windowMs?: number
+  max?: number
+  message?: {
+    success: boolean
+    message: string
+    timestamp: string
+  }
+  standardHeaders?: boolean
+  legacyHeaders?: boolean
+  handler?: (req: Request, res: Response) => void
+}
+
+// Request info interface for logging
+interface RequestInfo {
+  method: string
+  url: string
+  ip: string
+  userAgent?: string
+  timestamp: string
+  headers: {
+    'content-type'?: string
+    'content-length'?: string
+    'origin'?: string
+    'referer'?: string
+  }
+}
+
+// Response info interface for logging
+interface ResponseInfo extends RequestInfo {
+  statusCode: number
+  duration: string
+}
 
 /**
  * Setup comprehensive security middleware
  * 
- * @param {express.Application} app - Express application instance
+ * @param app - Express application instance
  */
-export const setupSecurity = (app) => {
+export const setupSecurity = (app: Application): void => {
   // Helmet for security headers
   app.use(helmet({
     // Content Security Policy
@@ -78,37 +114,37 @@ export const setupSecurity = (app) => {
     
     // X-XSS-Protection
     xssFilter: true
-  }));
+  }))
   
   // Additional security headers
-  app.use((req, res, next) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     // Remove server information
-    res.removeHeader('X-Powered-By');
+    res.removeHeader('X-Powered-By')
     
     // Add custom security headers
-    res.setHeader('X-API-Version', '1.0.0');
-    res.setHeader('X-Response-Time', Date.now());
+    res.setHeader('X-API-Version', '1.0.0')
+    res.setHeader('X-Response-Time', Date.now().toString())
     
     // Prevent caching of sensitive endpoints
     if (req.path.includes('/api/')) {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      res.setHeader('Surrogate-Control', 'no-store');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+      res.setHeader('Pragma', 'no-cache')
+      res.setHeader('Expires', '0')
+      res.setHeader('Surrogate-Control', 'no-store')
     }
     
-    next();
-  });
-};
+    next()
+  })
+}
 
 /**
  * Create rate limiter with custom configuration
  * 
- * @param {object} options - Rate limiting options
- * @returns {Function} Rate limiting middleware
+ * @param options - Rate limiting options
+ * @returns Rate limiting middleware
  */
-export const createRateLimiter = (options = {}) => {
-  const defaultOptions = {
+export const createRateLimiter = (options: RateLimiterOptions = {}): RateLimitRequestHandler => {
+  const defaultOptions: RateLimiterOptions = {
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // limit each IP to 100 requests per windowMs
     message: {
@@ -118,23 +154,23 @@ export const createRateLimiter = (options = {}) => {
     },
     standardHeaders: true,
     legacyHeaders: false,
-    handler: (req, res) => {
+    handler: (req: Request, res: Response) => {
       res.status(429).json({
         success: false,
         message: 'Rate limit exceeded',
-        retryAfter: Math.round(options.windowMs / 1000) || 900,
+        retryAfter: Math.round((options.windowMs || 900000) / 1000),
         timestamp: new Date().toISOString()
-      });
+      })
     }
-  };
+  }
   
-  return rateLimit({ ...defaultOptions, ...options });
-};
+  return rateLimit({ ...defaultOptions, ...options })
+}
 
 /**
  * Strict rate limiter for sensitive endpoints
  */
-export const strictRateLimiter = createRateLimiter({
+export const strictRateLimiter: RateLimitRequestHandler = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // limit each IP to 10 requests per windowMs
   message: {
@@ -142,12 +178,12 @@ export const strictRateLimiter = createRateLimiter({
     message: 'Too many requests to sensitive endpoint, please try again later.',
     timestamp: new Date().toISOString()
   }
-});
+})
 
 /**
  * Lenient rate limiter for public endpoints
  */
-export const lenientRateLimiter = createRateLimiter({
+export const lenientRateLimiter: RateLimitRequestHandler = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 1000, // limit each IP to 1000 requests per windowMs
   message: {
@@ -155,67 +191,67 @@ export const lenientRateLimiter = createRateLimiter({
     message: 'Rate limit exceeded for public endpoint.',
     timestamp: new Date().toISOString()
   }
-});
+})
 
 /**
  * Input sanitization middleware
  * 
- * @param {express.Request} req - Express request object
- * @param {express.Response} res - Express response object
- * @param {express.NextFunction} next - Express next function
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next function
  */
-export const sanitizeInput = (req, res, next) => {
+export const sanitizeInput = (req: Request, res: Response, next: NextFunction): void => {
   // Sanitize request body
   if (req.body && typeof req.body === 'object') {
-    req.body = sanitizeObject(req.body);
+    req.body = sanitizeObject(req.body)
   }
   
   // Sanitize query parameters
   if (req.query && typeof req.query === 'object') {
-    req.query = sanitizeObject(req.query);
+    req.query = sanitizeObject(req.query)
   }
   
   // Sanitize URL parameters
   if (req.params && typeof req.params === 'object') {
-    req.params = sanitizeObject(req.params);
+    req.params = sanitizeObject(req.params)
   }
   
-  next();
-};
+  next()
+}
 
 /**
  * Recursively sanitize object properties
  * 
- * @param {object} obj - Object to sanitize
- * @returns {object} Sanitized object
+ * @param obj - Object to sanitize
+ * @returns Sanitized object
  */
-const sanitizeObject = (obj) => {
+const sanitizeObject = (obj: any): any => {
   if (obj === null || typeof obj !== 'object') {
-    return sanitizeValue(obj);
+    return sanitizeValue(obj)
   }
   
   if (Array.isArray(obj)) {
-    return obj.map(item => sanitizeObject(item));
+    return obj.map(item => sanitizeObject(item))
   }
   
-  const sanitized = {};
+  const sanitized: Record<string, any> = {}
   for (const [key, value] of Object.entries(obj)) {
-    const sanitizedKey = sanitizeValue(key);
-    sanitized[sanitizedKey] = sanitizeObject(value);
+    const sanitizedKey = sanitizeValue(key)
+    sanitized[sanitizedKey] = sanitizeObject(value)
   }
   
-  return sanitized;
-};
+  return sanitized
+}
 
 /**
  * Sanitize individual values
  * 
- * @param {*} value - Value to sanitize
- * @returns {*} Sanitized value
+ * @param value - Value to sanitize
+ * @returns Sanitized value
  */
-const sanitizeValue = (value) => {
+const sanitizeValue = (value: any): any => {
   if (typeof value !== 'string') {
-    return value;
+    return value
   }
   
   // Remove potentially dangerous characters
@@ -224,24 +260,24 @@ const sanitizeValue = (value) => {
     .replace(/<[^>]*>/g, '') // Remove HTML tags
     .replace(/javascript:/gi, '') // Remove javascript: protocol
     .replace(/on\w+\s*=/gi, '') // Remove event handlers
-    .trim(); // Trim whitespace
-};
+    .trim() // Trim whitespace
+}
 
 /**
  * Request logging middleware for security monitoring
  * 
- * @param {express.Request} req - Express request object
- * @param {express.Response} res - Express response object
- * @param {express.NextFunction} next - Express next function
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next function
  */
-export const securityLogger = (req, res, next) => {
-  const startTime = Date.now();
+export const securityLogger = (req: Request, res: Response, next: NextFunction): void => {
+  const startTime = Date.now()
   
   // Log request details
-  const requestInfo = {
+  const requestInfo: RequestInfo = {
     method: req.method,
     url: req.originalUrl,
-    ip: req.ip,
+    ip: req.ip || 'unknown',
     userAgent: req.get('User-Agent'),
     timestamp: new Date().toISOString(),
     headers: {
@@ -250,7 +286,7 @@ export const securityLogger = (req, res, next) => {
       'origin': req.get('Origin'),
       'referer': req.get('Referer')
     }
-  };
+  }
   
   // Log suspicious patterns
   const suspiciousPatterns = [
@@ -260,35 +296,35 @@ export const securityLogger = (req, res, next) => {
     /javascript:/gi, // JavaScript protocol
     /eval\(/gi, // Code injection
     /exec\(/gi // Command injection
-  ];
+  ]
   
-  const requestString = JSON.stringify(requestInfo);
+  const requestString = JSON.stringify(requestInfo)
   const hasSuspiciousContent = suspiciousPatterns.some(pattern => 
     pattern.test(requestString)
-  );
+  )
   
   if (hasSuspiciousContent) {
-    console.warn('🚨 Suspicious request detected:', requestInfo);
+    console.warn('🚨 Suspicious request detected:', requestInfo)
   }
   
   // Log response when finished
   res.on('finish', () => {
-    const duration = Date.now() - startTime;
-    const responseInfo = {
+    const duration = Date.now() - startTime
+    const responseInfo: ResponseInfo = {
       ...requestInfo,
       statusCode: res.statusCode,
       duration: `${duration}ms`
-    };
+    }
     
     if (res.statusCode >= 400) {
-      console.warn('⚠️ Error response:', responseInfo);
+      console.warn('⚠️ Error response:', responseInfo)
     } else if (process.env.NODE_ENV === 'development') {
-      console.log('📝 Request completed:', responseInfo);
+      console.log('📝 Request completed:', responseInfo)
     }
-  });
+  })
   
-  next();
-};
+  next()
+}
 
 export default {
   setupSecurity,
@@ -297,4 +333,4 @@ export default {
   lenientRateLimiter,
   sanitizeInput,
   securityLogger
-};
+}

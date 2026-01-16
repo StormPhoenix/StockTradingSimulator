@@ -211,7 +211,7 @@ class AllocationService {
    */
   private allocateStockToTraders(stock: AllocatedStock, traders: AllocatedTrader[]): void {
     const totalCapital = traders.reduce((sum, trader) => sum + trader.initialCapital, 0)
-    let remainingShares = stock.totalShares
+    let remainingShares = stock.totalShares || 0
 
     // 计算每个交易员的权重
     const weights = traders.map(trader => trader.initialCapital / totalCapital)
@@ -224,9 +224,9 @@ class AllocationService {
       let allocation: number
       if (i === traders.length - 1) {
         // 最后一个交易员获得剩余所有股票
-        allocation = remainingShares
+        allocation = remainingShares || 0
       } else {
-        const baseAllocation = Math.floor(stock.totalShares * weights[i])
+        const baseAllocation = Math.floor((stock.totalShares || 0) * weights[i])
         const randomFactor = this.getRandomFloat(0.8, 1.2) // ±20% 随机变化
         allocation = Math.min(
           Math.floor(baseAllocation * randomFactor),
@@ -249,24 +249,25 @@ class AllocationService {
           traderId: trader.id,
           traderName: trader.name,
           quantity: allocation,
-          percentage: (allocation / stock.totalShares) * 100
+          percentage: (allocation / (stock.totalShares || 1)) * 100
         })
 
         stock.allocatedShares += allocation
-        remainingShares -= allocation
+        remainingShares = (remainingShares || 0) - allocation
       }
     }
 
     // 更新可用股数
-    stock.availableShares = remainingShares
+    stock.availableShares = (remainingShares || 0)
   }
 
   /**
    * 平均分配单只股票
    */
   private equallyAllocateStock(stock: AllocatedStock, traders: AllocatedTrader[]): void {
-    const baseAllocation = Math.floor(stock.totalShares / traders.length)
-    let remainingShares = stock.totalShares - (baseAllocation * traders.length)
+    const totalShares = stock.totalShares || 0
+    const baseAllocation = Math.floor(totalShares / traders.length)
+    let remainingShares = totalShares - (baseAllocation * traders.length)
 
     for (let i = 0; i < traders.length; i++) {
       const trader = traders[i]
@@ -293,7 +294,7 @@ class AllocationService {
           traderId: trader.id,
           traderName: trader.name,
           quantity: allocation,
-          percentage: (allocation / stock.totalShares) * 100
+          percentage: (allocation / (stock.totalShares || 1)) * 100
         })
 
         stock.allocatedShares += allocation
@@ -373,7 +374,7 @@ class AllocationService {
     if (traders.length === 0 || stock.availableShares === 0) return
 
     const totalCapital = traders.reduce((sum, trader) => sum + trader.initialCapital, 0)
-    let remainingShares = Math.min(stock.availableShares, stock.totalShares)
+    let remainingShares = Math.min(stock.availableShares || 0, stock.totalShares || 0)
 
     for (let i = 0; i < traders.length && remainingShares > 0; i++) {
       const trader = traders[i]
@@ -381,7 +382,7 @@ class AllocationService {
       
       let allocation: number
       if (i === traders.length - 1) {
-        allocation = remainingShares
+        allocation = remainingShares || 0
       } else {
         allocation = Math.floor(remainingShares * weight)
       }
@@ -410,22 +411,22 @@ class AllocationService {
         
         if (existingHolder) {
           existingHolder.quantity += allocation
-          existingHolder.percentage = (existingHolder.quantity / stock.totalShares) * 100
+          existingHolder.percentage = (existingHolder.quantity / (stock.totalShares || 1)) * 100
         } else {
           stock.holders.push({
             traderId: trader.id,
             traderName: trader.name,
             quantity: allocation,
-            percentage: (allocation / stock.totalShares) * 100
+            percentage: (allocation / (stock.totalShares || 1)) * 100
           })
         }
 
         stock.allocatedShares += allocation
-        remainingShares -= allocation
+        remainingShares = (remainingShares || 0) - allocation
       }
     }
 
-    stock.availableShares = stock.totalShares - stock.allocatedShares
+    stock.availableShares = (stock.totalShares || 0) - stock.allocatedShares
   }
 
   /**
@@ -440,7 +441,7 @@ class AllocationService {
         throw new Error(`股票 ${stock.symbol} 的持有者数量与已分配数量不匹配`)
       }
 
-      if (stock.allocatedShares > stock.totalShares) {
+      if (stock.allocatedShares > (stock.totalShares || 0)) {
         throw new Error(`股票 ${stock.symbol} 的分配数量超过总股数`)
       }
     }
@@ -505,7 +506,7 @@ class AllocationService {
       totalTraders: traders.length,
       totalStocks: stocks.length,
       totalCapital: traders.reduce((sum, trader) => sum + trader.initialCapital, 0),
-      totalMarketValue: stocks.reduce((sum, stock) => sum + (stock.currentPrice * stock.totalShares), 0),
+      totalMarketValue: stocks.reduce((sum, stock) => sum + (stock.currentPrice * (stock.totalShares || 0)), 0),
       averageHoldingsPerTrader: 0,
       averageHoldersPerStock: 0,
       capitalDistribution: {},

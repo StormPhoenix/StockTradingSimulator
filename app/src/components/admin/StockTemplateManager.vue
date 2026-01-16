@@ -188,8 +188,8 @@ interface StockTemplateForm {
   _id?: string
   name: string
   symbol: string
-  issuePrice: number | null
-  totalShares: number | null
+  issuePrice: number | undefined
+  totalShares: number | undefined
   category: string
   description: string
 }
@@ -220,8 +220,8 @@ const formRef = ref()
 const form = reactive<StockTemplateForm>({
   name: '',
   symbol: '',
-  issuePrice: null,
-  totalShares: null,
+  issuePrice: undefined,
+  totalShares: undefined,
   category: '',
   description: ''
 })
@@ -368,8 +368,8 @@ const resetForm = (): void => {
   Object.assign(form, {
     name: '',
     symbol: '',
-    issuePrice: null,
-    totalShares: null,
+    issuePrice: undefined,
+    totalShares: undefined,
     category: '',
     description: ''
   })

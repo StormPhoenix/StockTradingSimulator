@@ -1,5 +1,28 @@
 import Joi from 'joi'
+import type { Request, Response, NextFunction } from 'express'
 import { ValidationError } from './errorHandler'
+
+// Validation detail interface
+export interface ValidationDetail {
+  field: string
+  message: string
+  value: any
+}
+
+// Request validation error interface
+export interface RequestValidationError {
+  source: 'params' | 'query' | 'body'
+  field: string
+  message: string
+  value: any
+}
+
+// Validation schemas interface
+export interface ValidationSchemas {
+  params?: Joi.ObjectSchema
+  query?: Joi.ObjectSchema
+  body?: Joi.ObjectSchema
+}
 
 // 通用验证规则
 export const commonSchemas = {
@@ -155,11 +178,49 @@ export const commonSchemas = {
       fairnessThreshold: Joi.number().min(0).max(1).default(0.8),
     }),
   }),
+
+  // 批量删除验证
+  batchDelete: Joi.object({
+    type: Joi.string().valid('stock', 'trader').required().messages({
+      'any.only': '模板类型必须是stock或trader',
+      'any.required': '模板类型是必填项',
+    }),
+    ids: Joi.array().items(
+      Joi.string().pattern(/^[0-9a-fA-F]{24}$/).messages({
+        'string.pattern.base': '模板ID格式无效',
+      })
+    ).min(1).max(100).required().messages({
+      'array.min': '至少选择1个模板',
+      'array.max': '最多选择100个模板',
+      'any.required': '模板ID列表是必填项',
+    }),
+  }),
+
+  // 批量状态更新验证
+  batchStatus: Joi.object({
+    type: Joi.string().valid('stock', 'trader').required().messages({
+      'any.only': '模板类型必须是stock或trader',
+      'any.required': '模板类型是必填项',
+    }),
+    ids: Joi.array().items(
+      Joi.string().pattern(/^[0-9a-fA-F]{24}$/).messages({
+        'string.pattern.base': '模板ID格式无效',
+      })
+    ).min(1).max(100).required().messages({
+      'array.min': '至少选择1个模板',
+      'array.max': '最多选择100个模板',
+      'any.required': '模板ID列表是必填项',
+    }),
+    status: Joi.string().valid('active', 'inactive').required().messages({
+      'any.only': '状态必须是active或inactive',
+      'any.required': '状态是必填项',
+    }),
+  }),
 }
 
 // 验证中间件工厂
-export const validate = (schema, source = 'body') => {
-  return (req, res, next) => {
+export const validate = (schema: Joi.ObjectSchema, source: keyof Request = 'body') => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const data = req[source]
 
     const { error, value } = schema.validate(data, {
@@ -169,30 +230,30 @@ export const validate = (schema, source = 'body') => {
     })
 
     if (error) {
-      const details = error.details.map(detail => ({
+      const details: ValidationDetail[] = error.details.map(detail => ({
         field: detail.path.join('.'),
         message: detail.message,
-        value: detail.context?.value,
+        value: detail.context?.value || null,
       }))
 
       throw new ValidationError('Validation failed', details)
     }
 
     // 将验证后的数据替换原始数据
-    req[source] = value
+    ;(req as any)[source] = value
     next()
   }
 }
 
 // 参数验证中间件
-export const validateParams = schema => validate(schema, 'params')
-export const validateQuery = schema => validate(schema, 'query')
-export const validateBody = schema => validate(schema, 'body')
+export const validateParams = (schema: Joi.ObjectSchema) => validate(schema, 'params')
+export const validateQuery = (schema: Joi.ObjectSchema) => validate(schema, 'query')
+export const validateBody = (schema: Joi.ObjectSchema) => validate(schema, 'body')
 
 // 组合验证中间件
-export const validateRequest = schemas => {
-  return (req, res, next) => {
-    const errors = []
+export const validateRequest = (schemas: ValidationSchemas) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const errors: RequestValidationError[] = []
 
     // 验证params
     if (schemas.params) {
@@ -200,9 +261,10 @@ export const validateRequest = schemas => {
       if (error) {
         errors.push(
           ...error.details.map(detail => ({
-            source: 'params',
+            source: 'params' as const,
             field: detail.path.join('.'),
             message: detail.message,
+            value: detail.context?.value || null,
           }))
         )
       }
@@ -218,9 +280,10 @@ export const validateRequest = schemas => {
       if (error) {
         errors.push(
           ...error.details.map(detail => ({
-            source: 'query',
+            source: 'query' as const,
             field: detail.path.join('.'),
             message: detail.message,
+            value: detail.context?.value || null,
           }))
         )
       } else {
@@ -238,9 +301,10 @@ export const validateRequest = schemas => {
       if (error) {
         errors.push(
           ...error.details.map(detail => ({
-            source: 'body',
+            source: 'body' as const,
             field: detail.path.join('.'),
             message: detail.message,
+            value: detail.context?.value || null,
           }))
         )
       } else {

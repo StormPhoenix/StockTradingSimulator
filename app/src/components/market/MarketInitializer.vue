@@ -436,7 +436,7 @@
             <el-descriptions-item label="市场名称">{{ currentMarketDetail.name }}</el-descriptions-item>
             <el-descriptions-item label="市场ID">{{ currentMarketDetail.id }}</el-descriptions-item>
             <el-descriptions-item label="描述信息">{{ currentMarketDetail.description || '无描述' }}</el-descriptions-item>
-            <el-descriptions-item label="分配算法">{{ getAllocationAlgorithmName(currentMarketDetail.allocationAlgorithm) }}</el-descriptions-item>
+            <el-descriptions-item label="分配算法">{{ getAllocationAlgorithmName(currentMarketDetail.allocationAlgorithm || '') }}</el-descriptions-item>
             <el-descriptions-item label="创建时间">{{ formatDateTime(currentMarketDetail.createdAt) }}</el-descriptions-item>
             <el-descriptions-item label="版本">{{ currentMarketDetail.version || '1.0.0' }}</el-descriptions-item>
           </el-descriptions>
@@ -764,7 +764,7 @@ const handleViewDetail = async (row: MarketEnvironment): Promise<void> => {
       throw new Error('获取市场环境详情失败')
     }
     
-    currentMarketDetail.value = result.data
+    currentMarketDetail.value = result.data || null
     console.log('获取到的详情数据:', result.data)
     detailDialogVisible.value = true
     
@@ -800,7 +800,7 @@ const handleExport = async (row: MarketEnvironment): Promise<void> => {
     
     if (result.success) {
       // 触发文件下载
-      downloadJsonFile(result.data, result.filename)
+      downloadJsonFile(result.data, result.filename || 'export.json')
       ElMessage.success('导出成功')
     }
   } catch (error) {
@@ -847,7 +847,7 @@ const handleBatchExport = async (): Promise<void> => {
     let successCount = 0
     results.forEach((result) => {
       if (result.status === 'fulfilled' && result.value.success) {
-        downloadJsonFile(result.value.data, result.value.filename)
+        downloadJsonFile(result.value.data, result.value.filename || 'export.json')
         successCount++
       }
     })

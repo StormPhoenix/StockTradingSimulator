@@ -410,8 +410,8 @@ export const useMarketStore = defineStore('market', () => {
       const result = await marketService.searchMarketEnvironments(keyword, options)
       
       if (result.success) {
-        marketEnvironments.value = result.data
-        pagination.value = result.pagination
+        marketEnvironments.value = result.data || []
+        pagination.value = result.pagination || { page: 1, limit: 10, total: 0, pages: 0 }
       }
 
       return result

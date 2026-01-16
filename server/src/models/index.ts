@@ -69,7 +69,7 @@ export const validators: Record<string, ValidatorConfig> = {
   
   // 名称验证
   name: {
-    validator: (value: string) => value && value.trim().length >= 1 && value.trim().length <= 100,
+    validator: (value: string) => Boolean(value && value.trim().length >= 1 && value.trim().length <= 100),
     message: '名称长度必须在1-100字符之间',
   },
 }

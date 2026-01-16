@@ -257,7 +257,10 @@ class FileUtils {
    */
   static async batchDownload(files: DownloadFile[], delay: number = 500): Promise<void> {
     for (let i = 0; i < files.length; i++) {
-      const { data, filename } = files[i]
+      const file = files[i]
+      if (!file) continue
+      
+      const { data, filename } = file
       
       try {
         this.downloadJsonFile(data, filename)

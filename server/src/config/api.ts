@@ -155,8 +155,8 @@ export const apiConfig: ApiConfig = {
   
   // 速率限制配置
   rateLimit: {
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15分钟
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1000, // 每个IP最多1000个请求
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000') || 15 * 60 * 1000, // 15分钟
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000') || 1000, // 每个IP最多1000个请求
     message: {
       success: false,
       error: {
