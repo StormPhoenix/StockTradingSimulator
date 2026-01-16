@@ -1,0 +1,19 @@
+# Build outputs
+dist/
+build/
+coverage/
+
+# Dependencies
+node_modules/
+
+# Generated files
+*.min.js
+*.d.ts
+
+# Configuration files
+vite.config.ts
+vitest.config.ts
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
