@@ -11,6 +11,15 @@ import { validators } from '../utils/validationUtils'
 const { stockTemplateService, aiTraderTemplateService } = templateServiceModule
 const { validateStockTemplate, validateTraderTemplate } = validators
 
+// 扩展 Request 接口以支持用户信息
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string
+    email: string
+    role: string
+  }
+}
+
 // 股票模板查询参数
 interface StockTemplateQueryParams {
   page?: string
@@ -475,13 +484,13 @@ class TemplateController {
   /**
    * 创建市场环境
    */
-  async createMarketEnvironment(req: Request<{}, {}, MarketEnvironmentRequest>, res: Response, next: NextFunction): Promise<void> {
+  async createMarketEnvironment(req: AuthenticatedRequest & Request<{}, {}, MarketEnvironmentRequest>, res: Response, next: NextFunction): Promise<void> {
     try {
       const config = {
         ...req.body,
-        stockTemplateIds: req.body.stockConfigs.map(config => config.templateId),
+        stockTemplateIds: req.body.stockConfigs.map((config: any) => config.templateId),
         traderConfigs: req.body.traderConfigs,
-        createdBy: 'system' // TODO: Get from auth context
+        createdBy: req.user?.id || 'anonymous'
       }
 
       const result = await this.marketService.createMarketEnvironment(config)

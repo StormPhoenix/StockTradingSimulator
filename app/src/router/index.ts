@@ -15,7 +15,11 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'Home',
-    redirect: '/market',
+    component: () => import('@/components/home/GameIntroduction.vue'),
+    meta: {
+      title: '股票交易模拟器',
+      icon: 'House',
+    } as RouteMeta,
   },
   {
     path: '/admin',
@@ -45,28 +49,15 @@ const routes: RouteRecordRaw[] = [
           icon: 'User',
         } as RouteMeta,
       },
-    ],
-  },
-  {
-    path: '/market',
-    name: 'Market',
-    component: () => import('@/layouts/MarketLayout.vue'),
-    children: [
       {
-        path: '',
-        name: 'MarketDashboard',
-        redirect: '/market/initializer',
-      },
-      {
-        path: 'initializer',
-        name: 'MarketInitializer',
-        component: () => import('@/components/market/MarketInitializer.vue'),
+        path: 'market-templates',
+        name: 'MarketTemplates',
+        component: () => import('@/components/admin/MarketTemplateManager.vue'),
         meta: {
-          title: '市场环境管理',
+          title: '市场环境模板管理',
           icon: 'Setting',
         } as RouteMeta,
       },
-
     ],
   },
   {

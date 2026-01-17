@@ -67,8 +67,8 @@ interface ApiResponse<T = any> {
 }
 
 interface CreateMarketEnvironmentRequest {
-  name: string
-  description: string
+  name?: string
+  description?: string
   allocationAlgorithm: string
   traderConfigs: Array<{
     templateId: string

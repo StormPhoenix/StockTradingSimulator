@@ -329,7 +329,7 @@ export const validate = (schema: Joi.ObjectSchema, source: keyof Request = 'body
     }
 
     // 将验证后的数据替换原始数据
-    ;(req as any)[source] = value
+    (req as any)[source] = value
     next()
   }
 }

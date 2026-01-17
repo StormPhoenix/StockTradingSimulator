@@ -56,6 +56,19 @@
             ¥{{ row.initialCapital.toLocaleString() }}
           </template>
         </el-table-column>
+        <el-table-column prop="riskProfile" label="风险偏好">
+          <template #default="{ row }">
+            <el-tag :type="getRiskProfileTagType(row.riskProfile)">
+              {{ getRiskProfileLabel(row.riskProfile) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="tradingStyle" label="交易风格">
+          <template #default="{ row }">
+            {{ getTradingStyleLabel(row.tradingStyle) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="maxPositions" label="最大持仓" />
 
         <el-table-column prop="status" label="状态">
           <template #default="{ row }">
@@ -110,7 +123,29 @@
             style="width: 100%"
           />
         </el-form-item>
-
+        <el-form-item label="风险偏好" prop="riskProfile">
+          <el-select v-model="form.riskProfile" placeholder="请选择风险偏好" style="width: 100%">
+            <el-option label="保守型" value="conservative" />
+            <el-option label="稳健型" value="moderate" />
+            <el-option label="激进型" value="aggressive" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="交易风格" prop="tradingStyle">
+          <el-select v-model="form.tradingStyle" placeholder="请选择交易风格" style="width: 100%">
+            <el-option label="日内交易" value="day_trading" />
+            <el-option label="波段交易" value="swing_trading" />
+            <el-option label="趋势交易" value="position_trading" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="最大持仓" prop="maxPositions">
+          <el-input-number
+            v-model="form.maxPositions"
+            :min="1"
+            :max="100"
+            placeholder="请输入最大持仓数量"
+            style="width: 100%"
+          />
+        </el-form-item>
         <el-form-item label="描述信息" prop="description">
           <el-input
             v-model="form.description"
@@ -148,8 +183,8 @@ interface TraderTemplate {
   _id: string
   name: string
   initialCapital: number
-  riskProfile: string
-  tradingStyle: string
+  riskProfile: 'conservative' | 'moderate' | 'aggressive'
+  tradingStyle: 'day_trading' | 'swing_trading' | 'position_trading'
   maxPositions: number
   parameters: Record<string, any>
   description?: string
@@ -160,6 +195,9 @@ interface TraderTemplateForm {
   _id?: string
   name: string
   initialCapital: number
+  riskProfile: 'conservative' | 'moderate' | 'aggressive'
+  tradingStyle: 'day_trading' | 'swing_trading' | 'position_trading'
+  maxPositions: number
   description: string
   parameters: Record<string, any>
 }
@@ -190,6 +228,9 @@ const parametersJson = ref<string>('')
 const form = reactive<TraderTemplateForm>({
   name: '',
   initialCapital: 10000,
+  riskProfile: 'moderate',
+  tradingStyle: 'swing_trading',
+  maxPositions: 10,
   description: '',
   parameters: {}
 })
@@ -202,6 +243,12 @@ const rules = {
   initialCapital: [
     { required: true, message: '请输入初始资金', trigger: 'blur' },
     { type: 'number', min: 1000, max: 100000000, message: '初始资金必须在1000-100000000之间', trigger: 'blur' }
+  ],
+  riskProfile: [
+    { required: true, message: '请选择风险偏好', trigger: 'change' }
+  ],
+  maxPositions: [
+    { type: 'number', min: 1, max: 100, message: '最大持仓数量必须在1-100之间', trigger: 'blur' }
   ]
 }
 
@@ -248,6 +295,11 @@ const showCreateDialog = (): void => {
   resetForm()
   dialogVisible.value = true
 }
+
+// 暴露方法给父组件
+defineExpose({
+  showCreateDialog
+})
 
 const handleEdit = (row: TraderTemplate): void => {
   isEdit.value = true
@@ -351,10 +403,41 @@ const resetForm = (): void => {
   Object.assign(form, {
     name: '',
     initialCapital: 10000,
+    riskProfile: 'moderate',
+    tradingStyle: 'swing_trading',
+    maxPositions: 10,
     description: '',
     parameters: {}
   })
   parametersJson.value = ''
+}
+
+// 辅助函数
+const getRiskProfileLabel = (riskProfile: string): string => {
+  const labels: Record<string, string> = {
+    conservative: '保守型',
+    moderate: '稳健型',
+    aggressive: '激进型'
+  }
+  return labels[riskProfile] || riskProfile
+}
+
+const getRiskProfileTagType = (riskProfile: string): string => {
+  const types: Record<string, string> = {
+    conservative: 'success',
+    moderate: 'warning',
+    aggressive: 'danger'
+  }
+  return types[riskProfile] || 'info'
+}
+
+const getTradingStyleLabel = (tradingStyle: string): string => {
+  const labels: Record<string, string> = {
+    day_trading: '日内交易',
+    swing_trading: '波段交易',
+    position_trading: '趋势交易'
+  }
+  return labels[tradingStyle] || tradingStyle
 }
 
 // 生命周期

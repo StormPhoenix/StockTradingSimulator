@@ -277,6 +277,11 @@ const showCreateDialog = (): void => {
   dialogVisible.value = true
 }
 
+// 暴露方法给父组件
+defineExpose({
+  showCreateDialog
+})
+
 const handleEdit = (row: StockTemplate): void => {
   isEdit.value = true
   Object.assign(form, row)
