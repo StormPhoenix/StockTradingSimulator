@@ -5,30 +5,43 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vue-tsc --noEmit && vite build",
+    "build:type-check": "vue-tsc --noEmit",
+    "build:vite": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
-    "format": "prettier --write src/"
+    "type-check": "vue-tsc --noEmit",
+    "lint": "eslint . --ext .vue,.js,.ts --fix",
+    "lint:ts": "eslint . --ext .ts,.tsx,.vue --fix",
+    "format": "prettier --write src/",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
+    "axios": "^1.6.2",
+    "element-plus": "^2.4.4",
+    "pinia": "^2.1.7",
+    "vee-validate": "^4.12.4",
     "vue": "^3.4.0",
     "vue-router": "^4.2.5",
-    "pinia": "^2.1.7",
-    "element-plus": "^2.4.4",
-    "axios": "^1.6.2",
-    "vee-validate": "^4.12.4",
-    "yup": "^1.4.0",
-    "@element-plus/icons-vue": "^2.3.1"
+    "yup": "^1.4.0"
   },
   "devDependencies": {
+    "@types/jsdom": "^27.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.53.0",
+    "@typescript-eslint/parser": "^8.53.0",
     "@vitejs/plugin-vue": "^4.5.2",
-    "vite": "^5.0.8",
+    "@vue/test-utils": "^2.4.3",
+    "@vue/tsconfig": "^0.8.1",
     "eslint": "^8.55.0",
     "eslint-plugin-vue": "^9.19.2",
+    "jsdom": "^23.0.1",
     "prettier": "^3.1.1",
+    "typescript": "^5.9.3",
+    "vite": "^5.0.8",
     "vitest": "^1.1.0",
-    "@vue/test-utils": "^2.4.3",
-    "jsdom": "^23.0.1"
+    "vue-tsc": "^3.2.2"
   },
   "engines": {
     "node": ">=18.0.0"

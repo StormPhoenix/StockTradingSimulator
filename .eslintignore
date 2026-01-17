@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+out/
+app/dist/
+server/dist/
+
+# Coverage
+coverage/
+
+# Generated files
+*.min.js
+*.bundle.js
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Cache
+.eslintcache
+
+# Logs
+*.log
+
+# Test results
+test-results/
+playwright-report/
+
+# Development tools
+.specify/
+.codebuddy/
+specs/
+archives/

@@ -6,29 +6,20 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd app && npm run dev",
-    "dev:test": "npm run test:setup && npm run dev",
     "build": "npm run build:client && npm run build:server",
     "build:client": "cd app && npm run build",
     "build:server": "cd server && npm run build",
     "start": "cd server && npm start",
-    "stop": "./scripts/stop-services.sh",
-    "start:services": "./scripts/start-services.sh",
-    "restart": "npm run stop && npm run start:services",
-    "install:all": "npm install && cd app && npm install && cd ../server && npm install",
-    "clean": "rm -rf app/dist app/node_modules server/dist server/node_modules node_modules",
-    "lint": "cd app && npm run lint && cd ../server && npm run lint",
     "test": "cd app && npm run test && cd ../server && npm run test",
-    "test:setup": "node scripts/test-setup.js",
-    "validate:env": "node scripts/validate-environment.js",
-    "validate:api": "node scripts/validate-api-config.js",
-    "health:check": "node scripts/health-check.js",
-    "backup:speckit": "./scripts/backup-speckit.sh",
-    "backup:list": "./scripts/backup-speckit.sh --list",
-    "backup:clean": "./scripts/backup-speckit.sh --clean",
-    "check:ports": "./scripts/check-ports.sh"
+    "lint": "cd app && npm run lint && cd ../server && npm run lint",
+    "clean": "cd app && npm run clean && cd ../server && npm run clean",
+    "install:all": "npm install && cd app && npm install && cd ../server && npm install"
   },
   "devDependencies": {
-    "concurrently": "^8.2.0"
+    "@types/node": "^25.0.8",
+    "concurrently": "^8.2.0",
+    "typescript": "^5.9.3",
+    "typescript-coverage-report": "^1.1.1"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -41,5 +32,8 @@
     "mongodb"
   ],
   "author": "Stock Trading Simulator Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.13.2"
+  }
 }

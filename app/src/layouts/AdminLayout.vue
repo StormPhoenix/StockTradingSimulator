@@ -22,15 +22,19 @@
             </el-menu-item>
             <el-menu-item index="/admin/trader-templates">
               <el-icon><User /></el-icon>
-              <span>交易员模板</span>
+              <span>AI交易员模板</span>
+            </el-menu-item>
+            <el-menu-item index="/admin/market-templates">
+              <el-icon><Setting /></el-icon>
+              <span>市场环境模板</span>
             </el-menu-item>
           </el-menu>
         </div>
 
         <div class="header-actions">
-          <el-button type="primary" @click="goToMarket">
-            <el-icon><Setting /></el-icon>
-            玩家体验
+          <el-button type="primary" @click="goToHome">
+            <el-icon><House /></el-icon>
+            返回首页
           </el-button>
         </div>
       </div>
@@ -69,7 +73,8 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   TrendCharts,
   User,
-  Setting
+  Setting,
+  House
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -81,9 +86,9 @@ const currentRoute = computed(() => route)
 // 当前激活的菜单项
 const activeMenu = computed(() => route.path)
 
-// 跳转到玩家体验
-const goToMarket = () => {
-  router.push('/market/initializer')
+// 跳转到首页
+const goToHome = () => {
+  router.push('/')
 }
 </script>
 
@@ -140,7 +145,7 @@ const goToMarket = () => {
 .header-menu {
   border-bottom: none;
   background: transparent;
-  min-width: 300px;
+  min-width: 500px;
 }
 
 .header-menu .el-menu-item {
@@ -233,8 +238,12 @@ const goToMarket = () => {
     justify-content: center;
   }
   
+  .header-menu {
+    min-width: 400px;
+  }
+  
   .header-menu .el-menu-item {
-    padding: 0 12px;
+    padding: 0 8px;
     font-size: 14px;
   }
   
@@ -270,21 +279,21 @@ const goToMarket = () => {
   }
   
   .header-menu {
-    min-width: 200px;
+    min-width: 280px;
   }
   
   .header-menu .el-menu-item {
-    padding: 0 6px;
+    padding: 0 4px;
     font-size: 12px;
   }
   
   .header-menu .el-menu-item span {
-    font-size: 11px;
+    font-size: 10px;
   }
   
   .header-menu .el-menu-item .el-icon {
     font-size: 14px;
-    margin-right: 3px;
+    margin-right: 2px;
   }
   
   .header-actions .el-button {

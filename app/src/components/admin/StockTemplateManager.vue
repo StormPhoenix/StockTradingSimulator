@@ -62,7 +62,7 @@
         <el-table-column prop="symbol" label="股票代码" />
         <el-table-column prop="issuePrice" label="发行价格">
           <template #default="{ row }">
-            ¥{{ row.issuePrice.toFixed(2) }}
+            ¥{{ typeof row.issuePrice === 'number' ? row.issuePrice.toFixed(2) : parseFloat(row.issuePrice || 0).toFixed(2) }}
           </template>
         </el-table-column>
         <el-table-column prop="totalShares" label="总股本">
@@ -165,37 +165,67 @@
   </div>
 </template>
 
-<script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus, Search } from '@element-plus/icons-vue';
-import { useTemplatesStore } from '../../stores/templates.js';
+<script setup lang="ts">
+import { ref, reactive, computed, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, Search } from '@element-plus/icons-vue'
+// @ts-ignore - stores are still JS files
+import { useTemplatesStore } from '../../stores/templates'
+import { getCategoryLabel } from '@/utils/categoryUtils'
 
-const templatesStore = useTemplatesStore();
+// Define types
+interface StockTemplate {
+  _id: string
+  name: string
+  symbol: string
+  issuePrice: number
+  totalShares: number
+  category: 'tech' | 'finance' | 'healthcare' | 'energy' | 'consumer'
+  description?: string
+  status: 'active' | 'inactive'
+}
+
+interface StockTemplateForm {
+  _id?: string
+  name: string
+  symbol: string
+  issuePrice: number | undefined
+  totalShares: number | undefined
+  category: string
+  description: string
+}
+
+interface Filters {
+  search: string
+  status: string
+  category: string
+}
+
+const templatesStore = useTemplatesStore()
 
 // 响应式数据
-const loading = computed(() => templatesStore.stockTemplatesLoading);
-const templates = computed(() => templatesStore.stockTemplates);
-const pagination = computed(() => templatesStore.stockTemplatesPagination || { page: 1, limit: 10, total: 0, pages: 0 });
-const hasSelected = computed(() => templatesStore.hasSelectedStockTemplates);
+const loading = computed(() => templatesStore.stockTemplatesLoading)
+const templates = computed(() => templatesStore.stockTemplates)
+const pagination = computed(() => templatesStore.stockTemplatesPagination || { page: 1, limit: 10, total: 0, pages: 0 })
+const hasSelected = computed(() => templatesStore.hasSelectedStockTemplates)
 
-const filters = reactive({
+const filters = reactive<Filters>({
   search: '',
   status: '',
   category: ''
-});
+})
 
-const dialogVisible = ref(false);
-const isEdit = ref(false);
-const formRef = ref();
-const form = reactive({
+const dialogVisible = ref<boolean>(false)
+const isEdit = ref<boolean>(false)
+const formRef = ref()
+const form = reactive<StockTemplateForm>({
   name: '',
   symbol: '',
-  issuePrice: null,
-  totalShares: null,
+  issuePrice: undefined,
+  totalShares: undefined,
   category: '',
   description: ''
-});
+})
 
 const rules = {
   name: [
@@ -214,153 +244,147 @@ const rules = {
     { required: true, message: '请输入总股本', trigger: 'blur' },
     { type: 'number', min: 1, max: 1000000000, message: '总股本必须在1-1000000000之间', trigger: 'blur' }
   ]
-};
+}
 
 // 方法
-const fetchData = async () => {
+const fetchData = async (): Promise<void> => {
   try {
-    await templatesStore.fetchStockTemplates();
+    await templatesStore.fetchStockTemplates()
   } catch (error) {
-    ElMessage.error('获取数据失败：' + error.message);
+    ElMessage.error('获取数据失败：' + (error as Error).message)
   }
-};
+}
 
-const handleSearch = () => {
-  templatesStore.setStockTemplatesFilters({ search: filters.search });
-  fetchData();
-};
+const handleSearch = (): void => {
+  templatesStore.setStockTemplatesFilters({ search: filters.search })
+  fetchData()
+}
 
-const handleFilter = () => {
+const handleFilter = (): void => {
   templatesStore.setStockTemplatesFilters({
     status: filters.status,
     category: filters.category
-  });
-  fetchData();
-};
+  })
+  fetchData()
+}
 
-const handleSelectionChange = (selection) => {
-  templatesStore.selectedStockTemplates = selection.map(item => item._id);
-};
+const handleSelectionChange = (selection: StockTemplate[]): void => {
+  templatesStore.selectedStockTemplates = selection.map(item => item._id)
+}
 
-const showCreateDialog = () => {
-  isEdit.value = false;
-  resetForm();
-  dialogVisible.value = true;
-};
+const showCreateDialog = (): void => {
+  isEdit.value = false
+  resetForm()
+  dialogVisible.value = true
+}
 
-const handleEdit = (row) => {
-  isEdit.value = true;
-  Object.assign(form, row);
-  dialogVisible.value = true;
-};
+// 暴露方法给父组件
+defineExpose({
+  showCreateDialog
+})
 
-const handleDelete = async (row) => {
+const handleEdit = (row: StockTemplate): void => {
+  isEdit.value = true
+  Object.assign(form, row)
+  dialogVisible.value = true
+}
+
+const handleDelete = async (row: StockTemplate): Promise<void> => {
   try {
     await ElMessageBox.confirm('确定要删除这个股票模板吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
-    });
+    })
     
-    await templatesStore.deleteStockTemplate(row._id);
-    ElMessage.success('删除成功');
+    await templatesStore.deleteStockTemplate(row._id)
+    ElMessage.success('删除成功')
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败：' + error.message);
+      ElMessage.error('删除失败：' + (error as Error).message)
     }
   }
-};
+}
 
-const handleBatchDelete = async () => {
+const handleBatchDelete = async (): Promise<void> => {
   try {
     await ElMessageBox.confirm('确定要删除选中的股票模板吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
-    });
+    })
     
-    await templatesStore.batchDeleteTemplates('stock');
-    ElMessage.success('批量删除成功');
+    await templatesStore.batchDeleteTemplates('stock')
+    ElMessage.success('批量删除成功')
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('批量删除失败：' + error.message);
+      ElMessage.error('批量删除失败：' + (error as Error).message)
     }
   }
-};
+}
 
-const handleBatchStatus = async (status) => {
+const handleBatchStatus = async (status: 'active' | 'inactive'): Promise<void> => {
   try {
-    const action = status === 'active' ? '启用' : '禁用';
+    const action = status === 'active' ? '启用' : '禁用'
     await ElMessageBox.confirm(`确定要${action}选中的股票模板吗？`, '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
-    });
+    })
     
-    await templatesStore.batchUpdateTemplateStatus('stock', status);
-    ElMessage.success(`批量${action}成功`);
+    await templatesStore.batchUpdateTemplateStatus('stock', status)
+    ElMessage.success(`批量${action}成功`)
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('批量操作失败：' + error.message);
+      ElMessage.error('批量操作失败：' + (error as Error).message)
     }
   }
-};
+}
 
-const handleSubmit = async () => {
+const handleSubmit = async (): Promise<void> => {
   try {
-    await formRef.value.validate();
+    await formRef.value.validate()
     
     if (isEdit.value) {
-      await templatesStore.updateStockTemplate(form._id, form);
-      ElMessage.success('更新成功');
+      await templatesStore.updateStockTemplate(form._id!, form)
+      ElMessage.success('更新成功')
     } else {
-      await templatesStore.createStockTemplate(form);
-      ElMessage.success('创建成功');
+      await templatesStore.createStockTemplate(form)
+      ElMessage.success('创建成功')
     }
     
-    dialogVisible.value = false;
-    fetchData();
+    dialogVisible.value = false
+    fetchData()
   } catch (error) {
-    ElMessage.error('操作失败：' + error.message);
+    ElMessage.error('操作失败：' + (error as Error).message)
   }
-};
+}
 
-const handleSizeChange = (size) => {
-  templatesStore.setStockTemplatesPagination({ limit: size, page: 1 });
-  fetchData();
-};
+const handleSizeChange = (size: number): void => {
+  templatesStore.setStockTemplatesPagination({ limit: size, page: 1 })
+  fetchData()
+}
 
-const handleCurrentChange = (page) => {
-  templatesStore.setStockTemplatesPagination({ page });
-  fetchData();
-};
+const handleCurrentChange = (page: number): void => {
+  templatesStore.setStockTemplatesPagination({ page })
+  fetchData()
+}
 
-const resetForm = () => {
+const resetForm = (): void => {
   Object.assign(form, {
     name: '',
     symbol: '',
-    issuePrice: null,
-    totalShares: null,
+    issuePrice: undefined,
+    totalShares: undefined,
     category: '',
     description: ''
-  });
-};
-
-const getCategoryLabel = (category) => {
-  const labels = {
-    tech: '科技',
-    finance: '金融',
-    healthcare: '医疗',
-    energy: '能源',
-    consumer: '消费'
-  };
-  return labels[category] || category;
-};
+  })
+}
 
 // 生命周期
 onMounted(() => {
-  fetchData();
-});
+  fetchData()
+})
 </script>
 
 <style scoped>

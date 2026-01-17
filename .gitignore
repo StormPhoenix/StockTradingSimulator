@@ -9,6 +9,12 @@ pnpm-debug.log*
 dist/
 build/
 out/
+app/dist/
+server/dist/
+
+# TypeScript
+*.tsbuildinfo
+**/*.tsbuildinfo
 
 # Environment variables
 .env
@@ -112,6 +118,7 @@ test-results.xml
 .local/
 
 # Speckit and development tools
+.specify/
 .specify/cache/
 .specify/temp/
 .specify/.cache/
@@ -122,6 +129,7 @@ speckit-*.tmp
 speckit.log
 .codebuddy/cache/
 .codebuddy/temp/
+.codebuddy/
 specs/
 
 # Backup archives
