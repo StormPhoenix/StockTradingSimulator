@@ -114,6 +114,95 @@ export const commonSchemas = {
     status: Joi.string().valid('active', 'inactive').default('active'),
   }),
 
+  // 市场环境模板验证
+  marketEnvironment: Joi.object({
+    name: Joi.string().min(1).max(100).required().messages({
+      'string.empty': '市场环境名称不能为空',
+      'string.min': '市场环境名称至少1个字符',
+      'string.max': '市场环境名称最多100个字符',
+      'any.required': '市场环境名称是必填项',
+    }),
+    description: Joi.string().max(500).allow('').messages({
+      'string.max': '描述信息最多500个字符',
+    }),
+    traderConfigs: Joi.array()
+      .items(
+        Joi.object({
+          templateId: Joi.string()
+            .pattern(/^[0-9a-fA-F]{24}$/)
+            .required()
+            .messages({
+              'string.pattern.base': 'AI交易员模板ID格式无效',
+              'any.required': 'AI交易员模板ID是必填项',
+            }),
+          count: Joi.number().integer().min(1).max(1000).required().messages({
+            'number.integer': '生成数量必须是整数',
+            'number.min': '生成数量至少为1',
+            'number.max': '生成数量不能超过1000',
+            'any.required': '生成数量是必填项',
+          }),
+          capitalMultiplier: Joi.number().min(0.1).max(10).default(1).messages({
+            'number.min': '资金倍数至少为0.1',
+            'number.max': '资金倍数不能超过10',
+          }),
+          capitalVariation: Joi.number().min(0).max(1).default(0.2).messages({
+            'number.min': '资金变动幅度不能小于0',
+            'number.max': '资金变动幅度不能超过1',
+          }),
+        })
+      )
+      .min(1)
+      .max(50)
+      .required()
+      .messages({
+        'array.min': '至少配置1个AI交易员模板',
+        'array.max': '最多配置50个AI交易员模板',
+        'any.required': 'AI交易员配置是必填项',
+      }),
+    stockConfigs: Joi.array()
+      .items(
+        Joi.object({
+          templateId: Joi.string()
+            .pattern(/^[0-9a-fA-F]{24}$/)
+            .required()
+            .messages({
+              'string.pattern.base': '股票模板ID格式无效',
+              'any.required': '股票模板ID是必填项',
+            }),
+        })
+      )
+      .min(1)
+      .max(100)
+      .required()
+      .messages({
+        'array.min': '至少选择1个股票模板',
+        'array.max': '最多选择100个股票模板',
+        'any.required': '股票模板配置是必填项',
+      }),
+    allocationAlgorithm: Joi.string()
+      .valid('weighted_random', 'equal_distribution', 'risk_based')
+      .default('weighted_random')
+      .messages({
+        'any.only': '分配算法必须是加权随机、平均分配或风险分配之一',
+      }),
+    version: Joi.string().max(20).default('1.0.0').messages({
+      'string.max': '版本号最多20个字符',
+    }),
+  }),
+
+  // 批量导出验证
+  batchExport: Joi.object({
+    ids: Joi.array().items(
+      Joi.string().pattern(/^[0-9a-fA-F]{24}$/).messages({
+        'string.pattern.base': '市场环境ID格式无效',
+      })
+    ).min(1).max(50).required().messages({
+      'array.min': '至少选择1个市场环境',
+      'array.max': '最多选择50个市场环境',
+      'any.required': '市场环境ID列表是必填项',
+    }),
+  }),
+
   // 市场初始化验证
   marketInitialization: Joi.object({
     name: Joi.string().max(100).allow('').messages({
@@ -181,8 +270,8 @@ export const commonSchemas = {
 
   // 批量删除验证
   batchDelete: Joi.object({
-    type: Joi.string().valid('stock', 'trader').required().messages({
-      'any.only': '模板类型必须是stock或trader',
+    type: Joi.string().valid('stock', 'trader', 'market').required().messages({
+      'any.only': '模板类型必须是stock、trader或market',
       'any.required': '模板类型是必填项',
     }),
     ids: Joi.array().items(
@@ -198,8 +287,8 @@ export const commonSchemas = {
 
   // 批量状态更新验证
   batchStatus: Joi.object({
-    type: Joi.string().valid('stock', 'trader').required().messages({
-      'any.only': '模板类型必须是stock或trader',
+    type: Joi.string().valid('stock', 'trader', 'market').required().messages({
+      'any.only': '模板类型必须是stock、trader或market',
       'any.required': '模板类型是必填项',
     }),
     ids: Joi.array().items(

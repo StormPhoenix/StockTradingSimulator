@@ -1,6 +1,6 @@
 /**
  * 模板管理路由
- * 提供股票模板和AI交易员模板的RESTful API
+ * 提供股票模板、AI交易员模板和市场环境模板的RESTful API
  */
 
 import express, { Request, Response, NextFunction } from 'express'
@@ -15,12 +15,12 @@ const router = express.Router()
  * @route GET /api/v1/templates
  * @desc 获取模板API信息和可用端点
  */
-router.get('/', (req: Request, res: Response): void => {
+router.get('/', (_req: Request, res: Response): void => {
   res.json({
     success: true,
     data: {
       name: 'Templates API',
-      description: '股票模板和AI交易员模板管理API',
+      description: '股票模板、AI交易员模板和市场环境模板管理API',
       version: '1.0.0',
       endpoints: {
         stocks: {
@@ -36,6 +36,15 @@ router.get('/', (req: Request, res: Response): void => {
           create: 'POST /traders',
           update: 'PUT /traders/:id',
           delete: 'DELETE /traders/:id'
+        },
+        markets: {
+          list: 'GET /markets',
+          detail: 'GET /markets/:id',
+          create: 'POST /markets',
+          update: 'PUT /markets/:id',
+          delete: 'DELETE /markets/:id',
+          export: 'GET /markets/:id/export',
+          batchExport: 'POST /markets/batch/export'
         },
         batch: {
           delete: 'POST /batch/delete',
@@ -54,25 +63,18 @@ router.get('/', (req: Request, res: Response): void => {
 /**
  * @route GET /api/templates/stocks
  * @desc 获取股票模板列表
- * @query {number} page - 页码 (默认: 1)
- * @query {number} limit - 每页数量 (默认: 10)
- * @query {string} status - 状态筛选 (active/inactive)
- * @query {string} category - 分类筛选
- * @query {string} search - 搜索关键词
  */
 router.get('/stocks', templateController.getStockTemplates)
 
 /**
  * @route GET /api/templates/stocks/:id
  * @desc 根据ID获取股票模板详情
- * @param {string} id - 模板ID
  */
 router.get('/stocks/:id', templateController.getStockTemplateById)
 
 /**
  * @route POST /api/templates/stocks
  * @desc 创建新的股票模板
- * @body {object} stockTemplate - 股票模板数据
  */
 router.post('/stocks', 
   validateRequest({ body: commonSchemas.stockTemplate }),
@@ -82,8 +84,6 @@ router.post('/stocks',
 /**
  * @route PUT /api/templates/stocks/:id
  * @desc 更新股票模板
- * @param {string} id - 模板ID
- * @body {object} stockTemplate - 更新的股票模板数据
  */
 router.put('/stocks/:id',
   validateRequest({ body: commonSchemas.stockTemplate }),
@@ -93,7 +93,6 @@ router.put('/stocks/:id',
 /**
  * @route DELETE /api/templates/stocks/:id
  * @desc 删除股票模板
- * @param {string} id - 模板ID
  */
 router.delete('/stocks/:id', templateController.deleteStockTemplate)
 
@@ -102,25 +101,18 @@ router.delete('/stocks/:id', templateController.deleteStockTemplate)
 /**
  * @route GET /api/templates/traders
  * @desc 获取AI交易员模板列表
- * @query {number} page - 页码 (默认: 1)
- * @query {number} limit - 每页数量 (默认: 10)
- * @query {string} status - 状态筛选 (active/inactive)
- * @query {string} riskProfile - 风险偏好筛选
- * @query {string} search - 搜索关键词
  */
 router.get('/traders', templateController.getTraderTemplates)
 
 /**
  * @route GET /api/templates/traders/:id
  * @desc 根据ID获取AI交易员模板详情
- * @param {string} id - 模板ID
  */
 router.get('/traders/:id', templateController.getTraderTemplateById)
 
 /**
  * @route POST /api/templates/traders
  * @desc 创建新的AI交易员模板
- * @body {object} traderTemplate - AI交易员模板数据
  */
 router.post('/traders',
   validateRequest({ body: commonSchemas.traderTemplate }),
@@ -130,8 +122,6 @@ router.post('/traders',
 /**
  * @route PUT /api/templates/traders/:id
  * @desc 更新AI交易员模板
- * @param {string} id - 模板ID
- * @body {object} traderTemplate - 更新的AI交易员模板数据
  */
 router.put('/traders/:id',
   validateRequest({ body: commonSchemas.traderTemplate }),
@@ -141,18 +131,79 @@ router.put('/traders/:id',
 /**
  * @route DELETE /api/templates/traders/:id
  * @desc 删除AI交易员模板
- * @param {string} id - 模板ID
  */
 router.delete('/traders/:id', templateController.deleteTraderTemplate)
+
+// ==================== 市场环境模板路由 ====================
+
+/**
+ * @route GET /api/templates/markets
+ * @desc 获取市场环境列表
+ */
+router.get('/markets', templateController.getMarketEnvironments)
+
+/**
+ * @route GET /api/templates/markets/:id
+ * @desc 根据ID获取市场环境详情
+ */
+router.get('/markets/:id', templateController.getMarketEnvironmentById)
+
+/**
+ * @route POST /api/templates/markets
+ * @desc 创建新的市场环境
+ */
+router.post('/markets',
+  validateRequest({ body: commonSchemas.marketEnvironment }),
+  templateController.createMarketEnvironment
+)
+
+/**
+ * @route PUT /api/templates/markets/:id
+ * @desc 更新市场环境
+ */
+router.put('/markets/:id',
+  validateRequest({ body: commonSchemas.marketEnvironment }),
+  templateController.updateMarketEnvironment
+)
+
+/**
+ * @route DELETE /api/templates/markets/:id
+ * @desc 删除市场环境
+ */
+router.delete('/markets/:id', templateController.deleteMarketEnvironment)
+
+/**
+ * @route GET /api/templates/markets/:id/export
+ * @desc 导出市场环境数据
+ */
+router.get('/markets/:id/export', templateController.exportMarketEnvironment)
+
+/**
+ * @route POST /api/templates/markets/batch/export
+ * @desc 批量导出市场环境数据
+ */
+router.post('/markets/batch/export',
+  validateRequest({ body: commonSchemas.batchExport }),
+  templateController.batchExportMarketEnvironments
+)
+
+/**
+ * @route GET /api/templates/markets/summary
+ * @desc 获取市场环境汇总统计
+ */
+router.get('/markets/summary', templateController.getMarketEnvironmentSummary)
+
+/**
+ * @route GET /api/templates/markets/trends
+ * @desc 获取市场环境趋势数据
+ */
+router.get('/markets/trends', templateController.getMarketEnvironmentTrends)
 
 // ==================== 批量操作路由 ====================
 
 /**
  * @route POST /api/templates/batch/delete
  * @desc 批量删除模板
- * @body {object} batchDelete - 批量删除参数
- * @body {string} batchDelete.type - 模板类型 (stock/trader)
- * @body {string[]} batchDelete.ids - 模板ID数组
  */
 router.post('/batch/delete',
   validateRequest({ body: commonSchemas.batchDelete }),
@@ -162,10 +213,6 @@ router.post('/batch/delete',
 /**
  * @route POST /api/templates/batch/status
  * @desc 批量更新模板状态
- * @body {object} batchStatus - 批量状态更新参数
- * @body {string} batchStatus.type - 模板类型 (stock/trader)
- * @body {string[]} batchStatus.ids - 模板ID数组
- * @body {string} batchStatus.status - 新状态 (active/inactive)
  */
 router.post('/batch/status',
   validateRequest({ body: commonSchemas.batchStatus }),
@@ -185,7 +232,7 @@ router.get('/stats', templateController.getTemplateStats)
 /**
  * 验证模板ID参数
  */
-router.param('id', (req: Request, res: Response, next: NextFunction, id: string): void => {
+router.param('id', (_req: Request, res: Response, next: NextFunction, id: string): void => {
   // 验证MongoDB ObjectId格式
   if (!/^[0-9a-fA-F]{24}$/.test(id)) {
     res.status(400).json({
@@ -202,7 +249,7 @@ router.param('id', (req: Request, res: Response, next: NextFunction, id: string)
 /**
  * 模板路由错误处理中间件
  */
-router.use((error: any, req: Request, res: Response, next: NextFunction): void => {
+router.use((error: any, _req: Request, res: Response, next: NextFunction): void => {
   console.error('Template Route Error:', error)
   
   // 数据库连接错误
