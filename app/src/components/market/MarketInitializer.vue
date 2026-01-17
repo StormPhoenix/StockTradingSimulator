@@ -178,7 +178,7 @@
                         :command="template"
                         :disabled="form.traderConfigs.some(config => config.templateId === template._id)"
                       >
-                        {{ template.name }} ({{ template.riskProfile }})
+                        {{ template.name }} ({{ getRiskProfileLabel(template.riskProfile) }})
                       </el-dropdown-item>
                       <el-dropdown-item divided command="refresh">
                         <el-icon><Refresh /></el-icon>
@@ -205,10 +205,10 @@
                     <div class="trader-info">
                       <span class="template-name">{{ config.templateName }}</span>
                       <el-tag v-if="config.riskProfile" size="small" :type="getRiskProfileTagType(config.riskProfile)">
-                        {{ config.riskProfile }}
+                        {{ getRiskProfileLabel(config.riskProfile) }}
                       </el-tag>
                       <el-tag v-if="config.tradingStyle" size="small" type="info">
-                        {{ config.tradingStyle }}
+                        {{ getTradingStyleLabel(config.tradingStyle) }}
                       </el-tag>
                     </div>
                     <el-button
@@ -478,7 +478,7 @@
             <el-table-column prop="riskProfile" label="风险偏好" width="100">
               <template #default="{ row }">
                 <el-tag size="small" :type="getRiskProfileTagType(row.riskProfile)">
-                  {{ row.riskProfile }}
+                  {{ getRiskProfileLabel(row.riskProfile) }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -512,7 +512,7 @@
             </el-table-column>
             <el-table-column prop="category" label="分类" width="100">
               <template #default="{ row }">
-                <el-tag size="small" type="success">{{ row.category }}</el-tag>
+                <el-tag size="small" type="success">{{ getCategoryLabel(row.category) }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="holders" label="持有人数" width="100">
@@ -541,6 +541,7 @@ import { Plus, Search, Delete, ArrowDown, Refresh } from '@element-plus/icons-vu
 import { useMarketStore } from '@/stores/market'
 // @ts-ignore - stores are still JS files  
 import { useTemplatesStore } from '@/stores/templates'
+import { getCategoryLabel, getRiskProfileTagType, getRiskProfileLabel, getTradingStyleLabel } from '@/utils/categoryUtils'
 
 // Define local types based on what the component actually uses
 interface MarketEnvironment {
@@ -1029,17 +1030,6 @@ const formatDateTime = (date: string | Date | null | undefined): string => {
   if (!date) return '-'
   const d = new Date(date)
   return d.toLocaleString('zh-CN')
-}
-
-// 获取风险偏好标签类型
-const getRiskProfileTagType = (riskProfile: string): string => {
-  const typeMap: Record<string, string> = {
-    '保守型': 'success',
-    '稳健型': 'primary',
-    '积极型': 'warning',
-    '激进型': 'danger'
-  }
-  return typeMap[riskProfile] || 'info'
 }
 
 // 获取分配算法名称

@@ -171,6 +171,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
 // @ts-ignore - stores are still JS files
 import { useTemplatesStore } from '../../stores/templates'
+import { getCategoryLabel } from '@/utils/categoryUtils'
 
 // Define types
 interface StockTemplate {
@@ -378,17 +379,6 @@ const resetForm = (): void => {
     category: '',
     description: ''
   })
-}
-
-const getCategoryLabel = (category: string): string => {
-  const labels: Record<string, string> = {
-    tech: '科技',
-    finance: '金融',
-    healthcare: '医疗',
-    energy: '能源',
-    consumer: '消费'
-  }
-  return labels[category] || category
 }
 
 // 生命周期

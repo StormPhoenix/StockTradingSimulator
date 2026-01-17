@@ -5,6 +5,13 @@
 
 import type { ID } from '@shared/common'
 import apiService from './api'
+import { 
+  getStockCategoryOptions, 
+  getRiskProfileOptions, 
+  getTradingStyleOptions, 
+  getStatusOptions
+} from '@/utils/categoryUtils'
+import type { SelectOption } from '@/utils/categoryUtils'
 
 // 查询参数接口
 interface StockTemplateQueryParams {
@@ -62,12 +69,6 @@ interface BatchStatusUpdateRequest {
 interface ValidationResult {
   isValid: boolean
   errors: string[]
-}
-
-// 选项接口
-interface SelectOption {
-  value: string
-  label: string
 }
 
 class TemplateService {
@@ -411,45 +412,28 @@ class TemplateService {
    * 股票分类选项
    */
   static get STOCK_CATEGORIES(): SelectOption[] {
-    return [
-      { value: 'tech', label: '科技' },
-      { value: 'finance', label: '金融' },
-      { value: 'healthcare', label: '医疗' },
-      { value: 'energy', label: '能源' },
-      { value: 'consumer', label: '消费' }
-    ]
+    return getStockCategoryOptions()
   }
 
   /**
    * 风险偏好选项
    */
   static get RISK_PROFILES(): SelectOption[] {
-    return [
-      { value: 'conservative', label: '保守型' },
-      { value: 'moderate', label: '稳健型' },
-      { value: 'aggressive', label: '激进型' }
-    ]
+    return getRiskProfileOptions()
   }
 
   /**
    * 交易风格选项
    */
   static get TRADING_STYLES(): SelectOption[] {
-    return [
-      { value: 'day_trading', label: '日内交易' },
-      { value: 'swing_trading', label: '波段交易' },
-      { value: 'position_trading', label: '趋势交易' }
-    ]
+    return getTradingStyleOptions()
   }
 
   /**
    * 状态选项
    */
   static get STATUS_OPTIONS(): SelectOption[] {
-    return [
-      { value: 'active', label: '启用' },
-      { value: 'inactive', label: '禁用' }
-    ]
+    return getStatusOptions()
   }
 }
 

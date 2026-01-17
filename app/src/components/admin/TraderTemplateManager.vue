@@ -177,6 +177,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
 // @ts-ignore - stores are still JS files
 import { useTemplatesStore } from '../../stores/templates'
+import { getRiskProfileLabel, getRiskProfileTagType, getTradingStyleLabel } from '@/utils/categoryUtils'
 
 // Define types
 interface TraderTemplate {
@@ -410,34 +411,6 @@ const resetForm = (): void => {
     parameters: {}
   })
   parametersJson.value = ''
-}
-
-// 辅助函数
-const getRiskProfileLabel = (riskProfile: string): string => {
-  const labels: Record<string, string> = {
-    conservative: '保守型',
-    moderate: '稳健型',
-    aggressive: '激进型'
-  }
-  return labels[riskProfile] || riskProfile
-}
-
-const getRiskProfileTagType = (riskProfile: string): string => {
-  const types: Record<string, string> = {
-    conservative: 'success',
-    moderate: 'warning',
-    aggressive: 'danger'
-  }
-  return types[riskProfile] || 'info'
-}
-
-const getTradingStyleLabel = (tradingStyle: string): string => {
-  const labels: Record<string, string> = {
-    day_trading: '日内交易',
-    swing_trading: '波段交易',
-    position_trading: '趋势交易'
-  }
-  return labels[tradingStyle] || tradingStyle
 }
 
 // 生命周期
