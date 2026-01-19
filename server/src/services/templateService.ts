@@ -2,8 +2,8 @@ import type { ID, PaginationParams } from '@shared/common'
 import type { RiskProfile, TradingStyle } from '@shared/market'
 import type { AITraderTemplateDocument, StockTemplateDocument } from '@shared/models'
 import { ConflictError, NotFoundError, ValidationError } from '../middleware/errorHandler'
-import StockTemplate from '../models/StockTemplate'
-import AITraderTemplate from '../models/TraderTemplate'
+import StockTemplate from '../models/stockTemplate'
+import AITraderTemplate from '../models/traderTemplate'
 import { validators } from '../utils/validationUtils'
 
 // 分页查询参数接口

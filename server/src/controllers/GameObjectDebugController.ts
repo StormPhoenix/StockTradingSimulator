@@ -6,7 +6,7 @@ import {
   PerformanceStats,
   StartLoopRequest,
 } from '@shared/lifecycle'
-import { GameObjectManager } from '../lifecycle/core/GameObjectManager'
+import { GameObjectManager } from '../lifecycle/core/gameObjectManager'
 import { ErrorCode, LifecycleError } from '../lifecycle/types'
 
 /**

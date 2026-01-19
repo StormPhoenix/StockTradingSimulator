@@ -5,20 +5,20 @@
  */
 
 // 核心类 - 简化后的架构
-export { AutoIncrementIdGenerator } from './core/AutoIncrementIdGenerator';
-export { ErrorIsolationManager } from './core/ErrorIsolationManager';
-export { GameLoop } from './core/GameLoop';
-export { GameObjectManager } from './core/GameObjectManager';
+export { AutoIncrementIdGenerator } from './core/autoIncrementIdGenerator';
+export { ErrorIsolationManager } from './core/errorIsolationManager';
+export { GameLoop } from './core/gameLoop';
+export { GameObjectManager } from './core/gameObjectManager';
 
 // Web API 控制器和路由
 export { GameObjectDebugController } from '../controllers/gameObjectDebugController';
 export { createDebugRoutes } from '../routes/debugRoutes';
 
 // 配置
-export { LifecycleConfigLoader, lifecycleConfig } from './config/LifecycleConfig';
+export { LifecycleConfigLoader, lifecycleConfig } from './config/lifecycleConfig';
 
 // 测试辅助类（从测试目录导出）
-export { TestGameObject } from '../../tests/fixtures/lifecycle/TestGameObject';
+export { TestGameObject } from '../../tests/fixtures/lifecycle/testGameObject';
 
 // 共享类型（重新导出）
 export * from './types';

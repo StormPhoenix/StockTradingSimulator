@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express'
 import templateRoutes from './templates'
 import marketRoutes from './market'
 import { createDebugRoutes } from './debugRoutes'
-import { GameObjectManager } from '../lifecycle/core/GameObjectManager'
+import { GameObjectManager } from '../lifecycle/core/gameObjectManager'
 
 const router = express.Router()
 

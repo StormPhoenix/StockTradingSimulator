@@ -5,7 +5,7 @@
  * including data retrieval, validation, and processing.
  */
 
-import Project from '../models/Project'
+import Project from '../models/project'
 import { ValidationError } from '../middleware/errorHandler'
 import type { ID } from '@shared/common'
 

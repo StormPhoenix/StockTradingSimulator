@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { GameObjectDebugController } from '../controllers/gameObjectDebugController';
-import { GameObjectManager } from '../lifecycle/core/GameObjectManager';
+import { GameObjectManager } from '../lifecycle/core/gameObjectManager';
 
 /**
  * 生命周期调试路由配置

@@ -4,9 +4,9 @@
  */
 
 import { ValidationError } from '../middleware/errorHandler'
-import MarketEnvironment from '../models/MarketEnvironment'
-import StockTemplate from '../models/StockTemplate'
-import AITraderTemplate from '../models/TraderTemplate'
+import MarketEnvironment from '../models/marketEnvironment'
+import StockTemplate from '../models/stockTemplate'
+import AITraderTemplate from '../models/traderTemplate'
 import MarketUtils from '../utils/marketUtils'
 import AllocationService from './allocationService'
 import type { ID, ApiResponse, Timestamp } from '@shared/common'

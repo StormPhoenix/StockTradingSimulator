@@ -14,10 +14,10 @@
  * - 单个测试: npx ts-node --project server/tsconfig.json server/tests/lifecycle/lifecycle-test-suite.ts --test basic
  */
 
-import { lifecycleConfig } from '../../src/lifecycle/config/LifecycleConfig'
-import { AutoIncrementIdGenerator } from '../../src/lifecycle/core/AutoIncrementIdGenerator'
-import { GameObjectManager } from '../../src/lifecycle/core/GameObjectManager'
-import { TestGameObject } from '../fixtures/lifecycle/TestGameObject'
+import { lifecycleConfig } from '../../src/lifecycle/config/lifecycleConfig'
+import { AutoIncrementIdGenerator } from '../../src/lifecycle/core/autoIncrementIdGenerator'
+import { GameObjectManager } from '../../src/lifecycle/core/gameObjectManager'
+import { TestGameObject } from '../fixtures/lifecycle/testGameObject'
 
 // 测试结果接口
 interface TestResult {

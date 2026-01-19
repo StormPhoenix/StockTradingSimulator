@@ -12,10 +12,10 @@
  * - 单个测试: npm test -- tests/lifecycle/lifecycle.test.ts --testNamePattern="基础功能测试"
  */
 
-import { lifecycleConfig } from '../../src/lifecycle/config/LifecycleConfig'
-import { AutoIncrementIdGenerator } from '../../src/lifecycle/core/AutoIncrementIdGenerator'
-import { GameObjectManager } from '../../src/lifecycle/core/GameObjectManager'
-import { TestGameObject } from '../fixtures/lifecycle/TestGameObject'
+import { lifecycleConfig } from '../../src/lifecycle/config/lifecycleConfig'
+import { AutoIncrementIdGenerator } from '../../src/lifecycle/core/autoIncrementIdGenerator'
+import { GameObjectManager } from '../../src/lifecycle/core/gameObjectManager'
+import { TestGameObject } from '../fixtures/lifecycle/testGameObject'
 
 describe('生命周期管理系统', () => {
   let gameObjectManager: GameObjectManager

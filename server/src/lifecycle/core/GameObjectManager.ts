@@ -1,7 +1,7 @@
 import { GameObject, GameObjectState, LifecycleError, ErrorCode, IIdGenerator, PendingRequest, PendingRequestType } from '../types';
-import { GameLoop } from './GameLoop';
-import { AutoIncrementIdGenerator } from './AutoIncrementIdGenerator';
-import { ErrorIsolationManager } from './ErrorIsolationManager';
+import { GameLoop } from './gameLoop';
+import { AutoIncrementIdGenerator } from './autoIncrementIdGenerator';
+import { ErrorIsolationManager } from './errorIsolationManager';
 
 /**
  * 游戏对象管理器 - 简化版本
@@ -9,7 +9,7 @@ import { ErrorIsolationManager } from './ErrorIsolationManager';
  * 采用单一容器设计：
  * 1. 使用一个 Map 存储所有对象，对象状态存储在 GameObject 内部
  * 2. 使用 PendingRequests 队列延迟处理对象的创建和销毁
- * 3. GameLoop Tick 分阶段处理：先处理队列，再执行对象逻辑
+ * 3. gameLoop Tick 分阶段处理：先处理队列，再执行对象逻辑
  */
 export class GameObjectManager {
   // 简化的单一容器设计
@@ -25,14 +25,14 @@ export class GameObjectManager {
   /**
    * 构造函数
    * 
-   * @param idGenerator ID生成器，可选，默认使用AutoIncrementIdGenerator
+   * @param idGenerator ID生成器，可选，默认使用autoIncrementIdGenerator
    * @param maxErrorsPerObject 每个对象的最大错误次数，默认为3
    */
   constructor(idGenerator?: IIdGenerator, maxErrorsPerObject: number = 3) {
     this.idGenerator = idGenerator || new AutoIncrementIdGenerator();
     this.errorManager = new ErrorIsolationManager(maxErrorsPerObject);
     
-    // 创建简化的GameLoop，传入this作为管理器
+    // 创建简化的gameLoop，传入this作为管理器
     this.gameLoop = new GameLoop(this);
   }
 
@@ -293,7 +293,7 @@ export class GameObjectManager {
 
   /**
    * 核心 Tick 方法 - 分阶段处理
-   * 由 GameLoop 调用，按照简化方案分为多个阶段
+   * 由 gameLoop 调用，按照简化方案分为多个阶段
    */
   tick(deltaTime: number): void {
     this.isProcessingTick = true;
