@@ -15,6 +15,10 @@ export { GameObjectManager } from './core/GameObjectManager';
 // 配置
 export { LifecycleConfigLoader, lifecycleConfig } from './config/LifecycleConfig';
 
+// 示例业务对象
+export { AITrader } from './examples/AITrader';
+export { Stock } from './examples/Stock';
+
 // 测试辅助类（从测试目录导出）
 export { TestGameObject } from '../../tests/fixtures/lifecycle/TestGameObject';
 
