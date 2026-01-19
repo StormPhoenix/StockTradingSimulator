@@ -72,8 +72,12 @@ async function startServer(): Promise<void> {
     
     // 连接数据库
     console.log('🔌 Connecting to database...')
-    await connectDatabase()
-    console.log('✅ Database connected successfully')
+    try {
+      await connectDatabase()
+      console.log('✅ Database connected successfully')
+    } catch (error: any) {
+      console.warn('⚠️ Database connection failed, continuing without database:', error.message)
+    }
     
     app.listen(PORT, () => {
       console.log('\n🎉 Server started successfully!')

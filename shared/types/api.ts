@@ -8,7 +8,7 @@ import type { Stock, MarketEnvironment } from './market'
 
 // ========== 认证 API ==========
 export namespace AuthAPI {
-  export interface LoginRequest extends LoginRequest {}
+  export type LoginRequest = import('./auth').LoginRequest
   export interface LoginResponse extends ApiResponse<{
     user: User
     token: string
@@ -16,7 +16,7 @@ export namespace AuthAPI {
     expiresIn: number
   }> {}
 
-  export interface RegisterRequest extends RegisterRequest {}
+  export type RegisterRequest = import('./auth').RegisterRequest
   export interface RegisterResponse extends ApiResponse<{
     user: User
     token: string

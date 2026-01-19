@@ -10,7 +10,6 @@
     "test": "jest",
     "lint": "eslint src/ --ext .js,.ts --fix",
     "clean": "rm -rf dist",
-    "demo:us2": "ts-node src/lifecycle/demos/user-story-2-demo.ts",
     "test:lifecycle": "jest tests/lifecycle/lifecycle.test.ts",
     "test:lifecycle:watch": "jest tests/lifecycle/lifecycle.test.ts --watch",
     "test:lifecycle:legacy": "ts-node tests/lifecycle/lifecycle-test-suite.ts",

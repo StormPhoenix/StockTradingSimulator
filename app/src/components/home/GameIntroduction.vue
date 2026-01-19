@@ -10,6 +10,10 @@
             <el-icon><Setting /></el-icon>
             后台管理
           </el-button>
+          <el-button type="success" size="large" @click="goToDebug">
+            <el-icon><Monitor /></el-icon>
+            调试界面
+          </el-button>
           <el-button size="large" @click="startDemo">
             <el-icon><VideoPlay /></el-icon>
             观看演示
@@ -384,6 +388,10 @@ const demoSteps = [
 
 const goToAdmin = (): void => {
   router.push('/admin')
+}
+
+const goToDebug = (): void => {
+  router.push('/debug/lifecycle')
 }
 
 const startDemo = (): void => {

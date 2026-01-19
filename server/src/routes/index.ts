@@ -1,12 +1,18 @@
 import express, { Request, Response } from 'express'
 import templateRoutes from './templates'
 import marketRoutes from './market'
+import { createDebugRoutes } from './debugRoutes'
+import { GameObjectManager } from '../lifecycle/core/GameObjectManager'
 
 const router = express.Router()
+
+// 创建 GameObjectManager 实例用于调试路由
+const gameObjectManager = new GameObjectManager()
 
 // 注册路由
 router.use('/templates', templateRoutes)
 router.use('/market', marketRoutes)
+router.use('/debug', createDebugRoutes(gameObjectManager))
 
 // API信息
 router.get('/', (req: Request, res: Response): void => {
@@ -20,6 +26,7 @@ router.get('/', (req: Request, res: Response): void => {
         health: '/health',
         templates: '/templates',
         market: '/market',
+        debug: '/debug',
       },
       documentation: 'https://api-docs.stocksimulator.com',
     },
