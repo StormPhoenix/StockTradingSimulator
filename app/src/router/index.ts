@@ -61,6 +61,15 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/debug/lifecycle',
+    name: 'LifecycleDebug',
+    component: () => import('@/components/lifecycle/LifecycleDebug.vue'),
+    meta: {
+      title: '生命周期管理调试',
+      icon: 'Monitor',
+    } as RouteMeta,
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/components/common/NotFound.vue'),
