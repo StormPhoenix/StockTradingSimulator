@@ -11,7 +11,7 @@ export { GameLoop } from './core/gameLoop';
 export { GameObjectManager } from './core/gameObjectManager';
 
 // Web API 控制器和路由
-export { GameObjectDebugController } from '../controllers/gameObjectDebugController';
+export { LifecycleController } from '../controllers/lifecycleController';
 export { createDebugRoutes } from '../routes/debugRoutes';
 
 // 配置

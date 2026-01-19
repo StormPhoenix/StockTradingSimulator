@@ -9,14 +9,18 @@ import dotenv from 'dotenv'
 import { connectDatabase } from './config/database'
 import { apiConfig } from './config/api'
 import errorHandler from './middleware/errorHandler'
-import routes from './routes/index'
+import { createRoutes } from './routes/index'
 import healthRoutes from './routes/healthRoutes'
+import { LifecycleManagerService } from './services/lifecycleManagerService'
 
 // 加载环境变量
 dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 3000
+
+// 全局生命周期管理服务实例
+let lifecycleService: LifecycleManagerService | null = null
 
 // 安全中间件
 app.use(helmet())
@@ -47,23 +51,6 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 // 健康检查路由
 app.use('/health', healthRoutes)
 
-// API路由
-app.use('/api/v1', routes)
-
-// 404处理
-app.use('*', (_: Request, res: Response) => {
-  res.status(404).json({
-    success: false,
-    error: {
-      code: 'NOT_FOUND',
-      message: 'API endpoint not found',
-    },
-  })
-})
-
-// 错误处理中间件
-app.use(errorHandler)
-
 // 启动服务器
 async function startServer(): Promise<void> {
   try {
@@ -78,6 +65,35 @@ async function startServer(): Promise<void> {
     } catch (error: any) {
       console.warn('⚠️ Database connection failed, continuing without database:', error.message)
     }
+    
+    // 初始化生命周期管理系统
+    console.log('🎮 Initializing lifecycle management system...')
+    try {
+      lifecycleService = new LifecycleManagerService()
+      await lifecycleService.initialize()
+      console.log('✅ Lifecycle management system started successfully')
+    } catch (error: any) {
+      console.error('❌ Failed to start lifecycle management system:', error.message)
+      console.error('💥 Error details:', error)
+      process.exit(1)
+    }
+    
+    // API路由（传入生命周期服务）
+    app.use('/api/v1', createRoutes(lifecycleService))
+
+    // 404处理
+    app.use('*', (_: Request, res: Response) => {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'API endpoint not found',
+        },
+      })
+    })
+
+    // 错误处理中间件
+    app.use(errorHandler)
     
     app.listen(PORT, () => {
       console.log('\n🎉 Server started successfully!')
@@ -99,15 +115,23 @@ async function startServer(): Promise<void> {
 }
 
 // 优雅关闭
-process.on('SIGTERM', () => {
-  console.log('🛑 SIGTERM received, shutting down gracefully')
+async function gracefulShutdown(): Promise<void> {
+  console.log('🛑 Shutting down gracefully...')
+  
+  if (lifecycleService) {
+    try {
+      await lifecycleService.shutdown()
+      console.log('✅ Lifecycle system stopped successfully')
+    } catch (error: any) {
+      console.error('❌ Error during lifecycle shutdown:', error.message)
+    }
+  }
+  
   process.exit(0)
-})
+}
 
-process.on('SIGINT', () => {
-  console.log('🛑 SIGINT received, shutting down gracefully')
-  process.exit(0)
-})
+process.on('SIGTERM', gracefulShutdown)
+process.on('SIGINT', gracefulShutdown)
 
 startServer()
 

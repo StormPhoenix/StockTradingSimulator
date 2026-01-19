@@ -10,12 +10,12 @@ import { GameObjectManager } from '../lifecycle/core/gameObjectManager'
 import { ErrorCode, LifecycleError } from '../lifecycle/types'
 
 /**
- * GameObject 调试控制器
+ * 生命周期控制器
  *
  * 提供 RESTful API 接口用于调试和监控生命周期管理系统
  * 包括对象管理、性能监控和系统控制功能
  */
-export class GameObjectDebugController {
+export class LifecycleController {
   private gameObjectManager: GameObjectManager
 
   constructor(gameObjectManager: GameObjectManager) {
@@ -233,7 +233,7 @@ export class GameObjectDebugController {
    * 统一错误处理
    */
   private handleError(res: Response, error: any, defaultMessage: string): void {
-    console.error('GameObjectDebugController error:', error)
+    console.error('LifecycleController error:', error)
 
     const response: ApiResponse<null> = {
       success: false,

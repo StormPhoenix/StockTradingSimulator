@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { GameObjectDebugController } from '../controllers/gameObjectDebugController';
+import { LifecycleController } from '../controllers/lifecycleController';
 import { GameObjectManager } from '../lifecycle/core/gameObjectManager';
 
 /**
@@ -16,7 +16,7 @@ import { GameObjectManager } from '../lifecycle/core/gameObjectManager';
  */
 export function createDebugRoutes(gameObjectManager: GameObjectManager): Router {
   const router = Router();
-  const controller = new GameObjectDebugController(gameObjectManager);
+  const controller = new LifecycleController(gameObjectManager);
 
   // ============================================================================
   // GameObject Statistics Routes
