@@ -212,6 +212,32 @@ export interface CreateObjectRequest {
   params?: Record<string, any>;
 }
 
+/**
+ * 待处理请求类型枚举
+ */
+export enum PendingRequestType {
+  CREATE = 'CREATE',
+  DESTROY = 'DESTROY'
+}
+
+/**
+ * 待处理请求接口
+ * 用于在 GameLoop Tick 中延迟处理对象的创建和销毁
+ */
+export interface PendingRequest {
+  /** 请求类型 */
+  type: PendingRequestType;
+  
+  /** 目标对象ID */
+  objectId: number;
+  
+  /** 对象实例（仅CREATE类型需要） */
+  object?: GameObject;
+  
+  /** 请求创建时间戳 */
+  timestamp: number;
+}
+
 // ============================================================================
 // 错误类型
 // ============================================================================

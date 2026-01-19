@@ -1,17 +1,26 @@
-import { GameObject, GameObjectState, LifecycleError, ErrorCode, IIdGenerator } from '../types';
+import { GameObject, GameObjectState, LifecycleError, ErrorCode, IIdGenerator, PendingRequest, PendingRequestType } from '../types';
 import { GameLoop } from './GameLoop';
 import { AutoIncrementIdGenerator } from './AutoIncrementIdGenerator';
+import { ErrorIsolationManager } from './ErrorIsolationManager';
 
 /**
- * 游戏对象管理器
+ * 游戏对象管理器 - 简化版本
  * 
- * 提供游戏对象的创建、销毁、暂停、恢复等管理功能
- * 作为外部系统与生命周期管理系统的主要接口
- * 
- * GameLoop 作为内部实现细节，不对外暴露
+ * 采用单一容器设计：
+ * 1. 使用一个 Map 存储所有对象，对象状态存储在 GameObject 内部
+ * 2. 使用 PendingRequests 队列延迟处理对象的创建和销毁
+ * 3. GameLoop Tick 分阶段处理：先处理队列，再执行对象逻辑
  */
 export class GameObjectManager {
+  // 简化的单一容器设计
+  private objects = new Map<number, GameObject>();
+  private pendingRequests: PendingRequest[] = [];
+  private isProcessingTick = false;
+  
+  // 核心组件
   private gameLoop: GameLoop;
+  private idGenerator: IIdGenerator;
+  private errorManager: ErrorIsolationManager;
 
   /**
    * 构造函数
@@ -20,17 +29,15 @@ export class GameObjectManager {
    * @param maxErrorsPerObject 每个对象的最大错误次数，默认为3
    */
   constructor(idGenerator?: IIdGenerator, maxErrorsPerObject: number = 3) {
-    // 如果没有提供ID生成器，使用默认的自增ID生成器
-    const generator = idGenerator || new AutoIncrementIdGenerator();
+    this.idGenerator = idGenerator || new AutoIncrementIdGenerator();
+    this.errorManager = new ErrorIsolationManager(maxErrorsPerObject);
     
-    // 创建内部GameLoop实例
-    this.gameLoop = new GameLoop(generator, maxErrorsPerObject);
+    // 创建简化的GameLoop，传入this作为管理器
+    this.gameLoop = new GameLoop(this);
   }
 
   /**
    * 启动生命周期管理系统
-   * 
-   * @throws LifecycleError 如果系统已经在运行
    */
   start(): void {
     this.gameLoop.start();
@@ -38,8 +45,6 @@ export class GameObjectManager {
 
   /**
    * 停止生命周期管理系统
-   * 
-   * @throws LifecycleError 如果系统未在运行
    */
   stop(): void {
     this.gameLoop.stop();
@@ -47,9 +52,6 @@ export class GameObjectManager {
 
   /**
    * 设置目标帧率
-   * 
-   * @param fps 目标帧率 (1-120)
-   * @throws LifecycleError 如果帧率超出有效范围
    */
   setFPS(fps: number): void {
     this.gameLoop.setFPS(fps);
@@ -57,8 +59,6 @@ export class GameObjectManager {
 
   /**
    * 检查系统是否正在运行
-   * 
-   * @returns 是否正在运行
    */
   isRunning(): boolean {
     return this.gameLoop.isLoopRunning();
@@ -66,8 +66,6 @@ export class GameObjectManager {
 
   /**
    * 获取目标帧率
-   * 
-   * @returns 目标帧率
    */
   getTargetFPS(): number {
     return this.gameLoop.getTargetFPS();
@@ -75,8 +73,6 @@ export class GameObjectManager {
 
   /**
    * 获取实际帧率
-   * 
-   * @returns 实际帧率
    */
   getActualFPS(): number {
     return this.gameLoop.getActualFPS();
@@ -84,22 +80,14 @@ export class GameObjectManager {
 
   /**
    * 获取当前帧号
-   * 帧号从1开始，每次tick递增
-   * 
-   * @returns 当前帧号
    */
   getFrameNumber(): number {
     return this.gameLoop.getFrameNumber();
   }
 
   /**
-   * 创建游戏对象
-   * 使用泛型支持类型安全的对象创建
-   * 
-   * @param ObjectClass 对象类构造函数
-   * @param args 构造函数参数
-   * @returns 创建的对象实例
-   * @throws LifecycleError 如果对象创建失败
+   * 创建游戏对象 - 简化版本
+   * 对象创建后会被添加到 PendingRequests 队列，在下一个 Tick 中处理
    */
   createObject<T extends GameObject>(
     ObjectClass: new (id: number, ...args: any[]) => T,
@@ -107,7 +95,7 @@ export class GameObjectManager {
   ): T {
     try {
       // 生成唯一ID
-      const id = this.gameLoop.getIdGenerator().generateId();
+      const id = this.idGenerator.generateId();
       
       // 创建对象实例
       const obj = new ObjectClass(id, ...args);
@@ -121,13 +109,18 @@ export class GameObjectManager {
         );
       }
 
-      // 设置初始状态
+      // 设置初始状态为 READY
       obj.state = GameObjectState.READY;
 
-      // 添加到状态管理器
-      this.gameLoop.getStateManager().addObject(obj);
+      // 添加到 PendingRequests 队列，而不是直接加入容器
+      this.pendingRequests.push({
+        type: PendingRequestType.CREATE,
+        objectId: id,
+        object: obj,
+        timestamp: Date.now()
+      });
 
-      console.log(`Created GameObject ${id} (${ObjectClass.name})`);
+      console.log(`Queued GameObject ${id} (${ObjectClass.name}) for creation`);
       return obj;
 
     } catch (error) {
@@ -143,11 +136,8 @@ export class GameObjectManager {
   }
 
   /**
-   * 销毁游戏对象
-   * 将对象状态转换为DESTROYING，在下一个循环中执行销毁逻辑
-   * 
-   * @param id 对象ID
-   * @throws LifecycleError 如果对象不存在或已在销毁过程中
+   * 销毁游戏对象 - 简化版本
+   * 标记对象状态为 DESTROYING，并添加到 PendingRequests 队列
    */
   destroyObject(id: number): void {
     const obj = this.getObject(id);
@@ -168,24 +158,21 @@ export class GameObjectManager {
       );
     }
 
-    try {
-      this.gameLoop.getStateManager().transitionState(obj, GameObjectState.DESTROYING);
-      console.log(`Marked GameObject ${id} for destruction`);
-    } catch (error) {
-      throw new LifecycleError(
-        `Failed to destroy object ${id}: ${error instanceof Error ? error.message : String(error)}`,
-        ErrorCode.INVALID_STATE_TRANSITION,
-        id
-      );
-    }
+    // 标记对象状态为 DESTROYING
+    obj.state = GameObjectState.DESTROYING;
+
+    // 添加到 PendingRequests 队列
+    this.pendingRequests.push({
+      type: PendingRequestType.DESTROY,
+      objectId: id,
+      timestamp: Date.now()
+    });
+
+    console.log(`Queued GameObject ${id} for destruction`);
   }
 
   /**
-   * 暂停游戏对象
-   * 将ACTIVE状态的对象转换为PAUSED状态
-   * 
-   * @param id 对象ID
-   * @throws LifecycleError 如果对象不存在或状态不允许暂停
+   * 暂停游戏对象 - 直接修改对象状态
    */
   pauseObject(id: number): void {
     const obj = this.getObject(id);
@@ -205,24 +192,12 @@ export class GameObjectManager {
       );
     }
 
-    try {
-      this.gameLoop.getStateManager().transitionState(obj, GameObjectState.PAUSED);
-      console.log(`Paused GameObject ${id}`);
-    } catch (error) {
-      throw new LifecycleError(
-        `Failed to pause object ${id}: ${error instanceof Error ? error.message : String(error)}`,
-        ErrorCode.INVALID_STATE_TRANSITION,
-        id
-      );
-    }
+    obj.state = GameObjectState.PAUSED;
+    console.log(`Paused GameObject ${id}`);
   }
 
   /**
-   * 恢复游戏对象
-   * 将PAUSED状态的对象转换为ACTIVE状态
-   * 
-   * @param id 对象ID
-   * @throws LifecycleError 如果对象不存在或状态不允许恢复
+   * 恢复游戏对象 - 直接修改对象状态
    */
   resumeObject(id: number): void {
     const obj = this.getObject(id);
@@ -242,84 +217,221 @@ export class GameObjectManager {
       );
     }
 
-    try {
-      this.gameLoop.getStateManager().transitionState(obj, GameObjectState.ACTIVE);
-      console.log(`Resumed GameObject ${id}`);
-    } catch (error) {
-      throw new LifecycleError(
-        `Failed to resume object ${id}: ${error instanceof Error ? error.message : String(error)}`,
-        ErrorCode.INVALID_STATE_TRANSITION,
-        id
-      );
-    }
+    obj.state = GameObjectState.ACTIVE;
+    console.log(`Resumed GameObject ${id}`);
   }
 
   /**
-   * 获取指定ID的游戏对象
-   * 
-   * @param id 对象ID
-   * @returns 游戏对象或undefined
+   * 获取指定ID的游戏对象 - 简化版本
+   * 直接从单一容器中查找，O(1) 复杂度
    */
   getObject(id: number): GameObject | undefined {
-    return this.gameLoop.getStateManager().getObject(id);
+    return this.objects.get(id);
   }
 
   /**
-   * 获取所有游戏对象
-   * 
-   * @returns 所有对象的数组
+   * 获取所有游戏对象 - 简化版本
    */
   getAllObjects(): GameObject[] {
-    return this.gameLoop.getStateManager().getAllObjects();
+    return Array.from(this.objects.values());
   }
 
   /**
-   * 获取指定状态的游戏对象
-   * 
-   * @param state 对象状态
-   * @returns 该状态的对象数组
+   * 获取指定状态的游戏对象 - 需要过滤
+   * 注意：这个方法需要遍历所有对象，复杂度为 O(n)
    */
   getObjectsByState(state: GameObjectState): GameObject[] {
-    return this.gameLoop.getStateManager().getObjectsByState(state);
+    const result: GameObject[] = [];
+    for (const obj of this.objects.values()) {
+      if (obj.state === state) {
+        result.push(obj);
+      }
+    }
+    return result;
   }
 
   /**
-   * 获取对象数量统计
-   * 
-   * @returns 各状态的对象数量
+   * 获取对象数量统计 - 需要遍历计算
    */
   getObjectCount(): Record<GameObjectState, number> {
-    return this.gameLoop.getStateManager().getStateStatistics();
+    const stats: Record<GameObjectState, number> = {
+      [GameObjectState.READY]: 0,
+      [GameObjectState.ACTIVE]: 0,
+      [GameObjectState.PAUSED]: 0,
+      [GameObjectState.DESTROYING]: 0,
+      [GameObjectState.DESTROYED]: 0
+    };
+
+    for (const obj of this.objects.values()) {
+      stats[obj.state]++;
+    }
+
+    return stats;
   }
 
   /**
-   * 获取总对象数量
-   * 
-   * @returns 总对象数量
+   * 获取总对象数量 - O(1) 复杂度
    */
   getTotalObjectCount(): number {
-    return this.gameLoop.getStateManager().getTotalObjectCount();
+    return this.objects.size;
   }
 
   /**
    * 获取活跃对象数量（READY + ACTIVE + PAUSED）
-   * 
-   * @returns 活跃对象数量
    */
   getActiveObjectCount(): number {
-    const stats = this.getObjectCount();
-    return stats[GameObjectState.READY] + 
-           stats[GameObjectState.ACTIVE] + 
-           stats[GameObjectState.PAUSED];
+    let count = 0;
+    for (const obj of this.objects.values()) {
+      if (obj.state === GameObjectState.READY || 
+          obj.state === GameObjectState.ACTIVE || 
+          obj.state === GameObjectState.PAUSED) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /**
+   * 核心 Tick 方法 - 分阶段处理
+   * 由 GameLoop 调用，按照简化方案分为多个阶段
+   */
+  tick(deltaTime: number): void {
+    this.isProcessingTick = true;
+    
+    try {
+      // 阶段1: 处理 PendingRequests 队列
+      this.processPendingRequests();
+      
+      // 阶段2: 执行 ACTIVE 对象的 onTick
+      this.tickActiveObjects(deltaTime);
+      
+    } finally {
+      this.isProcessingTick = false;
+    }
+  }
+
+  /**
+   * 处理 PendingRequests 队列
+   * 处理对象的创建和销毁请求
+   */
+  private processPendingRequests(): void {
+    // 复制当前队列并清空，避免在处理过程中队列被修改
+    const requests = [...this.pendingRequests];
+    this.pendingRequests.length = 0;
+
+    for (const request of requests) {
+      try {
+        if (request.type === PendingRequestType.CREATE && request.object) {
+          // 处理对象创建
+          this.processCreateRequest(request);
+        } else if (request.type === PendingRequestType.DESTROY) {
+          // 处理对象销毁
+          this.processDestroyRequest(request);
+        }
+      } catch (error) {
+        console.error(`Error processing request for object ${request.objectId}:`, error);
+        // 错误隔离：单个请求的错误不应该影响其他请求的处理
+      }
+    }
+  }
+
+  /**
+   * 处理对象创建请求
+   */
+  private processCreateRequest(request: PendingRequest): void {
+    const obj = request.object!;
+    
+    // 调用 onBeginPlay
+    const success = this.errorManager.safeExecute(
+      obj,
+      'onBeginPlay',
+      obj.onBeginPlay.bind(obj)
+    );
+
+    if (success) {
+      // onBeginPlay 成功，转换状态并加入容器
+      obj.state = GameObjectState.ACTIVE;
+      this.objects.set(obj.id, obj);
+      console.log(`GameObject ${obj.id} created and activated`);
+    } else {
+      // onBeginPlay 失败，直接销毁对象
+      console.error(`GameObject ${obj.id} onBeginPlay failed, destroying object`);
+      obj.state = GameObjectState.DESTROYED;
+    }
+  }
+
+  /**
+   * 处理对象销毁请求
+   */
+  private processDestroyRequest(request: PendingRequest): void {
+    const obj = this.objects.get(request.objectId);
+    if (!obj) {
+      return; // 对象已经被移除
+    }
+
+    // 调用 onDestroy
+    this.errorManager.safeExecute(
+      obj,
+      'onDestroy',
+      obj.onDestroy.bind(obj)
+    );
+
+    // 无论 onDestroy 是否成功，都要移除对象
+    obj.state = GameObjectState.DESTROYED;
+    this.objects.delete(obj.id);
+    
+    // 清理错误记录
+    this.errorManager.cleanupDestroyedObjects([obj.id]);
+    
+    console.log(`GameObject ${obj.id} destroyed and removed`);
+  }
+
+  /**
+   * 执行 ACTIVE 状态对象的 onTick
+   */
+  private tickActiveObjects(deltaTime: number): void {
+    for (const obj of this.objects.values()) {
+      if (obj.state === GameObjectState.ACTIVE) {
+        this.errorManager.safeExecute(
+          obj,
+          'onTick',
+          obj.onTick.bind(obj),
+          deltaTime
+        );
+      }
+    }
+  }
+
+  /**
+   * 获取错误管理器
+   */
+  getErrorManager(): ErrorIsolationManager {
+    return this.errorManager;
+  }
+
+  /**
+   * 获取ID生成器
+   */
+  getIdGenerator(): IIdGenerator {
+    return this.idGenerator;
+  }
+
+  /**
+   * 获取待处理请求数量（用于调试）
+   */
+  getPendingRequestCount(): number {
+    return this.pendingRequests.length;
+  }
+
+  /**
+   * 获取待处理请求详情（用于调试）
+   */
+  getPendingRequests(): PendingRequest[] {
+    return [...this.pendingRequests]; // 返回副本
   }
 
   /**
    * 批量创建对象
-   * 
-   * @param ObjectClass 对象类构造函数
-   * @param count 创建数量
-   * @param argsGenerator 参数生成函数，接收索引返回构造参数
-   * @returns 创建的对象数组
    */
   createObjects<T extends GameObject>(
     ObjectClass: new (id: number, ...args: any[]) => T,
@@ -340,9 +452,6 @@ export class GameObjectManager {
 
   /**
    * 批量销毁对象
-   * 
-   * @param ids 对象ID数组
-   * @returns 成功销毁的对象数量
    */
   destroyObjects(ids: number[]): number {
     let successCount = 0;
@@ -362,9 +471,6 @@ export class GameObjectManager {
 
   /**
    * 销毁指定状态的所有对象
-   * 
-   * @param state 要销毁的对象状态
-   * @returns 销毁的对象数量
    */
   destroyObjectsByState(state: GameObjectState): number {
     const objects = this.getObjectsByState(state);
@@ -374,9 +480,6 @@ export class GameObjectManager {
 
   /**
    * 清理所有对象
-   * 销毁所有非DESTROYED状态的对象
-   * 
-   * @returns 销毁的对象数量
    */
   destroyAllObjects(): number {
     const allObjects = this.getAllObjects();
@@ -387,9 +490,6 @@ export class GameObjectManager {
 
   /**
    * 获取对象详细信息（包含错误统计）
-   * 
-   * @param id 对象ID
-   * @returns 对象详细信息
    */
   getObjectInfo(id: number): {
     id: number;
@@ -407,14 +507,13 @@ export class GameObjectManager {
       return undefined;
     }
 
-    const errorManager = this.gameLoop.getErrorManager();
-    const errorHistory = errorManager.getErrorHistory(id);
+    const errorHistory = this.errorManager.getErrorHistory(id);
 
     return {
       id: obj.id,
       state: obj.state,
       type: obj.constructor.name,
-      errorCount: errorManager.getErrorCount(id),
+      errorCount: this.errorManager.getErrorCount(id),
       errorHistory: errorHistory.map(record => ({
         timestamp: record.timestamp,
         error: record.error,
@@ -425,9 +524,6 @@ export class GameObjectManager {
 
   /**
    * 验证对象是否正确实现了GameObject接口
-   * 
-   * @param obj 要验证的对象
-   * @returns 是否为有效的GameObject
    */
   private isValidGameObject(obj: any): obj is GameObject {
     return obj &&
@@ -442,14 +538,13 @@ export class GameObjectManager {
 
   /**
    * 获取系统状态概览
-   * 
-   * @returns 系统状态信息
    */
   getSystemOverview(): {
     isRunning: boolean;
     fps: number;
     totalObjects: number;
     objectsByState: Record<GameObjectState, number>;
+    pendingRequests: number;
     errorStatistics: {
       totalObjects: number;
       objectsWithErrors: number;
@@ -466,13 +561,14 @@ export class GameObjectManager {
   } {
     const loopStatus = this.gameLoop.getLoopStatus();
     const perfStats = this.gameLoop.getPerformanceStats();
-    const errorStats = this.gameLoop.getErrorManager().getErrorStatistics();
+    const errorStats = this.errorManager.getErrorStatistics();
 
     return {
       isRunning: loopStatus.isRunning,
       fps: loopStatus.fps,
       totalObjects: this.getTotalObjectCount(),
       objectsByState: this.getObjectCount(),
+      pendingRequests: this.getPendingRequestCount(),
       errorStatistics: errorStats,
       performance: {
         actualFPS: perfStats.fps,
