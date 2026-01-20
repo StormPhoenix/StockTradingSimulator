@@ -377,7 +377,7 @@ const loadTemplates = async () => {
         estimatedCreationTime: marketEnv.estimatedCreationTime || 30
       }));
     } else {
-      throw new Error(response.error?.message || '获取模板失败');
+      throw new Error('获取模板失败');
     }
   } catch (error) {
     console.error('Failed to load templates:', error);

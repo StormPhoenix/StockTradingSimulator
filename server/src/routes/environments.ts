@@ -9,14 +9,6 @@ import { EnvironmentManager } from '../services/environmentManager';
 import { WorkerThreadPool, createWorkerThreadPool } from '../services/workerThreadPool';
 import { WorkerErrorHandler, createWorkerErrorHandler } from '../utils/workerErrorHandler';
 
-// 扩展Request接口以包含用户信息
-interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    [key: string]: any;
-  };
-}
-
 // 创建服务实例
 const workerPool = createWorkerThreadPool();
 const errorHandler = createWorkerErrorHandler();
@@ -28,7 +20,7 @@ const router = Router();
  * 获取环境列表
  * GET /api/v1/environments
  */
-router.get('/', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
     // TODO: 从认证中间件获取用户ID
     const userId = req.user?.id || 'default-user';
@@ -65,7 +57,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
  * 创建新环境
  * POST /api/v1/environments
  */
-router.post('/', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   try {
     const { templateId, name } = req.body;
     
@@ -124,7 +116,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
  * 获取环境详情
  * GET /api/v1/environments/:environmentId
  */
-router.get('/:environmentId', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:environmentId', async (req: Request, res: Response) => {
   try {
     const environmentId = req.params.environmentId as string;
     
@@ -164,7 +156,7 @@ router.get('/:environmentId', async (req: AuthenticatedRequest, res: Response) =
  * 销毁环境
  * DELETE /api/v1/environments/:environmentId
  */
-router.delete('/:environmentId', async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:environmentId', async (req: Request, res: Response) => {
   try {
     const environmentId = req.params.environmentId as string;
     
@@ -253,7 +245,7 @@ router.get('/progress/:requestId', async (req: Request, res: Response) => {
  * 导出环境状态
  * GET /api/v1/environments/:environmentId/export
  */
-router.get('/:environmentId/export', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:environmentId/export', async (req: Request, res: Response) => {
   try {
     const environmentId = req.params.environmentId as string;
     const { format = 'json' } = req.query;
@@ -319,7 +311,7 @@ router.get('/:environmentId/export', async (req: AuthenticatedRequest, res: Resp
  * 获取交易日志
  * GET /api/v1/environments/:environmentId/logs
  */
-router.get('/:environmentId/logs', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:environmentId/logs', async (req: Request, res: Response) => {
   try {
     const environmentId = req.params.environmentId as string;
     const { limit = 50, traderId } = req.query;
