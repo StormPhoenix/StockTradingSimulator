@@ -3,6 +3,7 @@
  * 处理股票模板和AI交易员模板的CRUD操作
  */
 
+/// <reference path="../types/express.d.ts" />
 import { Request, Response, NextFunction } from 'express'
 import templateServiceModule from '../services/templateService'
 import MarketService from '../services/marketService'

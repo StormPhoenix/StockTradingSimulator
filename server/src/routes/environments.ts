@@ -4,6 +4,7 @@
  * 提供环境创建、管理、监控的 RESTful API 端点
  */
 
+/// <reference path="../types/express.d.ts" />
 import { Router, Request, Response } from 'express';
 import { EnvironmentManager } from '../services/environmentManager';
 import { WorkerThreadPool, createWorkerThreadPool } from '../services/workerThreadPool';

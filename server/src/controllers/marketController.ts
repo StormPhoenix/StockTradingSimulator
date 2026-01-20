@@ -3,6 +3,7 @@
  * 处理市场环境相关的HTTP请求
  */
 
+/// <reference path="../types/express.d.ts" />
 import { Request, Response, NextFunction } from 'express'
 import MarketService from '../services/marketService'
 import type { ID, ApiResponse } from '@shared/common'
