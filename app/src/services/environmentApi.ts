@@ -12,9 +12,10 @@ import type {
   CreateEnvironmentRequest,
   CreateEnvironmentResponse,
   EnvironmentExport,
-  TradingLog
+  TradingLog,
+  MarketTemplate,
+  CreationProgress
 } from '../types/environment';
-import type { CreationProgress } from '../../../shared/types/progress';
 
 /**
  * API 响应基础接口
@@ -79,6 +80,24 @@ export class EnvironmentApiClient {
         return Promise.reject(error);
       }
     );
+  }
+
+  /**
+   * 获取可用模板列表
+   */
+  public async getTemplates(): Promise<MarketTemplate[]> {
+    try {
+      const response: AxiosResponse<ApiResponse<MarketTemplate[]>> = await this.api.get('/templates');
+
+      if (!response.data.success) {
+        throw new Error(response.data.error?.message || 'Failed to get templates');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Failed to get templates:', error);
+      throw this.handleApiError(error);
+    }
   }
 
   /**
@@ -191,11 +210,70 @@ export class EnvironmentApiClient {
         throw new Error(response.data.error?.message || 'Failed to get creation progress');
       }
 
-      return response.data.data;
+      // 增强进度数据，添加时间估算
+      const progress = response.data.data;
+      return this.enhanceProgressData(progress);
     } catch (error) {
       console.error('Failed to get creation progress:', error);
       throw this.handleApiError(error);
     }
+  }
+
+  /**
+   * 增强进度数据，添加时间估算和百分比计算
+   */
+  private enhanceProgressData(progress: CreationProgress): CreationProgress {
+    const enhanced = { ...progress };
+
+    // 计算更精确的百分比
+    if (progress.details) {
+      const { totalTraders = 0, createdTraders = 0, totalStocks = 0, createdStocks = 0 } = progress.details;
+      const totalObjects = totalTraders + totalStocks;
+      const createdObjects = createdTraders + createdStocks;
+
+      if (totalObjects > 0) {
+        // 基于实际创建的对象数量计算百分比
+        const objectProgress = (createdObjects / totalObjects) * 100;
+        
+        // 根据阶段调整百分比
+        switch (progress.stage) {
+          case 'INITIALIZING':
+            enhanced.percentage = Math.min(5, objectProgress);
+            break;
+          case 'READING_TEMPLATES':
+            enhanced.percentage = Math.min(30, 5 + (objectProgress * 0.25));
+            break;
+          case 'CREATING_OBJECTS':
+            enhanced.percentage = Math.min(95, 30 + (objectProgress * 0.65));
+            break;
+          case 'COMPLETE':
+            enhanced.percentage = 100;
+            break;
+          case 'ERROR':
+            // 保持当前百分比
+            break;
+          default:
+            enhanced.percentage = Math.min(enhanced.percentage, objectProgress);
+        }
+      }
+    }
+
+    // 计算时间估算
+    if (progress.startedAt && progress.stage !== 'COMPLETE' && progress.stage !== 'ERROR') {
+      const elapsedMs = Date.now() - new Date(progress.startedAt).getTime();
+      const elapsedSeconds = Math.floor(elapsedMs / 1000);
+      
+      if (enhanced.percentage > 0 && enhanced.percentage < 100) {
+        // 基于当前进度估算剩余时间
+        const estimatedTotalSeconds = (elapsedSeconds / enhanced.percentage) * 100;
+        const remainingSeconds = Math.max(0, Math.floor(estimatedTotalSeconds - elapsedSeconds));
+        
+        // 限制最大估算时间为5分钟
+        enhanced.estimatedTimeRemaining = Math.min(remainingSeconds, 300);
+      }
+    }
+
+    return enhanced;
   }
 
   /**
@@ -392,6 +470,13 @@ export const environmentApi = new EnvironmentApiClient();
  * 环境 API 服务的便捷方法
  */
 export const EnvironmentService = {
+  /**
+   * 获取可用模板
+   */
+  async getTemplates() {
+    return environmentApi.getTemplates();
+  },
+
   /**
    * 获取所有环境
    */

@@ -616,6 +616,183 @@ export class EnvironmentManager extends EventEmitter {
   }
 
   /**
+   * 导出环境状态
+   */
+  public async exportEnvironmentState(environmentId: string, userId: string): Promise<any> {
+    const environment = this.activeEnvironments.get(environmentId);
+    
+    if (!environment || environment.userId !== userId) {
+      throw new Error('Environment not found or access denied');
+    }
+
+    try {
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        environment: {
+          id: environmentId,
+          name: environment.name,
+          description: (environment as any).description || 'No description',
+          status: environment.status,
+          createdAt: environment.createdAt,
+          templateInfo: {
+            templateId: environment.templateId,
+            templateName: (environment as any).templateName || 'Unknown Template'
+          }
+        },
+        templateData: {
+          // Include original template data used for creation
+          exchange: (environment as any).originalTemplateData?.exchange || null,
+          traders: (environment as any).originalTemplateData?.traders || [],
+          stocks: (environment as any).originalTemplateData?.stocks || []
+        },
+        runtimeState: {
+          // Export current runtime state
+          traders: this.serializeTraders(environment.exchangeInstance),
+          stocks: this.serializeStocks(environment.exchangeInstance),
+          tradingLogs: this.getTradingLogs(environment.exchangeInstance),
+          performanceMetrics: this.calculatePerformanceMetrics(environment.exchangeInstance),
+          statistics: {
+            traderCount: (environment as any).statistics?.traderCount || 0,
+            stockCount: (environment as any).statistics?.stockCount || 0,
+            totalCapital: (environment as any).statistics?.totalCapital || 0,
+            averageCapitalPerTrader: (environment as any).statistics?.averageCapitalPerTrader || 0
+          }
+        }
+      };
+
+      return exportData;
+    } catch (error) {
+      throw new Error(`Failed to export environment state: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * 序列化交易员实例
+   */
+  private serializeTraders(exchangeInstance: any): any[] {
+    if (!exchangeInstance || !exchangeInstance.getActiveTraders) {
+      return [];
+    }
+
+    try {
+      const traders = exchangeInstance.getActiveTraders();
+      return traders.map((trader: any) => ({
+        id: trader.id,
+        name: trader.name,
+        riskProfile: trader.riskProfile,
+        tradingStyle: trader.tradingStyle,
+        currentCapital: trader.getCapital ? trader.getCapital() : trader.currentCapital,
+        initialCapital: trader.initialCapital,
+        isActive: trader.isActive,
+        performanceMetrics: trader.getPerformanceMetrics ? trader.getPerformanceMetrics() : null,
+        tradingHistory: trader.getTradingHistory ? trader.getTradingHistory().slice(-50) : [] // Last 50 logs
+      }));
+    } catch (error) {
+      console.error('Failed to serialize traders:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 序列化股票实例
+   */
+  private serializeStocks(exchangeInstance: any): any[] {
+    if (!exchangeInstance || !exchangeInstance.getAvailableStocks) {
+      return [];
+    }
+
+    try {
+      const stocks = exchangeInstance.getAvailableStocks();
+      return stocks.map((stock: any) => ({
+        id: stock.id,
+        symbol: stock.symbol,
+        companyName: stock.companyName,
+        category: stock.category,
+        currentPrice: stock.getCurrentPrice ? stock.getCurrentPrice() : stock.currentPrice,
+        issuePrice: stock.issuePrice,
+        totalShares: stock.totalShares,
+        marketCap: stock.getMarketCap ? stock.getMarketCap() : (stock.currentPrice * stock.totalShares),
+        stockInfo: stock.getStockInfo ? stock.getStockInfo() : null
+      }));
+    } catch (error) {
+      console.error('Failed to serialize stocks:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 获取交易日志
+   */
+  private getTradingLogs(exchangeInstance: any): any[] {
+    if (!exchangeInstance || !exchangeInstance.getActiveTraders) {
+      return [];
+    }
+
+    try {
+      const traders = exchangeInstance.getActiveTraders();
+      const allLogs: any[] = [];
+
+      traders.forEach((trader: any) => {
+        if (trader.getTradingHistory) {
+          const logs = trader.getTradingHistory();
+          allLogs.push(...logs);
+        }
+      });
+
+      // Sort by timestamp (newest first) and limit to last 1000 logs
+      return allLogs
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 1000);
+    } catch (error) {
+      console.error('Failed to get trading logs:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 计算性能指标
+   */
+  private calculatePerformanceMetrics(exchangeInstance: any): any {
+    if (!exchangeInstance || !exchangeInstance.getActiveTraders) {
+      return null;
+    }
+
+    try {
+      const traders = exchangeInstance.getActiveTraders();
+      const stocks = exchangeInstance.getAvailableStocks ? exchangeInstance.getAvailableStocks() : [];
+
+      const totalCapital = traders.reduce((sum: number, trader: any) => {
+        const capital = trader.getCapital ? trader.getCapital() : trader.currentCapital || 0;
+        return sum + capital;
+      }, 0);
+
+      const totalInitialCapital = traders.reduce((sum: number, trader: any) => {
+        return sum + (trader.initialCapital || 0);
+      }, 0);
+
+      const totalMarketCap = stocks.reduce((sum: number, stock: any) => {
+        const marketCap = stock.getMarketCap ? stock.getMarketCap() : 0;
+        return sum + marketCap;
+      }, 0);
+
+      return {
+        totalCurrentCapital: totalCapital,
+        totalInitialCapital: totalInitialCapital,
+        totalReturn: totalCapital - totalInitialCapital,
+        totalReturnPercentage: totalInitialCapital > 0 ? ((totalCapital - totalInitialCapital) / totalInitialCapital) * 100 : 0,
+        averageCapitalPerTrader: traders.length > 0 ? totalCapital / traders.length : 0,
+        totalMarketCap: totalMarketCap,
+        traderCount: traders.length,
+        stockCount: stocks.length,
+        calculatedAt: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Failed to calculate performance metrics:', error);
+      return null;
+    }
+  }
+
+  /**
    * 清理过期的进度跟踪
    */
   public cleanupExpiredProgress(): void {

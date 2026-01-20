@@ -6,10 +6,9 @@
 /// <reference path="../types/express.d.ts" />
 import { Request, Response, NextFunction } from 'express'
 import templateServiceModule from '../services/templateService'
-import MarketService from '../services/marketService'
 import { validators } from '../utils/validationUtils'
 
-const { stockTemplateService, aiTraderTemplateService } = templateServiceModule
+const { stockTemplateService, aiTraderTemplateService, marketEnvironmentTemplateService } = templateServiceModule
 const { validateStockTemplate, validateTraderTemplate } = validators
 
 // 扩展 Request 接口以支持用户信息
@@ -107,10 +106,8 @@ interface TraderTemplateRequest {
 }
 
 class TemplateController {
-  private marketService: MarketService
-
   constructor() {
-    this.marketService = new MarketService()
+    // 使用新的市场环境模板服务
   }
   // ==================== 股票模板管理 ====================
   
@@ -445,7 +442,7 @@ class TemplateController {
         populate: false
       }
 
-      const result = await this.marketService.getMarketEnvironments(query, options)
+      const result = await marketEnvironmentTemplateService.getMarketEnvironments(query, options)
       
       res.json({
         success: true,
@@ -463,7 +460,7 @@ class TemplateController {
   async getMarketEnvironmentById(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params
-      const marketEnvironment = await this.marketService.getMarketEnvironmentById(id)
+      const marketEnvironment = await marketEnvironmentTemplateService.getMarketEnvironmentById(id)
       
       if (!marketEnvironment) {
         res.status(404).json({
@@ -494,7 +491,7 @@ class TemplateController {
         createdBy: req.user?.id || 'anonymous'
       }
 
-      const result = await this.marketService.createMarketEnvironment(config)
+      const result = await marketEnvironmentTemplateService.createMarketEnvironment(config)
       
       res.status(201).json({
         success: true,
@@ -520,7 +517,7 @@ class TemplateController {
         updatedAt: new Date()
       }
 
-      const marketEnvironment = await this.marketService.updateMarketEnvironment(id, updateData)
+      const marketEnvironment = await marketEnvironmentTemplateService.updateMarketEnvironment(id, updateData)
       
       if (!marketEnvironment) {
         res.status(404).json({
@@ -546,7 +543,7 @@ class TemplateController {
   async deleteMarketEnvironment(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params
-      const result = await this.marketService.deleteMarketEnvironment(id)
+      const result = await marketEnvironmentTemplateService.deleteMarketEnvironment(id)
       
       if (!result) {
         res.status(404).json({
@@ -571,7 +568,7 @@ class TemplateController {
   async exportMarketEnvironment(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params
-      const exportData = await this.marketService.exportMarketEnvironment(id)
+      const exportData = await marketEnvironmentTemplateService.exportMarketEnvironment(id)
       
       if (!exportData) {
         res.status(404).json({
@@ -607,7 +604,7 @@ class TemplateController {
       }
       
       // Export each market environment individually since batch export doesn't exist
-      const exportPromises = ids.map(id => this.marketService.exportMarketEnvironment(id))
+      const exportPromises = ids.map(id => marketEnvironmentTemplateService.exportMarketEnvironment(id))
       const results = await Promise.allSettled(exportPromises)
       
       const successfulExports = results
@@ -630,7 +627,7 @@ class TemplateController {
   async getMarketEnvironmentSummary(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Simple summary implementation since dedicated method doesn't exist
-      const allMarkets = await this.marketService.getMarketEnvironments({}, { page: 1, limit: 1000, sort: { createdAt: -1 }, populate: false })
+      const allMarkets = await marketEnvironmentTemplateService.getMarketEnvironments({}, { page: 1, limit: 1000, sort: { createdAt: -1 }, populate: false })
       
       const summary = {
         total: allMarkets.data?.pagination?.total || 0,
@@ -660,7 +657,7 @@ class TemplateController {
       const { period = '30d' } = req.query as { period?: '7d' | '30d' | '90d' }
       
       // Simple trends implementation since dedicated method doesn't exist
-      const allMarkets = await this.marketService.getMarketEnvironments({}, { page: 1, limit: 1000, sort: { createdAt: -1 }, populate: false })
+      const allMarkets = await marketEnvironmentTemplateService.getMarketEnvironments({}, { page: 1, limit: 1000, sort: { createdAt: -1 }, populate: false })
       
       const days = period === '7d' ? 7 : period === '30d' ? 30 : 90
       const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
@@ -716,7 +713,7 @@ class TemplateController {
         result = { deletedCount: results.filter(r => r.status === 'fulfilled').length }
       } else if (type === 'market') {
         // Use individual delete calls for market environments
-        const deletePromises = ids.map(id => this.marketService.deleteMarketEnvironment(id))
+        const deletePromises = ids.map(id => marketEnvironmentTemplateService.deleteMarketEnvironment(id))
         const results = await Promise.allSettled(deletePromises)
         result = { deletedCount: results.filter(r => r.status === 'fulfilled').length }
       } else {
@@ -773,7 +770,7 @@ class TemplateController {
         result = { modifiedCount: results.filter(r => r.status === 'fulfilled').length }
       } else if (type === 'market') {
         // Use individual update calls for market environments
-        const updatePromises = ids.map(id => this.marketService.updateMarketEnvironment(id, { name: undefined, description: undefined } as any))
+        const updatePromises = ids.map(id => marketEnvironmentTemplateService.updateMarketEnvironment(id, { name: undefined, description: undefined } as any))
         const results = await Promise.allSettled(updatePromises)
         result = { modifiedCount: results.filter(r => r.status === 'fulfilled').length }
       } else {
@@ -804,7 +801,7 @@ class TemplateController {
       // Simple stats implementation since getStats doesn't exist
       const stockTemplates = await stockTemplateService.getAll({ page: 1, limit: 1000 })
       const traderTemplates = await aiTraderTemplateService.getAll({ page: 1, limit: 1000 })
-      const marketEnvironments = await this.marketService.getMarketEnvironments({}, { page: 1, limit: 1000, sort: { createdAt: -1 }, populate: false })
+      const marketEnvironments = await marketEnvironmentTemplateService.getMarketEnvironments({}, { page: 1, limit: 1000, sort: { createdAt: -1 }, populate: false })
       
       const stockStats = {
         total: stockTemplates.pagination.total,

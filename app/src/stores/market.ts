@@ -279,33 +279,6 @@ export const useMarketStore = defineStore('market', () => {
   }
 
   /**
-   * 导入市场环境
-   */
-  const importMarketEnvironment = async (importData: any): Promise<ApiResponse<MarketEnvironment>> => {
-    try {
-      loading.value = true
-      error.value = null
-
-      const result = await marketService.importMarketEnvironment(importData)
-      
-      if (result.success) {
-        // 添加到列表开头
-        marketEnvironments.value.unshift(result.data)
-        
-        // 更新统计
-        await fetchStatistics()
-      }
-
-      return result
-    } catch (err) {
-      error.value = (err as Error).message
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  /**
    * 验证市场环境
    */
   const validateMarketEnvironment = async (id: string): Promise<ApiResponse> => {
@@ -424,33 +397,6 @@ export const useMarketStore = defineStore('market', () => {
   }
 
   /**
-   * 复制市场环境
-   */
-  const duplicateMarketEnvironment = async (id: string, options: Record<string, any> = {}): Promise<ApiResponse<MarketEnvironment>> => {
-    try {
-      loading.value = true
-      error.value = null
-
-      const result = await marketService.duplicateMarketEnvironment(id, options)
-      
-      if (result.success) {
-        // 添加到列表开头
-        marketEnvironments.value.unshift(result.data)
-        
-        // 更新统计
-        await fetchStatistics()
-      }
-
-      return result
-    } catch (err) {
-      error.value = (err as Error).message
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  /**
    * 刷新市场环境列表
    */
   const refreshMarketEnvironments = async (): Promise<void> => {
@@ -520,14 +466,12 @@ export const useMarketStore = defineStore('market', () => {
     getMarketEnvironmentById,
     deleteMarketEnvironment,
     exportMarketEnvironment,
-    importMarketEnvironment,
     validateMarketEnvironment,
     validateImportData,
     fetchStatistics,
     getMarketTrends,
     batchDeleteMarketEnvironments,
     searchMarketEnvironments,
-    duplicateMarketEnvironment,
     refreshMarketEnvironments,
     clearError,
     clearCurrentMarket,

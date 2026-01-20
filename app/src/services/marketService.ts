@@ -305,26 +305,6 @@ class MarketService {
   }
 
   /**
-   * 导入市场环境
-   * @param importData - 导入数据
-   * @returns API响应
-   */
-  async importMarketEnvironment(importData: ImportData): Promise<ApiResponse> {
-    try {
-      const response = await apiClient.post('/market/import', importData)
-      return {
-        success: true,
-        data: response.data.data,
-        message: response.data.message,
-        warnings: response.data.warnings
-      }
-    } catch (error: any) {
-      console.error('导入市场环境失败:', error)
-      throw new Error(error.response?.data?.message || '导入市场环境失败')
-    }
-  }
-
-  /**
    * 验证市场环境
    * @param id - 市场环境ID
    * @returns 验证结果
@@ -496,40 +476,6 @@ class MarketService {
     } catch (error: any) {
       console.error('搜索市场环境失败:', error)
       throw new Error(error.response?.data?.message || '搜索市场环境失败')
-    }
-  }
-
-  /**
-   * 复制市场环境
-   * @param id - 源市场环境ID
-   * @param options - 复制选项
-   * @returns API响应
-   */
-  async duplicateMarketEnvironment(id: ID, options: DuplicateOptions = {}): Promise<ApiResponse> {
-    try {
-      // 先导出原市场环境
-      const exportResult = await this.exportMarketEnvironment(id)
-
-      if (!exportResult.success) {
-        throw new Error('导出原市场环境失败')
-      }
-
-      // 修改导入数据
-      const importData = { ...exportResult.data }
-      importData.name = options.name || `${importData.name}_copy`
-      importData.description = options.description || `${importData.description || ''} (复制)`
-
-      // 导入新市场环境
-      const importResult = await this.importMarketEnvironment(importData)
-
-      return {
-        success: true,
-        data: importResult.data,
-        message: '市场环境复制成功'
-      }
-    } catch (error: any) {
-      console.error('复制市场环境失败:', error)
-      throw new Error(error.message || '复制市场环境失败')
     }
   }
 }

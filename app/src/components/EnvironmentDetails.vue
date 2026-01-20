@@ -23,14 +23,24 @@
         >
           {{ getStatusText(environment.status) }}
         </el-tag>
-        <el-button
-          type="danger"
-          icon="Delete"
-          @click="handleDeleteEnvironment"
-          :loading="isDeleting"
-        >
-          删除环境
-        </el-button>
+        <div class="action-buttons">
+          <el-button
+            type="success"
+            icon="Download"
+            @click="handleExportEnvironment"
+            :loading="isExporting"
+          >
+            导出环境
+          </el-button>
+          <el-button
+            type="danger"
+            icon="Delete"
+            @click="handleDeleteEnvironment"
+            :loading="isDeleting"
+          >
+            删除环境
+          </el-button>
+        </div>
       </div>
     </div>
 
@@ -302,6 +312,7 @@ const state = reactive<EnvironmentDetailsState>({
 });
 
 const isDeleting = ref(false);
+const isExporting = ref(false);
 const environment = computed(() => state.environment);
 
 // 方法
@@ -366,6 +377,24 @@ const handleDeleteEnvironment = async () => {
     }
   } finally {
     isDeleting.value = false;
+  }
+};
+
+const handleExportEnvironment = async () => {
+  if (!state.environment) return;
+
+  try {
+    isExporting.value = true;
+    
+    // 使用 environmentApi 的下载功能
+    await EnvironmentService.download(state.environment.exchangeId);
+    
+    ElMessage.success('环境导出成功');
+  } catch (error) {
+    console.error('Failed to export environment:', error);
+    ElMessage.error('导出环境失败');
+  } finally {
+    isExporting.value = false;
   }
 };
 
@@ -488,6 +517,11 @@ watch(() => state.activeTab, (newTab) => {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
 }
 
 .status-tag {

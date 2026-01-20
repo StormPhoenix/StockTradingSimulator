@@ -61,7 +61,6 @@ router.post('/', validateRequest({ body: createMarketSchema }), marketController
 router.get('/', validateRequest({ query: querySchema }), marketController.getMarketEnvironments)
 router.get('/stats/summary', marketController.getMarketStatsSummary)
 router.get('/stats/trends', marketController.getMarketTrends)
-router.post('/import', marketController.importMarketEnvironment)
 router.delete('/batch', validateRequest({ body: batchDeleteSchema }), marketController.batchDeleteMarketEnvironments)
 router.get('/:id', marketController.getMarketEnvironmentById)
 router.put('/:id', validateRequest({ body: updateMarketSchema }), marketController.updateMarketEnvironment)

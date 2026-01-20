@@ -41,6 +41,34 @@ export interface TemplateOption {
 }
 
 /**
+ * 市场模板类型 (兼容性别名)
+ */
+export type MarketTemplate = TemplateOption;
+
+/**
+ * 创建进度信息
+ */
+export interface CreationProgress {
+  requestId: string;
+  stage: 'INITIALIZING' | 'READING_TEMPLATES' | 'CREATING_OBJECTS' | 'COMPLETE' | 'ERROR';
+  percentage: number;
+  message: string;
+  startedAt: string;
+  estimatedTimeRemaining?: number;
+  details?: {
+    totalTraders?: number;
+    createdTraders?: number;
+    totalStocks?: number;
+    createdStocks?: number;
+  };
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+}
+
+/**
  * 环境列表UI状态
  */
 export interface EnvironmentListState {

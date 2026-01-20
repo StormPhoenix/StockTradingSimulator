@@ -254,31 +254,8 @@ router.get('/:environmentId/export', async (req: Request, res: Response) => {
     // TODO: 从认证中间件获取用户ID
     const userId = req.user?.id || 'default-user';
     
-    // 获取环境详情
-    const environment = environmentManager.getEnvironmentDetails(environmentId, userId);
-    
-    if (!environment) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'ENVIRONMENT_NOT_FOUND',
-          message: 'Environment not found'
-        }
-      });
-    }
-    
-    // TODO: 实现实际的导出逻辑
-    const exportData = {
-      exportedAt: new Date(),
-      environment,
-      templateData: {
-        // TODO: 获取原始模板数据
-      },
-      runtimeState: {
-        tradingLogs: [], // TODO: 获取交易日志
-        performanceMetrics: {} // TODO: 获取性能指标
-      }
-    };
+    // 导出环境状态
+    const exportData = await environmentManager.exportEnvironmentState(environmentId, userId);
     
     if (format === 'json') {
       res.json({
@@ -286,25 +263,34 @@ router.get('/:environmentId/export', async (req: Request, res: Response) => {
         data: exportData
       });
     } else {
-      // 其他格式的导出可以在这里实现
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'UNSUPPORTED_FORMAT',
-          message: 'Only JSON format is currently supported'
-        }
-      });
+      // 支持文件下载
+      const filename = `environment-${environmentId}-${new Date().toISOString().split('T')[0]}.json`;
+      
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.json(exportData);
     }
     
   } catch (error) {
     console.error('Failed to export environment:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: 'Failed to export environment state'
-      }
-    });
+    
+    if (error instanceof Error && error.message.includes('not found')) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: 'ENVIRONMENT_NOT_FOUND',
+          message: 'Environment not found'
+        }
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'EXPORT_ERROR',
+          message: 'Failed to export environment state'
+        }
+      });
+    }
   }
 });
 

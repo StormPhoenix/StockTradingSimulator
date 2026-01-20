@@ -5,9 +5,8 @@
 
 /// <reference path="../types/express.d.ts" />
 import { Request, Response, NextFunction } from 'express'
-import MarketService from '../services/marketService'
-import type { ID, ApiResponse } from '@shared/common'
-import type { User } from '@shared/auth'
+import { marketEnvironmentTemplateService } from '../services/templateService'
+import type { ID } from '@shared/common'
 
 // 扩展 Request 接口以支持用户信息
 interface AuthenticatedRequest extends Request {
@@ -42,10 +41,8 @@ interface BatchDeleteRequest {
  * 市场控制器类
  */
 class MarketController {
-  private marketService: MarketService
-
   constructor() {
-    this.marketService = new MarketService()
+    // 使用新的市场环境模板服务
   }
 
   /**
@@ -59,7 +56,7 @@ class MarketController {
         createdBy: req.user?.id || 'anonymous'
       }
 
-      const result = await this.marketService.createMarketEnvironment(config)
+      const result = await marketEnvironmentTemplateService.createMarketEnvironment(config)
       
       res.status(201).json({
         success: true,
@@ -98,7 +95,7 @@ class MarketController {
         populate: populate === 'true'
       }
 
-      const result = await this.marketService.getMarketEnvironments(query, options)
+      const result = await marketEnvironmentTemplateService.getMarketEnvironments(query, options)
       
       res.json({
         success: true,
@@ -116,7 +113,7 @@ class MarketController {
    */
   async getMarketEnvironmentById(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await this.marketService.getMarketEnvironmentById(req.params.id)
+      const result = await marketEnvironmentTemplateService.getMarketEnvironmentById(req.params.id)
       
       res.json({
         success: true,
@@ -138,7 +135,7 @@ class MarketController {
         updatedBy: req.user?.id || 'anonymous'
       }
 
-      const result = await this.marketService.updateMarketEnvironment(req.params.id, updateData)
+      const result = await marketEnvironmentTemplateService.updateMarketEnvironment(req.params.id, updateData)
       
       res.json({
         success: true,
@@ -156,7 +153,7 @@ class MarketController {
    */
   async deleteMarketEnvironment(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await this.marketService.deleteMarketEnvironment(req.params.id)
+      const result = await marketEnvironmentTemplateService.deleteMarketEnvironment(req.params.id)
       
       res.json({
         success: true,
@@ -173,7 +170,7 @@ class MarketController {
    */
   async exportMarketEnvironment(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await this.marketService.exportMarketEnvironment(req.params.id)
+      const result = await marketEnvironmentTemplateService.exportMarketEnvironment(req.params.id)
       
       // 设置下载响应头
       res.setHeader('Content-Type', 'application/json; charset=utf-8')
@@ -192,32 +189,13 @@ class MarketController {
   }
 
   /**
-   * 导入市场环境
-   * POST /api/market/import
-   */
-  async importMarketEnvironment(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const result = await this.marketService.importMarketEnvironment(req.body)
-      
-      res.status(201).json({
-        success: true,
-        data: result.data,
-        message: result.message,
-        warnings: (result as any).warnings || []
-      })
-    } catch (error) {
-      next(error)
-    }
-  }
-
-  /**
    * 验证市场环境
    * POST /api/market/:id/validate
    */
   async validateMarketEnvironment(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
-      const marketResult = await this.marketService.getMarketEnvironmentById(req.params.id)
-      const validation = this.marketService.validateMarketEnvironment(marketResult.data as any)
+      const marketResult = await marketEnvironmentTemplateService.getMarketEnvironmentById(req.params.id)
+      const validation = marketEnvironmentTemplateService.validateMarketEnvironment(marketResult.data as any)
       
       res.json({
         success: true,
@@ -240,7 +218,7 @@ class MarketController {
    */
   async getMarketStatsSummary(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await this.marketService.getMarketEnvironments({}, { limit: 1000 })
+      const result = await marketEnvironmentTemplateService.getMarketEnvironments({}, { limit: 1000 })
       const markets = result.data?.data || []
       
       const summary = {
@@ -345,7 +323,7 @@ class MarketController {
         createdAt: { $gte: startDate }
       }
 
-      const result = await this.marketService.getMarketEnvironments(query, { limit: 1000 })
+      const result = await marketEnvironmentTemplateService.getMarketEnvironments(query, { limit: 1000 })
       const markets = result.data?.data || []
       
       // 按日期分组统计
@@ -409,7 +387,7 @@ class MarketController {
 
       for (const id of ids) {
         try {
-          await this.marketService.deleteMarketEnvironment(id)
+          await marketEnvironmentTemplateService.deleteMarketEnvironment(id)
           results.push({ id, success: true })
           successCount++
         } catch (error) {
@@ -447,7 +425,6 @@ export default {
   updateMarketEnvironment: marketController.updateMarketEnvironment.bind(marketController),
   deleteMarketEnvironment: marketController.deleteMarketEnvironment.bind(marketController),
   exportMarketEnvironment: marketController.exportMarketEnvironment.bind(marketController),
-  importMarketEnvironment: marketController.importMarketEnvironment.bind(marketController),
   validateMarketEnvironment: marketController.validateMarketEnvironment.bind(marketController),
   getMarketStatsSummary: marketController.getMarketStatsSummary.bind(marketController),
   getMarketTrends: marketController.getMarketTrends.bind(marketController),
