@@ -140,7 +140,7 @@ router.delete('/traders/:id', templateController.deleteTraderTemplate)
  * @route GET /api/templates/markets
  * @desc 获取市场环境列表
  */
-router.get('/markets', templateController.getMarketEnvironments)
+router.get('/markets', (req, res, next) => templateController.getMarketEnvironments(req, res, next))
 
 /**
  * @route GET /api/templates/markets/:id

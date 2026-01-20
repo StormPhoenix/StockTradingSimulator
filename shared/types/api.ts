@@ -267,5 +267,77 @@ export const API_ENDPOINTS = {
     MARKET_DATA: '/api/market/data',
     ENVIRONMENTS: '/api/market/environments',
     CREATE_ENVIRONMENT: '/api/market/environments'
+  },
+  
+  // 运行时环境实例
+  ENVIRONMENTS: {
+    LIST: '/api/v1/environments',
+    CREATE: '/api/v1/environments',
+    GET: (id: ID) => `/api/v1/environments/${id}`,
+    DELETE: (id: ID) => `/api/v1/environments/${id}`,
+    PROGRESS: (requestId: string) => `/api/v1/environments/progress/${requestId}`,
+    EXPORT: (id: ID) => `/api/v1/environments/${id}/export`,
+    LOGS: (id: ID) => `/api/v1/environments/${id}/logs`
   }
 } as const
+
+// ========== 运行时环境实例 API ==========
+export namespace EnvironmentAPI {
+  export interface ListEnvironmentsRequest extends QueryParams {}
+  export interface ListEnvironmentsResponse extends ApiResponse<{
+    environments: import('./environment').EnvironmentPreview[]
+    meta: {
+      total: number
+      active: number
+      creating: number
+    }
+  }> {}
+
+  export interface CreateEnvironmentRequest {
+    templateId: string
+    name?: string
+  }
+  export interface CreateEnvironmentResponse extends ApiResponse<{
+    requestId: string
+    message: string
+    progressUrl: string
+  }> {}
+
+  export interface GetEnvironmentRequest {
+    environmentId: ID
+  }
+  export interface GetEnvironmentResponse extends ApiResponse<import('./environment').EnvironmentDetails> {}
+
+  export interface DeleteEnvironmentRequest {
+    environmentId: ID
+  }
+  export interface DeleteEnvironmentResponse extends ApiResponse<{
+    message: string
+    destroyedAt: string
+  }> {}
+
+  export interface GetProgressRequest {
+    requestId: string
+  }
+  export interface GetProgressResponse extends ApiResponse<import('./progress').CreationProgress> {}
+
+  export interface ExportEnvironmentRequest {
+    environmentId: ID
+    format?: 'json'
+  }
+  export interface ExportEnvironmentResponse extends ApiResponse<import('./environment').EnvironmentExport> {}
+
+  export interface GetLogsRequest {
+    environmentId: ID
+    limit?: number
+    traderId?: string
+  }
+  export interface GetLogsResponse extends ApiResponse<{
+    logs: import('./environment').TradingLog[]
+    meta: {
+      total: number
+      limit: number
+      environmentId: string
+    }
+  }> {}
+}

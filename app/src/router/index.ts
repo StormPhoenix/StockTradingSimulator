@@ -61,6 +61,30 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/environments',
+    name: 'Environments',
+    children: [
+      {
+        path: '',
+        name: 'EnvironmentList',
+        component: () => import('@/components/EnvironmentList.vue'),
+        meta: {
+          title: '环境管理',
+          icon: 'Grid',
+        } as RouteMeta,
+      },
+      {
+        path: ':id',
+        name: 'EnvironmentDetails',
+        component: () => import('@/components/EnvironmentDetails.vue'),
+        meta: {
+          title: '环境详情',
+          icon: 'View',
+        } as RouteMeta,
+      },
+    ],
+  },
+  {
     path: '/debug/lifecycle',
     name: 'LifecycleDebug',
     component: () => import('@/components/lifecycle/LifecycleDebug.vue'),
