@@ -96,7 +96,7 @@ class MarketService {
    */
   async createMarketEnvironment(config: MarketConfig): Promise<ApiResponse> {
     try {
-      const response = await apiClient.post('/market', config)
+      const response = await apiClient.post('/templates/markets', config)
       return {
         success: true,
         data: response.data.data,
@@ -132,7 +132,7 @@ class MarketService {
    */
   async getMarketEnvironments(params: MarketQueryParams = {}): Promise<ApiResponse<any[]> & { pagination: PaginationInfo }> {
     try {
-      const response = await apiClient.get('/market', { params })
+      const response = await apiClient.get('/templates/markets', { params })
 
       // 处理后端API响应格式
       let resultData: any[] = []
@@ -172,7 +172,7 @@ class MarketService {
    */
   async updateMarketEnvironment(id: ID, updateData: Partial<MarketConfig>): Promise<ApiResponse> {
     try {
-      const response = await apiClient.put(`/market/${id}`, updateData)
+      const response = await apiClient.put(`/templates/markets/${id}`, updateData)
       return {
         success: true,
         data: response.data.data,
@@ -208,7 +208,7 @@ class MarketService {
    */
   async getMarketEnvironmentById(id: ID): Promise<ApiResponse> {
     try {
-      const response = await apiClient.get(`/market/${id}`)
+      const response = await apiClient.get(`/templates/markets/${id}`)
       return {
         success: response.success,
         data: response.data
@@ -226,7 +226,7 @@ class MarketService {
    */
   async deleteMarketEnvironment(id: ID): Promise<ApiResponse> {
     try {
-      const response = await apiClient.delete(`/market/${id}`)
+      const response = await apiClient.delete(`/templates/markets/${id}`)
       return {
         success: response.success,
         message: response.message
@@ -245,7 +245,7 @@ class MarketService {
   async exportMarketEnvironment(id: ID): Promise<ExportResult> {
     try {
       console.log('开始导出市场环境，ID:', id)
-      const response = await apiClient.get(`/market/${id}/export`)
+      const response = await apiClient.get(`/templates/markets/${id}/export`)
       console.log('导出API响应数据:', response.data)
       console.log('响应数据类型:', typeof response.data)
 
@@ -311,7 +311,7 @@ class MarketService {
    */
   async validateMarketEnvironment(id: ID): Promise<ApiResponse<ValidationResult>> {
     try {
-      const response = await apiClient.post(`/market/${id}/validate`)
+      const response = await apiClient.post(`/templates/markets/${id}/validate`)
       return {
         success: true,
         data: response.data.data
@@ -402,7 +402,7 @@ class MarketService {
    */
   async getMarketStatsSummary(): Promise<ApiResponse> {
     try {
-      const response = await apiClient.get('/market/stats/summary')
+      const response = await apiClient.get('/templates/markets/stats/summary')
       return {
         success: true,
         data: response.data.data
@@ -420,7 +420,7 @@ class MarketService {
    */
   async getMarketTrends(period: string = '30d'): Promise<ApiResponse> {
     try {
-      const response = await apiClient.get('/market/stats/trends', {
+      const response = await apiClient.get('/templates/markets/stats/trends', {
         params: { period }
       })
       return {
@@ -440,7 +440,7 @@ class MarketService {
    */
   async batchDeleteMarketEnvironments(ids: ID[]): Promise<ApiResponse> {
     try {
-      const response = await apiClient.delete('/market/batch', {
+      const response = await apiClient.delete('/templates/markets/batch', {
         data: { ids }
       })
       return {
@@ -467,7 +467,7 @@ class MarketService {
         ...options
       }
 
-      const response = await apiClient.get('/market', { params })
+      const response = await apiClient.get('/templates/markets', { params })
       return {
         success: true,
         data: response.data.data,

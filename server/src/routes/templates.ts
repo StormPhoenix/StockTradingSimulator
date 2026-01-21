@@ -5,9 +5,62 @@
 
 import express, { Request, Response, NextFunction } from 'express'
 import templateController from '../controllers/templateController'
+import marketController from '../controllers/marketController'
 import { validateRequest, commonSchemas } from '../middleware/validation'
+import Joi from 'joi'
 
 const router = express.Router()
+
+// ==================== 验证规则 ====================
+
+// 市场环境创建验证规则
+const createMarketSchema = Joi.object({
+  name: Joi.string().min(1).max(200).optional(),
+  description: Joi.string().max(1000).optional(),
+  traderConfigs: Joi.array().items(
+    Joi.object({
+      templateId: Joi.string().required(),
+      count: Joi.number().integer().min(1).max(1000).required(),
+      capitalMultiplier: Joi.number().min(0.1).max(10).optional().default(1),
+      capitalVariation: Joi.number().min(0).max(1).optional().default(0)
+    })
+  ).min(1).required(),
+  stockTemplateIds: Joi.array().items(Joi.string()).min(1).required(),
+  allocationAlgorithm: Joi.string().valid('weighted_random', 'equal_distribution', 'risk_based').optional().default('weighted_random'),
+  seed: Joi.number().integer().min(0).optional(),
+  createdBy: Joi.string().optional()
+})
+
+// 市场环境更新验证规则
+const updateMarketSchema = Joi.object({
+  name: Joi.string().min(1).max(200).optional(),
+  description: Joi.string().max(1000).optional(),
+  traderConfigs: Joi.array().items(
+    Joi.object({
+      templateId: Joi.string().required(),
+      count: Joi.number().integer().min(1).max(1000).required(),
+      capitalMultiplier: Joi.number().min(0.1).max(10).optional().default(1),
+      capitalVariation: Joi.number().min(0).max(1).optional().default(0)
+    })
+  ).min(1).optional(),
+  stockTemplateIds: Joi.array().items(Joi.string()).min(1).optional(),
+  allocationAlgorithm: Joi.string().valid('weighted_random', 'equal_distribution', 'risk_based').optional()
+})
+
+// 查询验证规则
+const querySchema = Joi.object({
+  page: Joi.number().integer().min(1).optional().default(1),
+  limit: Joi.number().integer().min(1).max(100).optional().default(20),
+  sort: Joi.string().optional().default('createdAt'),
+  order: Joi.string().valid('asc', 'desc').optional().default('desc'),
+  populate: Joi.boolean().optional().default(false),
+  search: Joi.string().optional()
+})
+
+// 批量删除验证规则
+const batchDeleteSchema = Joi.object({
+  ids: Joi.array().items(Joi.string()).min(1).required()
+})
 
 // ==================== 模板API根路径 ====================
 
@@ -140,21 +193,39 @@ router.delete('/traders/:id', templateController.deleteTraderTemplate)
  * @route GET /api/templates/markets
  * @desc 获取市场环境列表
  */
-router.get('/markets', (req, res, next) => templateController.getMarketEnvironments(req, res, next))
+router.get('/markets', validateRequest({ query: querySchema }), marketController.getMarketEnvironments)
+
+/**
+ * @route GET /api/templates/markets/stats/summary
+ * @desc 获取市场环境统计摘要
+ */
+router.get('/markets/stats/summary', marketController.getMarketStatsSummary)
+
+/**
+ * @route GET /api/templates/markets/stats/trends
+ * @desc 获取市场环境趋势数据
+ */
+router.get('/markets/stats/trends', marketController.getMarketTrends)
+
+/**
+ * @route DELETE /api/templates/markets/batch
+ * @desc 批量删除市场环境
+ */
+router.delete('/markets/batch', validateRequest({ body: batchDeleteSchema }), marketController.batchDeleteMarketEnvironments)
 
 /**
  * @route GET /api/templates/markets/:id
  * @desc 根据ID获取市场环境详情
  */
-router.get('/markets/:id', templateController.getMarketEnvironmentById)
+router.get('/markets/:id', marketController.getMarketEnvironmentById)
 
 /**
  * @route POST /api/templates/markets
  * @desc 创建新的市场环境
  */
 router.post('/markets',
-  validateRequest({ body: commonSchemas.marketEnvironment }),
-  templateController.createMarketEnvironment
+  validateRequest({ body: createMarketSchema }),
+  marketController.createMarketEnvironment
 )
 
 /**
@@ -162,42 +233,27 @@ router.post('/markets',
  * @desc 更新市场环境
  */
 router.put('/markets/:id',
-  validateRequest({ body: commonSchemas.marketEnvironment }),
-  templateController.updateMarketEnvironment
+  validateRequest({ body: updateMarketSchema }),
+  marketController.updateMarketEnvironment
 )
 
 /**
  * @route DELETE /api/templates/markets/:id
  * @desc 删除市场环境
  */
-router.delete('/markets/:id', templateController.deleteMarketEnvironment)
+router.delete('/markets/:id', marketController.deleteMarketEnvironment)
 
 /**
  * @route GET /api/templates/markets/:id/export
  * @desc 导出市场环境数据
  */
-router.get('/markets/:id/export', templateController.exportMarketEnvironment)
+router.get('/markets/:id/export', marketController.exportMarketEnvironment)
 
 /**
- * @route POST /api/templates/markets/batch/export
- * @desc 批量导出市场环境数据
+ * @route POST /api/templates/markets/:id/validate
+ * @desc 验证市场环境
  */
-router.post('/markets/batch/export',
-  validateRequest({ body: commonSchemas.batchExport }),
-  templateController.batchExportMarketEnvironments
-)
-
-/**
- * @route GET /api/templates/markets/summary
- * @desc 获取市场环境汇总统计
- */
-router.get('/markets/summary', templateController.getMarketEnvironmentSummary)
-
-/**
- * @route GET /api/templates/markets/trends
- * @desc 获取市场环境趋势数据
- */
-router.get('/markets/trends', templateController.getMarketEnvironmentTrends)
+router.post('/markets/:id/validate', marketController.validateMarketEnvironment)
 
 // ==================== 批量操作路由 ====================
 

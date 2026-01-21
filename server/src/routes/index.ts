@@ -1,6 +1,5 @@
 import express, { Request, Response } from 'express'
 import templateRoutes from './templates'
-import marketRoutes from './market'
 import environmentRoutes from './environments'
 import { createDebugRoutes } from './debugRoutes'
 import { LifecycleManagerService } from '../services/lifecycleManagerService'
@@ -15,7 +14,6 @@ export function createRoutes(lifecycleService: LifecycleManagerService) {
 
   // 注册业务路由
   router.use('/templates', templateRoutes)
-  router.use('/market', marketRoutes)
   router.use('/environments', environmentRoutes)
   
   // 注册调试路由（从生命周期服务获取管理器实例）
@@ -32,7 +30,6 @@ export function createRoutes(lifecycleService: LifecycleManagerService) {
         endpoints: {
           health: '/health',
           templates: '/templates',
-          market: '/market',
           environments: '/environments',
           debug: '/debug',
         },
