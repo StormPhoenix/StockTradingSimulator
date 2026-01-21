@@ -251,7 +251,7 @@ import type {
   EnvironmentListState 
 } from '@/types/environment';
 import { EnvironmentService } from '@/services/environmentApi';
-import marketService from '@/services/marketService';
+import templateService from '@/services/templateService';
 
 const router = useRouter();
 
@@ -363,7 +363,7 @@ const loadTemplates = async () => {
     isLoadingTemplates.value = true;
     
     // 从后端获取市场环境模板
-    const response = await marketService.getMarketEnvironments();
+    const response = await templateService.getMarketEnvironments();
     
     if (response.success && response.data) {
       // 将市场环境数据转换为模板选项格式

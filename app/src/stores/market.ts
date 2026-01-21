@@ -5,7 +5,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import marketService from '../services/marketService'
+import templateService from '../services/templateService'
 
 // Define types
 interface MarketEnvironment {
@@ -122,7 +122,7 @@ export const useMarketStore = defineStore('market', () => {
       loading.value = true
       error.value = null
 
-      const result = await marketService.createMarketEnvironment(config as any)
+      const result = await templateService.createMarketEnvironment(config as any)
       
       if (result.success) {
         // 添加到列表开头
@@ -149,7 +149,7 @@ export const useMarketStore = defineStore('market', () => {
       loading.value = true
       error.value = null
 
-      const result = await marketService.getMarketEnvironments(params)
+      const result = await templateService.getMarketEnvironments(params)
       
       if (result.success) {
         marketEnvironments.value = result.data || []
@@ -181,7 +181,7 @@ export const useMarketStore = defineStore('market', () => {
       loading.value = true
       error.value = null
 
-      const result = await marketService.getMarketEnvironmentById(id)
+      const result = await templateService.getMarketEnvironmentById(id)
       
       if (result.success) {
         currentMarket.value = result.data
@@ -204,7 +204,7 @@ export const useMarketStore = defineStore('market', () => {
       loading.value = true
       error.value = null
 
-      const result = await marketService.updateMarketEnvironment(id, updateData)
+      const result = await templateService.updateMarketEnvironment(id, updateData)
       
       if (result.success) {
         // 更新列表中的项目
@@ -236,7 +236,7 @@ export const useMarketStore = defineStore('market', () => {
       loading.value = true
       error.value = null
 
-      const result = await marketService.deleteMarketEnvironment(id)
+      const result = await templateService.deleteMarketEnvironment(id)
       
       if (result.success) {
         // 从列表中移除
@@ -269,7 +269,7 @@ export const useMarketStore = defineStore('market', () => {
   const exportMarketEnvironment = async (id: string): Promise<ApiResponse> => {
     try {
       error.value = null
-      const result = await marketService.exportMarketEnvironment(id)
+      const result = await templateService.exportMarketEnvironment(id)
       return result
     } catch (err) {
       error.value = (err as Error).message
@@ -283,7 +283,7 @@ export const useMarketStore = defineStore('market', () => {
   const validateMarketEnvironment = async (id: string): Promise<ApiResponse> => {
     try {
       error.value = null
-      const result = await marketService.validateMarketEnvironment(id)
+      const result = await templateService.validateMarketEnvironment(id)
       return result
     } catch (err) {
       error.value = (err as Error).message
@@ -297,7 +297,7 @@ export const useMarketStore = defineStore('market', () => {
   const validateImportData = async (importData: any): Promise<any> => {
     try {
       error.value = null
-      const result = await marketService.validateImportData(importData)
+      const result = await templateService.validateImportData(importData)
       return result.data
     } catch (err) {
       error.value = (err as Error).message
@@ -310,7 +310,7 @@ export const useMarketStore = defineStore('market', () => {
    */
   const fetchStatistics = async (): Promise<ApiResponse<Statistics> | undefined> => {
     try {
-      const result = await marketService.getMarketStatsSummary()
+      const result = await templateService.getMarketStatsSummary()
       
       if (result.success) {
         statistics.value = result.data
@@ -329,7 +329,7 @@ export const useMarketStore = defineStore('market', () => {
   const getMarketTrends = async (period: string = '30d'): Promise<ApiResponse> => {
     try {
       error.value = null
-      const result = await marketService.getMarketTrends(period)
+      const result = await templateService.getMarketTrends(period)
       return result
     } catch (err) {
       error.value = (err as Error).message
@@ -345,7 +345,7 @@ export const useMarketStore = defineStore('market', () => {
       loading.value = true
       error.value = null
 
-      const result = await marketService.batchDeleteMarketEnvironments(ids)
+      const result = await templateService.batchDeleteMarketEnvironments(ids)
       
       if (result.success) {
         // 从列表中移除已删除的项目
@@ -379,7 +379,7 @@ export const useMarketStore = defineStore('market', () => {
       loading.value = true
       error.value = null
 
-      const result = await marketService.searchMarketEnvironments(keyword, options)
+      const result = await templateService.searchMarketEnvironments(keyword, options)
       
       if (result.success) {
         marketEnvironments.value = result.data || []
