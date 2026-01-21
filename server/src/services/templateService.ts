@@ -141,7 +141,6 @@ export interface GeneratedStock {
 
 // 市场环境对象接口
 export interface MarketEnvironmentObject {
-  id: ID
   name: string
   description: string
   traders: GeneratedTrader[]
@@ -909,14 +908,11 @@ export class MarketEnvironmentTemplateService {
     stocks: GeneratedStock[]
     allocationResult: AllocationResult
   }): Promise<MarketEnvironmentObject> {
-    const marketId = MarketUtils.generateMarketId()
-    
     // 计算统计信息
     const statistics = MarketUtils.calculateMarketStatistics(params.traders, params.stocks)
 
     // 创建市场环境对象
     const marketEnvironment: MarketEnvironmentObject = {
-      id: marketId,
       name: params.name || `Market_${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '')}`,
       description: params.description || '',
       traders: params.traders,
@@ -1087,7 +1083,7 @@ export class MarketEnvironmentTemplateService {
    */
   async getMarketEnvironmentById(id: string): Promise<ApiResponse<Document>> {
     try {
-      const market = await MarketEnvironment.findOne({ id })
+      const market = await MarketEnvironment.findById(id)
         .populate('traders.templateId', 'name riskProfile tradingStyle')
         .populate('stocks.templateId', 'name symbol category')
 
@@ -1134,7 +1130,7 @@ export class MarketEnvironmentTemplateService {
   async updateMarketEnvironment(id: string, updateData: Partial<MarketConfig>): Promise<ApiResponse<Document>> {
     try {
       // 获取现有市场环境
-      const existingMarket = await MarketEnvironment.findOne({ id })
+      const existingMarket = await MarketEnvironment.findById(id)
       if (!existingMarket) {
         throw new Error(`未找到市场环境: ${id}`)
       }

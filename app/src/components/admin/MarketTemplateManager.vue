@@ -434,7 +434,7 @@
           </template>
           <el-descriptions :column="2" border>
             <el-descriptions-item label="市场名称">{{ currentMarketDetail.name }}</el-descriptions-item>
-            <el-descriptions-item label="市场ID">{{ currentMarketDetail.id }}</el-descriptions-item>
+            <el-descriptions-item label="市场ID">{{ currentMarketDetail._id }}</el-descriptions-item>
             <el-descriptions-item label="描述信息">{{ currentMarketDetail.description || '无描述' }}</el-descriptions-item>
             <el-descriptions-item label="分配算法">{{ getAllocationAlgorithmName(currentMarketDetail.allocationAlgorithm || '') }}</el-descriptions-item>
             <el-descriptions-item label="创建时间">{{ formatDateTime(currentMarketDetail.createdAt) }}</el-descriptions-item>
@@ -545,7 +545,7 @@ import { getCategoryLabel, getRiskProfileTagType, getRiskProfileLabel, getTradin
 
 // Define local types based on what the component actually uses
 interface MarketEnvironment {
-  id: string
+  _id: string
   name: string
   description: string
   allocationAlgorithm?: string
@@ -764,7 +764,7 @@ const handleViewDetail = async (row: MarketEnvironment): Promise<void> => {
     console.log('查看市场环境详情:', row)
     
     // 获取完整的市场环境数据
-    const result = await marketStore.getMarketEnvironmentById(row.id)
+    const result = await marketStore.getMarketEnvironmentById(row._id)
     
     if (!result.success) {
       throw new Error('获取市场环境详情失败')
@@ -802,7 +802,7 @@ const handleDelete = async (row: MarketEnvironment): Promise<void> => {
 
 const handleExport = async (row: MarketEnvironment): Promise<void> => {
   try {
-    const result = await marketStore.exportMarketEnvironment(row.id)
+    const result = await marketStore.exportMarketEnvironment(row._id)
     
     if (result.success) {
       // 触发文件下载
@@ -822,8 +822,8 @@ const handleBatchDelete = async (): Promise<void> => {
       type: 'warning'
     })
     
-    const deletePromises = selectedEnvironments.value.map(env => 
-      marketStore.deleteMarketEnvironment(env.id)
+    const deletePromises = selectedEnvironments.value.map(marketTemplate => 
+      marketStore.deleteMarketEnvironment(marketTemplate._id)
     )
     
     await Promise.all(deletePromises)
@@ -844,8 +844,8 @@ const handleBatchExport = async (): Promise<void> => {
   }
 
   try {
-    const exportPromises = selectedEnvironments.value.map(env => 
-      marketStore.exportMarketEnvironment(env.id)
+    const exportPromises = selectedEnvironments.value.map(marketTemplate => 
+      marketStore.exportMarketEnvironment(marketTemplate._id)
     )
     
     const results = await Promise.allSettled(exportPromises)

@@ -9,8 +9,7 @@ import marketService from '../services/marketService'
 
 // Define types
 interface MarketEnvironment {
-  id: string
-  _id?: string
+  _id: string
   name: string
   description: string
   allocationAlgorithm?: string
@@ -241,13 +240,13 @@ export const useMarketStore = defineStore('market', () => {
       
       if (result.success) {
         // 从列表中移除
-        const index = marketEnvironments.value.findIndex(market => market.id === id)
+        const index = marketEnvironments.value.findIndex(market => market._id === id)
         if (index > -1) {
           marketEnvironments.value.splice(index, 1)
         }
         
         // 如果删除的是当前市场，清空当前市场
-        if (currentMarket.value?.id === id) {
+        if (currentMarket.value?._id === id) {
           currentMarket.value = null
         }
         
@@ -351,11 +350,11 @@ export const useMarketStore = defineStore('market', () => {
       if (result.success) {
         // 从列表中移除已删除的项目
         marketEnvironments.value = marketEnvironments.value.filter(
-          market => !ids.includes(market.id)
+          market => !ids.includes(market._id)
         )
         
         // 如果当前市场被删除，清空当前市场
-        if (currentMarket.value && ids.includes(currentMarket.value.id)) {
+        if (currentMarket.value && ids.includes(currentMarket.value._id)) {
           currentMarket.value = null
         }
         
