@@ -5,7 +5,6 @@
 
 import express, { Request, Response, NextFunction } from 'express'
 import templateController from '../controllers/templateController'
-import marketController from '../controllers/marketController'
 import { validateRequest, commonSchemas } from '../middleware/validation'
 import Joi from 'joi'
 
@@ -193,31 +192,31 @@ router.delete('/traders/:id', templateController.deleteTraderTemplate)
  * @route GET /api/templates/markets
  * @desc 获取市场环境列表
  */
-router.get('/markets', validateRequest({ query: querySchema }), marketController.getMarketEnvironments)
+router.get('/markets', validateRequest({ query: querySchema }), templateController.getMarketEnvironments)
 
 /**
  * @route GET /api/templates/markets/stats/summary
  * @desc 获取市场环境统计摘要
  */
-router.get('/markets/stats/summary', marketController.getMarketStatsSummary)
+router.get('/markets/stats/summary', templateController.getMarketStatsSummary)
 
 /**
  * @route GET /api/templates/markets/stats/trends
  * @desc 获取市场环境趋势数据
  */
-router.get('/markets/stats/trends', marketController.getMarketTrends)
+router.get('/markets/stats/trends', templateController.getMarketTrends)
 
 /**
  * @route DELETE /api/templates/markets/batch
  * @desc 批量删除市场环境
  */
-router.delete('/markets/batch', validateRequest({ body: batchDeleteSchema }), marketController.batchDeleteMarketEnvironments)
+router.delete('/markets/batch', validateRequest({ body: batchDeleteSchema }), templateController.batchDeleteMarketEnvironments)
 
 /**
  * @route GET /api/templates/markets/:id
  * @desc 根据ID获取市场环境详情
  */
-router.get('/markets/:id', marketController.getMarketEnvironmentById)
+router.get('/markets/:id', templateController.getMarketEnvironmentById)
 
 /**
  * @route POST /api/templates/markets
@@ -225,7 +224,7 @@ router.get('/markets/:id', marketController.getMarketEnvironmentById)
  */
 router.post('/markets',
   validateRequest({ body: createMarketSchema }),
-  marketController.createMarketEnvironment
+  templateController.createMarketEnvironment
 )
 
 /**
@@ -234,26 +233,26 @@ router.post('/markets',
  */
 router.put('/markets/:id',
   validateRequest({ body: updateMarketSchema }),
-  marketController.updateMarketEnvironment
+  templateController.updateMarketEnvironment
 )
 
 /**
  * @route DELETE /api/templates/markets/:id
  * @desc 删除市场环境
  */
-router.delete('/markets/:id', marketController.deleteMarketEnvironment)
+router.delete('/markets/:id', templateController.deleteMarketEnvironment)
 
 /**
  * @route GET /api/templates/markets/:id/export
  * @desc 导出市场环境数据
  */
-router.get('/markets/:id/export', marketController.exportMarketEnvironment)
+router.get('/markets/:id/export', templateController.exportMarketEnvironment)
 
 /**
  * @route POST /api/templates/markets/:id/validate
  * @desc 验证市场环境
  */
-router.post('/markets/:id/validate', marketController.validateMarketEnvironment)
+router.post('/markets/:id/validate', templateController.validateMarketEnvironment)
 
 // ==================== 批量操作路由 ====================
 
