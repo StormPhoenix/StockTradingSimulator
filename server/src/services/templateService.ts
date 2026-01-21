@@ -1110,11 +1110,12 @@ export class MarketEnvironmentTemplateService {
    */
   async deleteMarketEnvironment(id: string): Promise<ApiResponse<null>> {
     try {
-      const result = await MarketEnvironment.deleteOne({ id })
-
-      if (result.deletedCount === 0) {
+      const marketTemplate = await MarketEnvironment.findById(id)
+      if (!marketTemplate) {
         throw new Error(`未找到市场环境: ${id}`)
       }
+
+      await marketTemplate.deleteOne()
 
       return {
         success: true,

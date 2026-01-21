@@ -790,7 +790,7 @@ const handleDelete = async (row: MarketEnvironment): Promise<void> => {
       type: 'warning'
     })
     
-    await marketStore.deleteMarketEnvironment(row.id)
+    await marketStore.deleteMarketEnvironment(row._id)
     ElMessage.success('删除成功')
     fetchData()
   } catch (error) {
