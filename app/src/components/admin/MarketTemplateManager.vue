@@ -538,8 +538,6 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Delete, ArrowDown, Refresh } from '@element-plus/icons-vue'
 // @ts-ignore - stores are still JS files
-import { useMarketStore } from '@/stores/market'
-// @ts-ignore - stores are still JS files  
 import { useTemplatesStore } from '@/stores/templates'
 import { getCategoryLabel, getRiskProfileTagType, getRiskProfileLabel, getTradingStyleLabel } from '@/utils/categoryUtils'
 
@@ -633,7 +631,6 @@ interface CreateMarketEnvironmentRequest {
   stockTemplateIds: string[]
 }
 
-const marketStore = useMarketStore()
 const templatesStore = useTemplatesStore()
 
 // 模板数据
@@ -643,7 +640,7 @@ const availableStockTemplates = ref<StockTemplate[]>([])
 // 响应式数据
 const loading = ref<boolean>(false)
 // 使用store中的响应式数据
-const marketEnvironments = computed(() => marketStore.marketEnvironments)
+const marketEnvironments = computed(() => templatesStore.marketTemplates)
 const selectedEnvironments = ref<MarketEnvironment[]>([])
 const hasSelected = computed(() => selectedEnvironments.value.length > 0)
 
@@ -660,7 +657,7 @@ const filters = reactive<Filters>({
 })
 
 // 使用store中的分页数据
-const pagination = computed(() => marketStore.pagination)
+const pagination = computed(() => templatesStore.marketTemplatesPagination)
 // 对话框相关
 const dialogVisible = ref<boolean>(false)
 const submitting = ref<boolean>(false)
@@ -668,7 +665,7 @@ const formRef = ref()
 
 // 详情对话框相关
 const detailDialogVisible = ref<boolean>(false)
-const currentMarketDetail = ref<MarketEnvironment | null>(null)
+const currentMarketDetail = computed(() => templatesStore.currentMarketTemplate)
 
 interface MarketForm {
   name: string
@@ -702,14 +699,14 @@ const fetchData = async (): Promise<void> => {
     loading.value = true
     console.log('开始获取市场环境数据...')
     
-    await marketStore.getMarketEnvironments({
+    await templatesStore.fetchMarketTemplates({
       page: pagination.value.page,
       limit: pagination.value.limit,
       ...filters
     })
     
-    console.log('获取到的数据:', marketStore.marketEnvironments)
-    console.log('分页信息:', marketStore.pagination)
+    console.log('获取到的数据:', templatesStore.marketTemplates)
+    console.log('分页信息:', templatesStore.marketTemplatesPagination)
     
   } catch (error) {
     console.error('获取市场环境列表失败:', error)
@@ -724,12 +721,12 @@ const fetchData = async (): Promise<void> => {
 }
 
 const handleSearch = (): void => {
-  marketStore.pagination.page = 1
+  templatesStore.marketTemplatesPagination.page = 1
   fetchData()
 }
 
 const handleFilter = (): void => {
-  marketStore.pagination.page = 1
+  templatesStore.marketTemplatesPagination.page = 1
   fetchData()
 }
 
@@ -738,13 +735,13 @@ const handleSelectionChange = (selection: MarketEnvironment[]): void => {
 }
 
 const handleSizeChange = (size: number): void => {
-  marketStore.pagination.limit = size
-  marketStore.pagination.page = 1
+  templatesStore.marketTemplatesPagination.limit = size
+  templatesStore.marketTemplatesPagination.page = 1
   fetchData()
 }
 
 const handleCurrentChange = (page: number): void => {
-  marketStore.pagination.page = page
+  templatesStore.marketTemplatesPagination.page = page
   fetchData()
 }
 
@@ -764,14 +761,14 @@ const handleViewDetail = async (row: MarketEnvironment): Promise<void> => {
     console.log('查看市场环境详情:', row)
     
     // 获取完整的市场环境数据
-    const result = await marketStore.getMarketEnvironmentById(row._id)
+    const result = await templatesStore.fetchMarketTemplateById(row._id)
     
-    if (!result.success) {
+    if (!result) {
       throw new Error('获取市场环境详情失败')
     }
     
-    currentMarketDetail.value = result.data || null
-    console.log('获取到的详情数据:', result.data)
+    // currentMarketDetail 现在是 computed 属性，会自动更新
+    console.log('获取到的详情数据:', result)
     detailDialogVisible.value = true
     
   } catch (error) {
@@ -790,7 +787,7 @@ const handleDelete = async (row: MarketEnvironment): Promise<void> => {
       type: 'warning'
     })
     
-    await marketStore.deleteMarketEnvironment(row._id)
+    await templatesStore.deleteMarketTemplate(row._id)
     ElMessage.success('删除成功')
     fetchData()
   } catch (error) {
@@ -802,7 +799,7 @@ const handleDelete = async (row: MarketEnvironment): Promise<void> => {
 
 const handleExport = async (row: MarketEnvironment): Promise<void> => {
   try {
-    const result = await marketStore.exportMarketEnvironment(row._id)
+    const result = await templatesStore.exportMarketTemplate(row._id)
     
     if (result.success) {
       // 触发文件下载
@@ -823,7 +820,7 @@ const handleBatchDelete = async (): Promise<void> => {
     })
     
     const deletePromises = selectedEnvironments.value.map(marketTemplate => 
-      marketStore.deleteMarketEnvironment(marketTemplate._id)
+      templatesStore.deleteMarketTemplate(marketTemplate._id)
     )
     
     await Promise.all(deletePromises)
@@ -845,7 +842,7 @@ const handleBatchExport = async (): Promise<void> => {
 
   try {
     const exportPromises = selectedEnvironments.value.map(marketTemplate => 
-      marketStore.exportMarketEnvironment(marketTemplate._id)
+      templatesStore.exportMarketTemplate(marketTemplate._id)
     )
     
     const results = await Promise.allSettled(exportPromises)
@@ -927,7 +924,7 @@ const handleSubmit = async (): Promise<void> => {
       说明: '实际使用模板中的数据'
     })))
     
-    await marketStore.createMarketEnvironment(submitData)
+    await templatesStore.createMarketEnvironment(submitData)
     ElMessage.success('创建成功')
     
     dialogVisible.value = false

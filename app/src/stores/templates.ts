@@ -30,6 +30,39 @@ interface TraderTemplate {
   updatedAt: string;
 }
 
+interface MarketTemplate {
+  _id: string;
+  name: string;
+  description: string;
+  allocationAlgorithm?: string;
+  version?: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  statistics?: {
+    traderCount: number;
+    stockCount: number;
+  };
+  totalCapital?: number;
+  totalMarketValue?: number;
+  traders?: Array<{
+    name: string;
+    initialCapital: number;
+    riskProfile: string;
+    tradingStyle: string;
+    holdings?: any[];
+    templateId?: { name: string };
+  }>;
+  stocks?: Array<{
+    symbol: string;
+    name: string;
+    issuePrice: number;
+    totalShares: number;
+    category: string;
+    holders?: any[];
+    templateId?: { name: string };
+  }>;
+}
+
 interface Pagination {
   page: number;
   limit: number;
@@ -48,6 +81,39 @@ interface TraderTemplatesFilters {
   search: string;
 }
 
+interface MarketTemplatesFilters {
+  status: string;
+  search: string;
+}
+
+interface MarketStatistics {
+  totalMarkets: number;
+  totalTraders: number;
+  totalStocks: number;
+  totalCapital: number;
+  averageTraders: number;
+  averageStocks: number;
+}
+
+interface CreateMarketEnvironmentRequest {
+  name?: string;
+  description?: string;
+  allocationAlgorithm: string;
+  traderConfigs: Array<{
+    templateId: string;
+    count: number;
+    capitalMultiplier: number;
+    capitalVariation: number;
+  }>;
+  stockTemplateIds: string[];
+}
+
+interface SearchOptions {
+  page?: number;
+  limit?: number;
+  [key: string]: any;
+}
+
 interface TemplateStats {
   stockTemplates: {
     total: number;
@@ -61,12 +127,20 @@ interface TemplateStats {
     inactive: number;
     draft: number;
   };
+  marketTemplates: {
+    total: number;
+    active: number;
+    inactive: number;
+    draft: number;
+  };
 }
 
 interface ApiResponse<T> {
   data: T;
   pagination?: Pagination;
   message?: string;
+  success?: boolean;
+  filename?: string;
 }
 
 interface TemplatesState {
@@ -82,16 +156,25 @@ interface TemplatesState {
   traderTemplatesLoading: boolean;
   traderTemplatesFilters: TraderTemplatesFilters;
   
+  // 市场环境模板相关状态
+  marketTemplates: MarketTemplate[];
+  marketTemplatesPagination: Pagination;
+  marketTemplatesLoading: boolean;
+  marketTemplatesFilters: MarketTemplatesFilters;
+  
   // 当前编辑的模板
   currentStockTemplate: StockTemplate | null;
   currentTraderTemplate: TraderTemplate | null;
+  currentMarketTemplate: MarketTemplate | null;
   
   // 选中的模板（用于批量操作）
   selectedStockTemplates: string[];
   selectedTraderTemplates: string[];
+  selectedMarketTemplates: string[];
   
   // 统计信息
   templateStats: TemplateStats | null;
+  marketStatistics: MarketStatistics | null;
   
   // 错误状态
   error: string | null;
@@ -128,16 +211,33 @@ export const useTemplatesStore = defineStore('templates', {
       search: ''
     },
     
+    // 市场环境模板相关状态
+    marketTemplates: [],
+    marketTemplatesPagination: {
+      page: 1,
+      limit: 20,
+      total: 0,
+      pages: 0
+    },
+    marketTemplatesLoading: false,
+    marketTemplatesFilters: {
+      status: '',
+      search: ''
+    },
+    
     // 当前编辑的模板
     currentStockTemplate: null,
     currentTraderTemplate: null,
+    currentMarketTemplate: null,
     
     // 选中的模板（用于批量操作）
     selectedStockTemplates: [],
     selectedTraderTemplates: [],
+    selectedMarketTemplates: [],
     
     // 统计信息
     templateStats: null,
+    marketStatistics: null,
     
     // 错误状态
     error: null
@@ -166,6 +266,23 @@ export const useTemplatesStore = defineStore('templates', {
       return state.traderTemplates.filter(template => template.status === 'active');
     },
     
+    // 市场环境模板相关getters
+    activeMarketTemplates: (state) => {
+      return state.marketTemplates.filter(template => template.name); // 市场模板没有status字段，用name判断有效性
+    },
+    
+    hasMarkets: (state) => {
+      return state.marketTemplates.length > 0;
+    },
+    
+    isMarketLoading: (state) => {
+      return state.marketTemplatesLoading;
+    },
+    
+    hasMarketError: (state) => {
+      return !!state.error;
+    },
+    
     // 选择状态
     hasSelectedStockTemplates: (state) => {
       return state.selectedStockTemplates.length > 0;
@@ -175,10 +292,15 @@ export const useTemplatesStore = defineStore('templates', {
       return state.selectedTraderTemplates.length > 0;
     },
     
+    hasSelectedMarketTemplates: (state) => {
+      return state.selectedMarketTemplates.length > 0;
+    },
+    
     // 统计信息
     totalTemplates: (state) => {
       return (state.templateStats?.stockTemplates?.total || 0) + 
-             (state.templateStats?.traderTemplates?.total || 0);
+             (state.templateStats?.traderTemplates?.total || 0) +
+             (state.templateStats?.marketTemplates?.total || 0);
     }
   },
 
@@ -432,27 +554,353 @@ export const useTemplatesStore = defineStore('templates', {
       }
     },
     
+    // ==================== 市场环境模板操作 ====================
+    
+    /**
+     * 创建市场环境
+     */
+    async createMarketEnvironment(config: CreateMarketEnvironmentRequest): Promise<ApiResponse<MarketTemplate>> {
+      this.marketTemplatesLoading = true;
+      this.error = null;
+      
+      try {
+        const result = await templateService.createMarketEnvironment(config as any);
+        
+        if (result.success) {
+          // 添加到列表开头
+          this.marketTemplates.unshift(result.data);
+          this.marketTemplatesPagination.total++;
+          
+          // 更新统计
+          await this.fetchMarketStatistics();
+        }
+
+        return result;
+      } catch (error: any) {
+        this.error = error.message;
+        throw error;
+      } finally {
+        this.marketTemplatesLoading = false;
+      }
+    },
+
+    /**
+     * 获取市场环境列表
+     */
+    async fetchMarketTemplates(params: Record<string, any> = {}): Promise<ApiResponse<MarketTemplate[]>> {
+      this.marketTemplatesLoading = true;
+      this.error = null;
+      
+      try {
+        const queryParams = {
+          page: this.marketTemplatesPagination.page,
+          limit: this.marketTemplatesPagination.limit,
+          ...this.marketTemplatesFilters,
+          ...params
+        };
+        
+        const result = await templateService.getMarketEnvironments(queryParams);
+        
+        if (result.success) {
+          this.marketTemplates = result.data || [];
+          if (result.pagination) {
+            this.marketTemplatesPagination = result.pagination;
+          }
+        } else {
+          console.warn('API返回失败状态:', result);
+          this.marketTemplates = [];
+        }
+
+        return result;
+      } catch (error: any) {
+        console.error('获取市场环境列表失败:', error);
+        this.error = error.message;
+        this.marketTemplates = [];
+        throw error;
+      } finally {
+        this.marketTemplatesLoading = false;
+      }
+    },
+
+    /**
+     * 获取市场环境详情
+     */
+    async fetchMarketTemplateById(id: string): Promise<MarketTemplate> {
+      this.marketTemplatesLoading = true;
+      this.error = null;
+      
+      try {
+        const result = await templateService.getMarketEnvironmentById(id);
+        
+        if (result.success) {
+          this.currentMarketTemplate = result.data;
+        }
+
+        return result.data;
+      } catch (error: any) {
+        this.error = error.message;
+        throw error;
+      } finally {
+        this.marketTemplatesLoading = false;
+      }
+    },
+
+    /**
+     * 更新市场环境
+     */
+    async updateMarketTemplate(id: string, updateData: Partial<MarketTemplate>): Promise<MarketTemplate> {
+      this.marketTemplatesLoading = true;
+      this.error = null;
+      
+      try {
+        const result = await templateService.updateMarketEnvironment(id, updateData);
+        
+        if (result.success) {
+          // 更新列表中的项目
+          const index = this.marketTemplates.findIndex(market => market._id === id);
+          if (index > -1) {
+            this.marketTemplates[index] = result.data;
+          }
+          
+          // 如果更新的是当前市场，也更新当前市场
+          if (this.currentMarketTemplate?._id === id) {
+            this.currentMarketTemplate = result.data;
+          }
+        }
+
+        return result.data;
+      } catch (error: any) {
+        this.error = error.message;
+        throw error;
+      } finally {
+        this.marketTemplatesLoading = false;
+      }
+    },
+
+    /**
+     * 删除市场环境
+     */
+    async deleteMarketTemplate(id: string): Promise<boolean> {
+      this.marketTemplatesLoading = true;
+      this.error = null;
+      
+      try {
+        const result = await templateService.deleteMarketEnvironment(id);
+        
+        if (result.success) {
+          // 从列表中移除
+          this.marketTemplates = this.marketTemplates.filter(market => market._id !== id);
+          this.marketTemplatesPagination.total--;
+          
+          // 如果删除的是当前市场，清空当前市场
+          if (this.currentMarketTemplate?._id === id) {
+            this.currentMarketTemplate = null;
+          }
+          
+          // 从选中列表中移除
+          this.selectedMarketTemplates = this.selectedMarketTemplates.filter(selectedId => selectedId !== id);
+          
+          // 更新统计
+          await this.fetchMarketStatistics();
+        }
+
+        return true;
+      } catch (error: any) {
+        this.error = error.message;
+        throw error;
+      } finally {
+        this.marketTemplatesLoading = false;
+      }
+    },
+
+    /**
+     * 导出市场环境
+     */
+    async exportMarketTemplate(id: string): Promise<ApiResponse<any>> {
+      this.error = null;
+      
+      try {
+        const result = await templateService.exportMarketEnvironment(id);
+        return result;
+      } catch (error: any) {
+        this.error = error.message;
+        throw error;
+      }
+    },
+
+    /**
+     * 验证市场环境
+     */
+    async validateMarketTemplate(id: string): Promise<ApiResponse<any>> {
+      this.error = null;
+      
+      try {
+        const result = await templateService.validateMarketEnvironment(id);
+        return result;
+      } catch (error: any) {
+        this.error = error.message;
+        throw error;
+      }
+    },
+
+    /**
+     * 验证导入数据
+     */
+    async validateImportData(importData: any): Promise<any> {
+      this.error = null;
+      
+      try {
+        const result = await templateService.validateImportData(importData);
+        return result.data;
+      } catch (error: any) {
+        this.error = error.message;
+        throw error;
+      }
+    },
+
+    /**
+     * 获取市场统计
+     */
+    async fetchMarketStatistics(): Promise<MarketStatistics | undefined> {
+      try {
+        const result = await templateService.getMarketStatsSummary();
+        
+        if (result.success) {
+          this.marketStatistics = result.data;
+        }
+
+        return result.data;
+      } catch (error: any) {
+        console.error('获取统计数据失败:', error);
+        // 不抛出错误，统计数据获取失败不应影响主要功能
+      }
+    },
+
+    /**
+     * 获取市场趋势
+     */
+    async getMarketTrends(period: string = '30d'): Promise<ApiResponse<any>> {
+      this.error = null;
+      
+      try {
+        const result = await templateService.getMarketTrends(period);
+        return result;
+      } catch (error: any) {
+        this.error = error.message;
+        throw error;
+      }
+    },
+
+    /**
+     * 批量删除市场环境
+     */
+    async batchDeleteMarketTemplates(ids: string[]): Promise<ApiResponse<any>> {
+      this.marketTemplatesLoading = true;
+      this.error = null;
+      
+      try {
+        const result = await templateService.batchDeleteMarketEnvironments(ids);
+        
+        if (result.success) {
+          // 从列表中移除已删除的项目
+          this.marketTemplates = this.marketTemplates.filter(
+            market => !ids.includes(market._id)
+          );
+          
+          // 如果当前市场被删除，清空当前市场
+          if (this.currentMarketTemplate && ids.includes(this.currentMarketTemplate._id)) {
+            this.currentMarketTemplate = null;
+          }
+          
+          // 清空选中列表
+          this.selectedMarketTemplates = [];
+          
+          // 更新统计
+          await this.fetchMarketStatistics();
+        }
+
+        return result;
+      } catch (error: any) {
+        this.error = error.message;
+        throw error;
+      } finally {
+        this.marketTemplatesLoading = false;
+      }
+    },
+
+    /**
+     * 搜索市场环境
+     */
+    async searchMarketTemplates(keyword: string, options: SearchOptions = {}): Promise<ApiResponse<MarketTemplate[]>> {
+      this.marketTemplatesLoading = true;
+      this.error = null;
+      
+      try {
+        const result = await templateService.searchMarketEnvironments(keyword, options);
+        
+        if (result.success) {
+          this.marketTemplates = result.data || [];
+          if (result.pagination) {
+            this.marketTemplatesPagination = result.pagination;
+          }
+        }
+
+        return result;
+      } catch (error: any) {
+        this.error = error.message;
+        throw error;
+      } finally {
+        this.marketTemplatesLoading = false;
+      }
+    },
+
+    /**
+     * 刷新市场环境列表
+     */
+    async refreshMarketTemplates(): Promise<void> {
+      await this.fetchMarketTemplates({
+        page: this.marketTemplatesPagination.page,
+        limit: this.marketTemplatesPagination.limit
+      });
+    },
+    
     // ==================== 批量操作 ====================
     
     /**
      * 批量删除模板
      */
-    async batchDeleteTemplates(type: 'stock' | 'trader'): Promise<{ deletedCount: number }> {
+    async batchDeleteTemplates(type: 'stock' | 'trader' | 'market'): Promise<{ deletedCount: number }> {
       try {
-        const ids = type === 'stock' ? this.selectedStockTemplates : this.selectedTraderTemplates;
+        let ids: string[];
+        
+        if (type === 'stock') {
+          ids = this.selectedStockTemplates;
+        } else if (type === 'trader') {
+          ids = this.selectedTraderTemplates;
+        } else {
+          ids = this.selectedMarketTemplates;
+        }
         
         if (ids.length === 0) {
           throw new Error('请选择要删除的模板');
         }
         
-        const response: ApiResponse<{ deletedCount: number }> = await templateService.batchDeleteTemplates(type, ids);
+        let response: ApiResponse<{ deletedCount: number }>;
+        
+        if (type === 'market') {
+          // 市场模板使用专门的批量删除方法
+          const result = await this.batchDeleteMarketTemplates(ids);
+          response = { data: { deletedCount: ids.length } };
+        } else {
+          response = await templateService.batchDeleteTemplates(type, ids);
+        }
         
         // 更新本地状态
         if (type === 'stock') {
           this.stockTemplates = this.stockTemplates.filter(t => !ids.includes(t._id));
           this.stockTemplatesPagination.total -= response.data.deletedCount;
           this.selectedStockTemplates = [];
-        } else {
+        } else if (type === 'trader') {
           this.traderTemplates = this.traderTemplates.filter(t => !ids.includes(t._id));
           this.traderTemplatesPagination.total -= response.data.deletedCount;
           this.selectedTraderTemplates = [];
@@ -468,12 +916,25 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 批量更新模板状态
      */
-    async batchUpdateTemplateStatus(type: 'stock' | 'trader', status: 'active' | 'inactive' | 'draft'): Promise<{ updatedCount: number }> {
+    async batchUpdateTemplateStatus(type: 'stock' | 'trader' | 'market', status: 'active' | 'inactive' | 'draft'): Promise<{ updatedCount: number }> {
       try {
-        const ids = type === 'stock' ? this.selectedStockTemplates : this.selectedTraderTemplates;
+        let ids: string[];
+        
+        if (type === 'stock') {
+          ids = this.selectedStockTemplates;
+        } else if (type === 'trader') {
+          ids = this.selectedTraderTemplates;
+        } else {
+          ids = this.selectedMarketTemplates;
+        }
         
         if (ids.length === 0) {
           throw new Error('请选择要更新的模板');
+        }
+        
+        // 市场模板不支持状态更新（没有status字段）
+        if (type === 'market') {
+          throw new Error('市场模板不支持状态更新');
         }
         
         const response: ApiResponse<{ updatedCount: number }> = await templateService.batchUpdateTemplateStatus(type, ids, status as any);
@@ -521,6 +982,14 @@ export const useTemplatesStore = defineStore('templates', {
     },
     
     /**
+     * 设置市场环境模板筛选条件
+     */
+    setMarketTemplatesFilters(filters: Partial<MarketTemplatesFilters>): void {
+      this.marketTemplatesFilters = { ...this.marketTemplatesFilters, ...filters };
+      this.marketTemplatesPagination.page = 1; // 重置到第一页
+    },
+    
+    /**
      * 设置股票模板分页
      */
     setStockTemplatesPagination(pagination: Partial<Pagination>): void {
@@ -532,6 +1001,13 @@ export const useTemplatesStore = defineStore('templates', {
      */
     setTraderTemplatesPagination(pagination: Partial<Pagination>): void {
       this.traderTemplatesPagination = { ...this.traderTemplatesPagination, ...pagination };
+    },
+    
+    /**
+     * 设置市场环境模板分页
+     */
+    setMarketTemplatesPagination(pagination: Partial<Pagination>): void {
+      this.marketTemplatesPagination = { ...this.marketTemplatesPagination, ...pagination };
     },
     
     // ==================== 选择操作 ====================
@@ -579,6 +1055,29 @@ export const useTemplatesStore = defineStore('templates', {
         this.selectedTraderTemplates = [];
       } else {
         this.selectedTraderTemplates = this.traderTemplates.map(t => t._id);
+      }
+    },
+    
+    /**
+     * 切换市场环境模板选择状态
+     */
+    toggleMarketTemplateSelection(id: string): void {
+      const index = this.selectedMarketTemplates.indexOf(id);
+      if (index === -1) {
+        this.selectedMarketTemplates.push(id);
+      } else {
+        this.selectedMarketTemplates.splice(index, 1);
+      }
+    },
+    
+    /**
+     * 全选/取消全选市场环境模板
+     */
+    toggleAllMarketTemplatesSelection(): void {
+      if (this.selectedMarketTemplates.length === this.marketTemplates.length) {
+        this.selectedMarketTemplates = [];
+      } else {
+        this.selectedMarketTemplates = this.marketTemplates.map(t => t._id);
       }
     },
     
@@ -647,11 +1146,32 @@ export const useTemplatesStore = defineStore('templates', {
     },
     
     /**
+     * 重置市场环境模板状态
+     */
+    resetMarketTemplatesState(): void {
+      this.marketTemplates = [];
+      this.marketTemplatesPagination = {
+        page: 1,
+        limit: 20,
+        total: 0,
+        pages: 0
+      };
+      this.marketTemplatesFilters = {
+        status: '',
+        search: ''
+      };
+      this.selectedMarketTemplates = [];
+      this.currentMarketTemplate = null;
+      this.marketStatistics = null;
+    },
+    
+    /**
      * 重置所有状态
      */
     resetAllState(): void {
       this.resetStockTemplatesState();
       this.resetTraderTemplatesState();
+      this.resetMarketTemplatesState();
       this.templateStats = null;
       this.error = null;
     }
