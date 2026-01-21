@@ -924,7 +924,7 @@ const handleSubmit = async (): Promise<void> => {
       说明: '实际使用模板中的数据'
     })))
     
-    await templatesStore.createMarketEnvironment(submitData)
+    await templatesStore.createMarketTemplate(submitData)
     ElMessage.success('创建成功')
     
     dialogVisible.value = false

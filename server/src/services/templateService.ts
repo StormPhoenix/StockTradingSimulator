@@ -4,7 +4,7 @@ import type { AITraderTemplateDocument, StockTemplateDocument } from '@shared/mo
 import { ConflictError, NotFoundError, ValidationError } from '../middleware/errorHandler'
 import StockTemplate from '../models/stockTemplate'
 import AITraderTemplate from '../models/traderTemplate'
-import MarketEnvironment from '../models/marketEnvironment'
+import MarketEnvironment from '../models/marketTemplate'
 import MarketUtils from '../utils/marketUtils'
 import AllocationService from './allocationService'
 import { validators } from '../utils/validationUtils'

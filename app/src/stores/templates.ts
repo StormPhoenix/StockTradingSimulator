@@ -559,7 +559,7 @@ export const useTemplatesStore = defineStore('templates', {
     /**
      * 创建市场环境
      */
-    async createMarketEnvironment(config: CreateMarketEnvironmentRequest): Promise<ApiResponse<MarketTemplate>> {
+    async createMarketTemplate(config: CreateMarketEnvironmentRequest): Promise<ApiResponse<MarketTemplate>> {
       this.marketTemplatesLoading = true;
       this.error = null;
       
