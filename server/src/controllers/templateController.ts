@@ -75,23 +75,6 @@ interface BatchDeleteMarketRequest {
   ids: string[]
 }
 
-// 市场环境请求体
-interface MarketEnvironmentRequest {
-  name: string
-  description?: string
-  traderConfigs: Array<{
-    templateId: string
-    count: number
-    capitalMultiplier?: number
-    capitalVariation?: number
-  }>
-  stockConfigs: Array<{
-    templateId: string
-  }>
-  allocationAlgorithm?: string
-  version?: string
-}
-
 // 股票模板创建/更新请求体
 interface StockTemplateRequest {
   name: string

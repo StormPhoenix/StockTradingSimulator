@@ -8,7 +8,6 @@
 import { Request, Response } from 'express'
 import * as projectService from '../services/projectService'
 import { asyncHandler } from '../middleware/errorHandler'
-import type { ID } from '@shared/common'
 
 // 查询参数接口
 interface ProjectQueryParams {
