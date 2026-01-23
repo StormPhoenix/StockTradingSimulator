@@ -12,7 +12,8 @@ export class LifecycleManagerService {
   private isInitialized: boolean = false
 
   constructor() {
-    this.gameObjectManager = new GameObjectManager()
+    // 使用单例的 GameObjectManager
+    this.gameObjectManager = GameObjectManager.getInstance()
   }
 
   /**

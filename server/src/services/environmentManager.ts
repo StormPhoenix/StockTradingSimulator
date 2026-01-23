@@ -124,8 +124,8 @@ export class EnvironmentManager extends EventEmitter {
       // 更新进度到模板读取阶段
       this.updateProgress(requestId, CreationStage.READING_TEMPLATES, 10, 'Reading template data...');
       
-      // 提交到 Worker Thread 池
-      await this.workerPool.submitTask(templateId, userId);
+      // 提交到 Worker Thread 池，传递相同的 requestId
+      await this.workerPool.submitTask(templateId, userId, requestId);
       
       return requestId;
       
@@ -211,8 +211,8 @@ export class EnvironmentManager extends EventEmitter {
     // 导入 GameObjectManager
     const { GameObjectManager } = await import('../lifecycle/core/gameObjectManager');
     
-    // 创建 GameObjectManager 实例（如果还没有全局实例）
-    const gameObjectManager = new GameObjectManager();
+    // 获取 GameObjectManager 单例实例
+    const gameObjectManager = GameObjectManager.getInstance();
     
     try {
       // 创建交易所实例
@@ -408,7 +408,7 @@ export class EnvironmentManager extends EventEmitter {
       if (environmentInstance && environmentInstance.exchangeInstance) {
         // 销毁 GameObject 实例
         const { GameObjectManager } = await import('../lifecycle/core/gameObjectManager');
-        const gameObjectManager = new GameObjectManager();
+        const gameObjectManager = GameObjectManager.getInstance();
 
         try {
           // 销毁交易所实例（会自动销毁关联的交易员和股票）
@@ -586,7 +586,7 @@ export class EnvironmentManager extends EventEmitter {
       // 实现实际的 GameObject 清理逻辑
       if (environment.exchangeInstance) {
         const { GameObjectManager } = await import('../lifecycle/core/gameObjectManager');
-        const gameObjectManager = new GameObjectManager();
+        const gameObjectManager = GameObjectManager.getInstance();
 
         // 调用 GameObject.onDestroy() 并从 GameObjectManager 中移除
         gameObjectManager.destroyObject(environment.exchangeInstance.id);
