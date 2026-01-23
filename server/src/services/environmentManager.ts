@@ -9,6 +9,7 @@ import { WorkerThreadPool } from './workerThreadPool';
 import { WorkerErrorHandler, WorkerError } from '../utils/workerErrorHandler';
 import { CreationProgress, CreationStage } from '../../../shared/types/progress';
 import { EnvironmentPreview, EnvironmentDetails, EnvironmentStatus } from '../../../shared/types/environment';
+import { EnvironmentManagerEvents, ErrorHandlerEvents } from '../types/eventTypes';
 
 /**
  * 环境创建请求
@@ -56,24 +57,24 @@ export class EnvironmentManager extends EventEmitter {
    */
   private setupEventListeners(): void {
     // Worker Pool 事件
-    this.workerPool.on('templateData', (event) => {
+    this.workerPool.on(EnvironmentManagerEvents.TEMPLATE_DATA, (event) => {
       this.handleTemplateDataReceived(event);
     });
 
-    this.workerPool.on('progress', (event) => {
+    this.workerPool.on(EnvironmentManagerEvents.PROGRESS, (event) => {
       this.handleProgressUpdate(event);
     });
 
-    this.workerPool.on('error', (event) => {
+    this.workerPool.on(EnvironmentManagerEvents.ERROR, (event) => {
       this.handleWorkerError(event);
     });
 
-    this.workerPool.on('timeout', (event) => {
+    this.workerPool.on(EnvironmentManagerEvents.TIMEOUT, (event) => {
       this.handleWorkerTimeout(event);
     });
 
     // 错误处理器事件
-    this.errorHandler.on('recovery', (event) => {
+    this.errorHandler.on(ErrorHandlerEvents.RECOVERY, (event) => {
       this.handleErrorRecovery(event);
     });
   }
@@ -114,7 +115,7 @@ export class EnvironmentManager extends EventEmitter {
     };
     
     this.progressTracking.set(requestId, initialProgress);
-    this.emit('progressUpdate', initialProgress);
+    this.emit(EnvironmentManagerEvents.PROGRESS_UPDATE, initialProgress);
     
     try {
       // 验证模板存在性
@@ -182,7 +183,7 @@ export class EnvironmentManager extends EventEmitter {
       this.creationRequests.delete(requestId);
       
       // 发出环境创建完成事件
-      this.emit('environmentCreated', {
+      this.emit(EnvironmentManagerEvents.ENVIRONMENT_CREATED, {
         requestId,
         environmentId: environmentInstance.id,
         environment: environmentInstance
@@ -304,7 +305,7 @@ export class EnvironmentManager extends EventEmitter {
     };
     
     this.progressTracking.set(requestId, updatedProgress);
-    this.emit('progressUpdate', updatedProgress);
+    this.emit(EnvironmentManagerEvents.PROGRESS_UPDATE, updatedProgress);
   }
 
   /**
@@ -339,7 +340,7 @@ export class EnvironmentManager extends EventEmitter {
     }
     
     this.progressTracking.set(requestId, updatedProgress);
-    this.emit('progressUpdate', updatedProgress);
+    this.emit(EnvironmentManagerEvents.PROGRESS_UPDATE, updatedProgress);
   }
 
   /**
@@ -384,7 +385,7 @@ export class EnvironmentManager extends EventEmitter {
     await this.rollbackCreation(requestId);
     
     // 发出创建失败事件
-    this.emit('environmentCreationFailed', {
+    this.emit(EnvironmentManagerEvents.ENVIRONMENT_CREATION_FAILED, {
       requestId,
       error: workerError
     });
@@ -597,7 +598,7 @@ export class EnvironmentManager extends EventEmitter {
       this.activeEnvironments.delete(environmentId);
       
       // 发出环境销毁事件
-      this.emit('environmentDestroyed', {
+      this.emit(EnvironmentManagerEvents.ENVIRONMENT_DESTROYED, {
         environmentId,
         userId,
         destroyedAt: new Date()

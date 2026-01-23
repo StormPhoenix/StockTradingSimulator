@@ -6,7 +6,7 @@
 
 import { Worker } from 'worker_threads';
 import { EventEmitter } from 'events';
-import path from 'path';
+import { join } from 'path';
 import {
   WorkerMessage,
   TemplateRequestMessage,
@@ -17,6 +17,7 @@ import {
   WorkerThreadStatus,
   WorkerThreadInfo
 } from '../types/workerMessages';
+import { EnvironmentManagerEvents, WorkerPoolEvents } from '../types/eventTypes';
 
 /**
  * Worker Thread 实例包装器
@@ -40,7 +41,18 @@ class WorkerThreadWrapper extends EventEmitter {
   ) {
     super();
     this.id = id;
-    this.worker = new Worker(workerScript);
+    
+    // 根据环境创建不同的 Worker
+    if (process.env.NODE_ENV === 'production') {
+      // 生产环境直接使用编译后的 JS 文件
+      this.worker = new Worker(workerScript);
+    } else {
+      // 开发环境使用 ts-node/register 来支持 TypeScript
+      this.worker = new Worker(workerScript, {
+        execArgv: ['--require', 'ts-node/register']
+      });
+    }
+    
     this.setupWorkerListeners();
   }
 
@@ -67,7 +79,7 @@ class WorkerThreadWrapper extends EventEmitter {
     this.worker.on('error', (error: Error) => {
       this.errorCount++;
       this.status = WorkerThreadStatus.ERROR;
-      this.emit('error', {
+      this.emit(WorkerPoolEvents.ERROR, {
         workerId: this.id,
         requestId: this.currentRequestId,
         error
@@ -76,7 +88,7 @@ class WorkerThreadWrapper extends EventEmitter {
 
     this.worker.on('exit', (code: number) => {
       this.status = WorkerThreadStatus.TERMINATED;
-      this.emit('exit', {
+      this.emit(WorkerPoolEvents.EXIT, {
         workerId: this.id,
         exitCode: code
       });
@@ -92,7 +104,7 @@ class WorkerThreadWrapper extends EventEmitter {
     this.processedRequests++;
     this.currentRequestId = undefined;
     
-    this.emit('templateData', {
+    this.emit(WorkerPoolEvents.TEMPLATE_DATA, {
       workerId: this.id,
       requestId: message.requestId,
       data: message.payload
@@ -103,7 +115,7 @@ class WorkerThreadWrapper extends EventEmitter {
    * 处理进度更新
    */
   private handleProgress(message: WorkerProgressMessage): void {
-    this.emit('progress', {
+    this.emit(WorkerPoolEvents.PROGRESS, {
       workerId: this.id,
       requestId: message.requestId,
       progress: message.payload
@@ -119,7 +131,7 @@ class WorkerThreadWrapper extends EventEmitter {
     this.status = WorkerThreadStatus.ERROR;
     this.currentRequestId = undefined;
     
-    this.emit('workerError', {
+    this.emit(WorkerPoolEvents.WORKER_ERROR, {
       workerId: this.id,
       requestId: message.requestId,
       error: message.payload
@@ -154,7 +166,7 @@ class WorkerThreadWrapper extends EventEmitter {
     this.errorCount++;
     this.status = WorkerThreadStatus.ERROR;
     
-    this.emit('timeout', {
+    this.emit(WorkerPoolEvents.TIMEOUT, {
       workerId: this.id,
       requestId: this.currentRequestId
     });
@@ -210,7 +222,15 @@ export class WorkerThreadPool extends EventEmitter {
   constructor(config: WorkerThreadConfig) {
     super();
     this.config = config;
-    this.workerScript = path.join(__dirname, '../workers/templateReader.js');
+
+    // 根据环境选择正确的 worker 文件路径
+    if (process.env.NODE_ENV === 'production') {
+      this.workerScript = join(__dirname, '../workers/templateReader.js');
+    } else {
+      // 开发环境使用 ts-node 运行 TypeScript 文件
+      this.workerScript = join(__dirname, '../workers/templateReader.ts');
+    }
+
     this.initializePool();
   }
 
@@ -230,23 +250,23 @@ export class WorkerThreadPool extends EventEmitter {
     const worker = new WorkerThreadWrapper(id, this.workerScript, this.config);
     
     // 设置事件监听器
-    worker.on('templateData', (event) => {
+    worker.on(WorkerPoolEvents.TEMPLATE_DATA, (event) => {
       this.handleWorkerTemplateData(event);
     });
     
-    worker.on('progress', (event) => {
-      this.emit('progress', event);
+    worker.on(WorkerPoolEvents.PROGRESS, (event) => {
+      this.emit(WorkerPoolEvents.PROGRESS, event);
     });
     
-    worker.on('workerError', (event) => {
+    worker.on(WorkerPoolEvents.WORKER_ERROR, (event) => {
       this.handleWorkerError(event);
     });
     
-    worker.on('timeout', (event) => {
+    worker.on(WorkerPoolEvents.TIMEOUT, (event) => {
       this.handleWorkerTimeout(event);
     });
     
-    worker.on('error', (event) => {
+    worker.on(WorkerPoolEvents.ERROR, (event) => {
       this.handleWorkerCrash(event);
     });
 
@@ -258,7 +278,7 @@ export class WorkerThreadPool extends EventEmitter {
    */
   private handleWorkerTemplateData(event: any): void {
     this.activeRequests.delete(event.requestId);
-    this.emit('templateData', event);
+    this.emit(EnvironmentManagerEvents.TEMPLATE_DATA, event);
     this.processQueue();
   }
 
@@ -267,7 +287,7 @@ export class WorkerThreadPool extends EventEmitter {
    */
   private handleWorkerError(event: any): void {
     this.activeRequests.delete(event.requestId);
-    this.emit('error', event);
+    this.emit(WorkerPoolEvents.ERROR, event);
     this.processQueue();
   }
 
@@ -276,7 +296,7 @@ export class WorkerThreadPool extends EventEmitter {
    */
   private handleWorkerTimeout(event: any): void {
     this.activeRequests.delete(event.requestId);
-    this.emit('timeout', event);
+    this.emit(WorkerPoolEvents.TIMEOUT, event);
     
     // 重启超时的 Worker
     this.restartWorker(event.workerId);
@@ -291,7 +311,7 @@ export class WorkerThreadPool extends EventEmitter {
       this.activeRequests.delete(event.requestId);
     }
     
-    this.emit('crash', event);
+    this.emit(WorkerPoolEvents.CRASH, event);
     
     // 重启崩溃的 Worker
     this.restartWorker(event.workerId);
@@ -360,7 +380,7 @@ export class WorkerThreadPool extends EventEmitter {
     this.activeRequests.set(request.requestId, idleWorker.id);
     
     idleWorker.executeTask(request).catch((error) => {
-      this.emit('error', {
+      this.emit(WorkerPoolEvents.ERROR, {
         workerId: idleWorker.id,
         requestId: request.requestId,
         error
