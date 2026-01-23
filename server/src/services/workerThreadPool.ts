@@ -335,12 +335,13 @@ export class WorkerThreadPool extends EventEmitter {
   /**
    * 提交模板读取任务
    */
-  public async submitTask(templateId: string, userId: string): Promise<string> {
-    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  public async submitTask(templateId: string, userId: string, requestId?: string): Promise<string> {
+    // 如果没有提供 requestId，则生成一个新的
+    const taskRequestId = requestId || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     const request: TemplateRequestMessage = {
       type: 'TEMPLATE_REQUEST',
-      requestId,
+      requestId: taskRequestId,
       timestamp: new Date(),
       payload: {
         templateId,
@@ -351,7 +352,7 @@ export class WorkerThreadPool extends EventEmitter {
     this.requestQueue.push(request);
     this.processQueue();
     
-    return requestId;
+    return taskRequestId;
   }
 
   /**
