@@ -5,8 +5,8 @@
  */
 
 import { EventEmitter } from 'events';
-import { WorkerThreadPool } from './workerThreadPool';
-import { WorkerErrorHandler, WorkerError } from '../utils/workerErrorHandler';
+import { WorkerThreadPool, createWorkerThreadPool } from './workerThreadPool';
+import { WorkerErrorHandler, WorkerError, createWorkerErrorHandler } from '../utils/workerErrorHandler';
 import { CreationProgress, CreationStage } from '../../../shared/types/progress';
 import { EnvironmentPreview, EnvironmentDetails, EnvironmentStatus } from '../../../shared/types/environment';
 import { EnvironmentManagerEvents, ErrorHandlerEvents } from '../types/eventTypes';
@@ -45,10 +45,11 @@ export class EnvironmentManager extends EventEmitter {
   private creationRequests: Map<string, EnvironmentCreationRequest> = new Map();
   private progressTracking: Map<string, CreationProgress> = new Map();
 
-  constructor(workerPool: WorkerThreadPool, errorHandler: WorkerErrorHandler) {
+  constructor() {
     super();
-    this.workerPool = workerPool;
-    this.errorHandler = errorHandler;
+    // 在构造函数内部创建 workerPool 和 errorHandler
+    this.workerPool = createWorkerThreadPool();
+    this.errorHandler = createWorkerErrorHandler();
     this.setupEventListeners();
   }
 

@@ -7,13 +7,9 @@
 /// <reference path="../types/express.d.ts" />
 import { Router, Request, Response } from 'express';
 import { EnvironmentManager } from '../services/environmentManager';
-import { createWorkerThreadPool } from '../services/workerThreadPool';
-import { createWorkerErrorHandler } from '../utils/workerErrorHandler';
 
 // 创建服务实例
-const workerPool = createWorkerThreadPool();
-const errorHandler = createWorkerErrorHandler();
-const environmentManager = new EnvironmentManager(workerPool, errorHandler);
+const environmentManager = new EnvironmentManager();
 
 const router = Router();
 
