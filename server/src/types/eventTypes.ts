@@ -36,7 +36,8 @@ export enum EnvironmentManagerEvents {
  * Worker Error Handler 事件枚举
  */
 export enum ErrorHandlerEvents {
-  RECOVERY = 'recovery'
+  RECOVERY = 'recovery',
+  ESCALATION = 'escalation'
 }
 
 /**
@@ -116,5 +117,9 @@ export interface EventData {
   [ErrorHandlerEvents.RECOVERY]: {
     error: any;
     strategy: any;
+  };
+  [ErrorHandlerEvents.ESCALATION]: {
+    error: any;
+    level: string;
   };
 }

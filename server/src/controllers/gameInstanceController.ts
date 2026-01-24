@@ -5,7 +5,7 @@
  */
 
 import { EventEmitter } from 'events';
-import { WorkerThreadPool, createWorkerThreadPool } from '../services/workerThreadPool';
+import { WorkerThreadPoolService, createWorkerThreadPoolService } from '../services/workerThreadPoolService';
 import { WorkerErrorHandler, createWorkerErrorHandler } from '../utils/workerErrorHandler';
 import { CreationProgress, CreationStage } from '../../../shared/types/progress';
 import { EnvironmentPreview, EnvironmentDetails, EnvironmentStatus } from '../../../shared/types/environment';
@@ -39,16 +39,17 @@ export interface EnvironmentInstance {
  * 游戏实例控制器
  */
 export class GameInstanceController extends EventEmitter {
-  private workerPool: WorkerThreadPool;
+  private workerPoolService: WorkerThreadPoolService;
   private errorHandler: WorkerErrorHandler;
   private activeEnvironments: Map<string, EnvironmentInstance> = new Map();
   private creationRequests: Map<string, EnvironmentCreationRequest> = new Map();
   private progressTracking: Map<string, CreationProgress> = new Map();
+  private taskToRequestMapping: Map<string, string> = new Map(); // taskId -> requestId
 
   constructor() {
     super();
-    // 在构造函数内部创建 workerPool 和 errorHandler
-    this.workerPool = createWorkerThreadPool();
+    // 在构造函数内部创建 workerPoolService 和 errorHandler
+    this.workerPoolService = createWorkerThreadPoolService();
     this.errorHandler = createWorkerErrorHandler();
     this.setupEventListeners();
   }
@@ -57,27 +58,85 @@ export class GameInstanceController extends EventEmitter {
    * 设置事件监听器
    */
   private setupEventListeners(): void {
-    // Worker Pool 事件
-    this.workerPool.on(EnvironmentManagerEvents.TEMPLATE_DATA, (event) => {
-      this.handleTemplateDataReceived(event);
+    // Worker Pool Service 事件
+    this.workerPoolService.on('taskCompleted', (event) => {
+      this.handleTaskCompleted(event);
     });
 
-    this.workerPool.on(EnvironmentManagerEvents.PROGRESS, (event) => {
-      this.handleProgressUpdate(event);
+    this.workerPoolService.on('marketTemplateProgress', (progress) => {
+      this.handleProgressUpdate(progress);
     });
 
-    this.workerPool.on(EnvironmentManagerEvents.ERROR, (event) => {
-      this.handleWorkerError(event);
+    this.workerPoolService.on('taskFailed', (event) => {
+      this.handleTaskFailed(event);
     });
 
-    this.workerPool.on(EnvironmentManagerEvents.TIMEOUT, (event) => {
-      this.handleWorkerTimeout(event);
+    this.workerPoolService.on('marketTemplateError', (error) => {
+      this.handleMarketTemplateError(error);
     });
 
     // 错误处理器事件
     this.errorHandler.on(ErrorHandlerEvents.RECOVERY, (event) => {
       this.handleErrorRecovery(event);
     });
+
+    this.errorHandler.on(ErrorHandlerEvents.ESCALATION, (event) => {
+      this.handleErrorEscalation(event);
+    });
+  }
+
+  /**
+   * 关联任务ID和请求ID
+   */
+  private associateTaskWithRequest(taskId: string, requestId: string): void {
+    this.taskToRequestMapping.set(taskId, requestId);
+  }
+
+  /**
+   * 处理任务完成
+   */
+  private handleTaskCompleted(event: any): void {
+    const requestId = this.taskToRequestMapping.get(event.taskId);
+    if (!requestId) {
+      console.warn(`No request found for completed task: ${event.taskId}`);
+      return;
+    }
+
+    // 清理映射
+    this.taskToRequestMapping.delete(event.taskId);
+
+    // 处理模板数据
+    if (event.businessResponse) {
+      this.handleTemplateDataReceived({
+        requestId,
+        data: event.businessResponse
+      });
+    }
+  }
+
+  /**
+   * 处理任务失败
+   */
+  private handleTaskFailed(event: any): void {
+    const requestId = this.taskToRequestMapping.get(event.taskId);
+    if (!requestId) {
+      console.warn(`No request found for failed task: ${event.taskId}`);
+      return;
+    }
+
+    // 清理映射
+    this.taskToRequestMapping.delete(event.taskId);
+
+    // 处理错误
+    this.handleCreationFailure(requestId, new Error(event.error?.message || 'Task failed'));
+  }
+
+  /**
+   * 处理市场模板错误
+   */
+  private handleMarketTemplateError(error: any): void {
+    console.error('Market template error:', error);
+    // 这里可以添加特定的市场模板错误处理逻辑
   }
 
   /**
@@ -125,8 +184,11 @@ export class GameInstanceController extends EventEmitter {
       // 更新进度到模板读取阶段
       this.updateProgress(requestId, CreationStage.READING_TEMPLATES, 10, 'Reading template data...');
       
-      // 提交到 Worker Thread 池，传递相同的 requestId
-      await this.workerPool.submitTask(templateId, userId, requestId);
+      // 提交到 Worker Thread 池服务
+      const taskId = await this.workerPoolService.submitMarketTemplateTask(templateId, userId);
+      
+      // 关联 taskId 和 requestId
+      this.associateTaskWithRequest(taskId, requestId);
       
       return requestId;
       
@@ -453,6 +515,36 @@ export class GameInstanceController extends EventEmitter {
           this.handleCreationFailure(error.requestId, new Error('Creation aborted due to unrecoverable error'));
         }
         break;
+      default:
+        console.warn(`Unknown recovery strategy: ${strategy.type}`);
+    }
+  }
+
+  /**
+   * 处理错误升级
+   */
+  private handleErrorEscalation(event: any): void {
+    const { error, level } = event;
+    
+    console.error(`Error escalated to level ${level}:`, error);
+    
+    // 根据升级级别采取不同的行动
+    switch (level) {
+      case 'WARNING':
+        // 记录警告，继续执行
+        break;
+      case 'CRITICAL':
+        // 记录严重错误，可能需要停止相关操作
+        if (error.requestId) {
+          this.handleCreationFailure(error.requestId, new Error(`Critical error: ${error.message}`));
+        }
+        break;
+      case 'FATAL':
+        // 致命错误，可能需要重启服务
+        console.error('Fatal error detected, consider service restart');
+        break;
+      default:
+        console.warn(`Unknown escalation level: ${level}`);
     }
   }
 
@@ -822,7 +914,7 @@ export class GameInstanceController extends EventEmitter {
     return {
       activeEnvironments: this.activeEnvironments.size,
       pendingCreations: this.creationRequests.size,
-      workerPoolStatus: this.workerPool.getPoolStatus(),
+      workerPoolStatus: this.workerPoolService.getPoolStatus(),
       errorStats: this.errorHandler.getErrorStats()
     };
   }
