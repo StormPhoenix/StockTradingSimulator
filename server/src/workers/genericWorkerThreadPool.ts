@@ -58,7 +58,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
   /**
    * 提交任务（使用适配器）
    */
-  public submitTask<TRequest extends BaseTaskPayload, TResponse>(
+  public submitTask<TRequest extends BaseTaskPayload>(
     businessRequest: TRequest
   ): string {
     const taskType = businessRequest.type;

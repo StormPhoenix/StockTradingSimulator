@@ -70,7 +70,7 @@ router.post('/', async (req: Request, res: Response) => {
     const userId = req.user?.id || 'default-user';
     
     // 创建环境
-    const requestId = gameInstanceController.createEnvironment(templateId, userId, name);
+    const requestId = gameInstanceController.createMarketInstance(templateId, userId, name);
     
     const response = {
       success: true,

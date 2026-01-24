@@ -2,43 +2,72 @@
  * Worker 线程池服务
  * 
  * 提供统一的线程池管理和任务提交接口
+ * 这是一个通用的线程池服务，不包含具体的业务逻辑
  */
 
 import { EventEmitter } from 'events';
 import { GenericWorkerThreadPool, createGenericWorkerThreadPool } from '../workers/genericWorkerThreadPool';
-import { MarketTemplateTaskAdapter, createMarketTemplateTaskAdapter } from '../workers/adapters/marketTemplateTaskAdapter';
 import {
-  MarketTemplateRequest,
-  MarketTemplateResponse
-} from '../workers/types/business/marketTemplate';
-import {
-  TaskType
+  BaseTaskPayload,
+  TaskAdapter
 } from '../workers/types/worker/genericTask';
 import {
   PoolEvents
 } from '../workers/types/worker/poolConfig';
 
 /**
- * Worker 线程池服务
+ * Worker 线程池服务 (单例模式)
  */
 export class WorkerThreadPoolService extends EventEmitter {
+  private static instance: WorkerThreadPoolService | null = null;
   private pool: GenericWorkerThreadPool;
-  private marketTemplateAdapter: MarketTemplateTaskAdapter;
 
-  constructor() {
+  private constructor() {
     super();
     
     // 创建通用线程池
     this.pool = createGenericWorkerThreadPool();
     
-    // 创建市场模板适配器
-    this.marketTemplateAdapter = createMarketTemplateTaskAdapter();
-    
-    // 注册适配器
-    this.pool.registerTaskAdapter(this.marketTemplateAdapter);
-    
     // 设置事件转发
     this.setupEventForwarding();
+  }
+
+  /**
+   * 获取单例实例
+   */
+  public static getInstance(): WorkerThreadPoolService {
+    if (!WorkerThreadPoolService.instance) {
+      WorkerThreadPoolService.instance = new WorkerThreadPoolService();
+    }
+    return WorkerThreadPoolService.instance;
+  }
+
+  /**
+   * 销毁单例实例（主要用于测试或应用关闭）
+   */
+  public static async destroyInstance(): Promise<void> {
+    if (WorkerThreadPoolService.instance) {
+      await WorkerThreadPoolService.instance.shutdown();
+      WorkerThreadPoolService.instance = null;
+    }
+  }
+
+  /**
+   * 注册任务适配器
+   */
+  public registerTaskAdapter<TRequest extends BaseTaskPayload, TResponse>(
+    adapter: TaskAdapter<TRequest, TResponse>
+  ): void {
+    this.pool.registerTaskAdapter(adapter);
+  }
+
+  /**
+   * 提交任务
+   */
+  public submitTask<TRequest extends BaseTaskPayload>(
+    request: TRequest
+  ): string {
+    return this.pool.submitTask(request);
   }
 
   /**
@@ -65,31 +94,6 @@ export class WorkerThreadPoolService extends EventEmitter {
     this.pool.on(PoolEvents.TASK_PROGRESS, (event) => {
       this.emit('taskProgress', event);
     });
-
-    // 转发市场模板特定事件
-    this.marketTemplateAdapter.on('marketTemplateProgress', (progress) => {
-      this.emit('marketTemplateProgress', progress);
-    });
-
-    this.marketTemplateAdapter.on('marketTemplateError', (error) => {
-      this.emit('marketTemplateError', error);
-    });
-  }
-
-  /**
-   * 提交市场模板任务
-   */
-  public submitMarketTemplateTask(
-    templateId: string,
-    userId: string
-  ): string {
-    const request: MarketTemplateRequest = {
-      type: TaskType.MARKET_TEMPLATE,
-      templateId,
-      userId
-    };
-
-    return this.pool.submitTask(request);
   }
 
   /**
@@ -108,8 +112,16 @@ export class WorkerThreadPoolService extends EventEmitter {
 }
 
 /**
- * 创建 Worker 线程池服务实例
+ * 获取 Worker 线程池服务单例实例
+ * @deprecated 推荐直接使用 WorkerThreadPoolService.getInstance()
  */
 export function createWorkerThreadPoolService(): WorkerThreadPoolService {
-  return new WorkerThreadPoolService();
+  return WorkerThreadPoolService.getInstance();
+}
+
+/**
+ * 获取 Worker 线程池服务单例实例
+ */
+export function getWorkerThreadPoolService(): WorkerThreadPoolService {
+  return WorkerThreadPoolService.getInstance();
 }

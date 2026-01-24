@@ -5,16 +5,19 @@
  */
 
 import { EventEmitter } from 'events';
-import { WorkerThreadPoolService, createWorkerThreadPoolService } from '../services/workerThreadPoolService';
+import { WorkerThreadPoolService } from '../services/workerThreadPoolService';
+import { MarketTemplateTaskAdapter, createMarketTemplateTaskAdapter } from '../workers/adapters/marketTemplateTaskAdapter';
 import { WorkerErrorHandler, createWorkerErrorHandler } from '../utils/workerErrorHandler';
 import { CreationProgress, CreationStage } from '../../../shared/types/progress';
 import { EnvironmentPreview, EnvironmentDetails, EnvironmentStatus } from '../../../shared/types/environment';
 import { EnvironmentManagerEvents, ErrorHandlerEvents } from '../types/eventTypes';
+import { MarketTemplateRequest } from '../workers/types/business/marketTemplate';
+import { TaskType } from '../workers/types/worker/genericTask';
 
 /**
  * 环境创建请求
  */
-export interface EnvironmentCreationRequest {
+export interface MarketInstanceCreationRequest {
   requestId: string;
   templateId: string;
   userId: string;
@@ -40,17 +43,23 @@ export interface EnvironmentInstance {
  */
 export class GameInstanceController extends EventEmitter {
   private workerPoolService: WorkerThreadPoolService;
+  private marketTemplateAdapter: MarketTemplateTaskAdapter;
   private errorHandler: WorkerErrorHandler;
   private activeEnvironments: Map<string, EnvironmentInstance> = new Map();
-  private creationRequests: Map<string, EnvironmentCreationRequest> = new Map();
+  private creationRequests: Map<string, MarketInstanceCreationRequest> = new Map();
   private progressTracking: Map<string, CreationProgress> = new Map();
   private taskToRequestMapping: Map<string, string> = new Map(); // taskId -> requestId
 
   constructor() {
     super();
-    // 在构造函数内部创建 workerPoolService 和 errorHandler
-    this.workerPoolService = createWorkerThreadPoolService();
+    // 获取单例服务实例
+    this.workerPoolService = WorkerThreadPoolService.getInstance();
+    this.marketTemplateAdapter = createMarketTemplateTaskAdapter();
     this.errorHandler = createWorkerErrorHandler();
+    
+    // 注册适配器
+    this.workerPoolService.registerTaskAdapter(this.marketTemplateAdapter);
+    
     this.setupEventListeners();
   }
 
@@ -63,15 +72,16 @@ export class GameInstanceController extends EventEmitter {
       this.handleTaskCompleted(event);
     });
 
-    this.workerPoolService.on('marketTemplateProgress', (progress) => {
-      this.handleProgressUpdate(progress);
-    });
-
     this.workerPoolService.on('taskFailed', (event) => {
       this.handleTaskFailed(event);
     });
 
-    this.workerPoolService.on('marketTemplateError', (error) => {
+    // 市场模板适配器事件
+    this.marketTemplateAdapter.on('marketTemplateProgress', (progress) => {
+      this.handleProgressUpdate(progress);
+    });
+
+    this.marketTemplateAdapter.on('marketTemplateError', (error) => {
       this.handleMarketTemplateError(error);
     });
 
@@ -142,7 +152,7 @@ export class GameInstanceController extends EventEmitter {
   /**
    * 创建新环境
    */
-  public createEnvironment(
+  public createMarketInstance(
     templateId: string,
     userId: string,
     customName?: string
@@ -150,7 +160,7 @@ export class GameInstanceController extends EventEmitter {
     const requestId = `env_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     // 创建请求记录
-    const request: EnvironmentCreationRequest = {
+    const request: MarketInstanceCreationRequest = {
       requestId,
       templateId,
       userId,
@@ -184,8 +194,15 @@ export class GameInstanceController extends EventEmitter {
       // 更新进度到模板读取阶段
       this.updateProgress(requestId, CreationStage.READING_TEMPLATES, 10, 'Reading template data...');
       
+      // 构建市场模板请求
+      const marketTemplateRequest: MarketTemplateRequest = {
+        type: TaskType.MARKET_TEMPLATE,
+        templateId,
+        userId
+      };
+      
       // 提交到 Worker Thread 池服务
-      const taskId = this.workerPoolService.submitMarketTemplateTask(templateId, userId);
+      const taskId = this.workerPoolService.submitTask(marketTemplateRequest);
       
       // 关联 taskId 和 requestId
       this.associateTaskWithRequest(taskId, requestId);
@@ -243,7 +260,7 @@ export class GameInstanceController extends EventEmitter {
    * 创建 GameObject 实例
    */
   private async createGameObjects(
-    request: EnvironmentCreationRequest,
+    request: MarketInstanceCreationRequest,
     templateData: any
   ): Promise<EnvironmentInstance> {
     const { exchange, traders, stocks } = templateData;
