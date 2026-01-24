@@ -1,13 +1,12 @@
 /**
- * 模板读取 Worker Thread
+ * 市场模板实例化处理器
  * 
- * 在独立线程中从数据库读取模板数据，避免阻塞主线程
+ * 负责从数据库读取模板数据并处理成游戏实例所需的格式
  */
 
 import { parentPort } from 'worker_threads';
 import mongoose from 'mongoose';
 import {
-  WorkerMessage,
   TemplateRequestMessage,
   TemplateDataMessage,
   WorkerProgressMessage,
@@ -23,25 +22,7 @@ import {
 let isConnected = false;
 
 /**
- * 连接到数据库
- */
-async function connectToDatabase(): Promise<void> {
-  if (isConnected) {
-    return;
-  }
-
-  try {
-    const mongoUri = `mongodb://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DATABASE}?authSource=${process.env.MONGODB_AUTH_SOURCE}`;
-    
-    await mongoose.connect(mongoUri);
-    isConnected = true;
-  } catch (error) {
-    throw new Error(`Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-
-/**
- * 发送进度更新
+ * 发送进度更新到主线程
  */
 function sendProgress(
   requestId: string,
@@ -66,7 +47,7 @@ function sendProgress(
 }
 
 /**
- * 发送错误消息
+ * 发送错误消息到主线程
  */
 function sendError(requestId: string, code: string, message: string, details?: any): void {
   const errorMessage: WorkerErrorMessage = {
@@ -84,7 +65,26 @@ function sendError(requestId: string, code: string, message: string, details?: a
 }
 
 /**
- * 发送模板数据
+ * 连接到数据库
+ */
+async function connectToDatabase(): Promise<void> {
+  if (isConnected) {
+    return;
+  }
+
+  try {
+    const mongoUri = `mongodb://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DATABASE}?authSource=${process.env.MONGODB_AUTH_SOURCE}`;
+    
+    await mongoose.connect(mongoUri);
+    isConnected = true;
+    console.log('Worker database connection established');
+  } catch (error) {
+    throw new Error(`Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * 发送模板数据到主线程
  */
 function sendTemplateData(
   requestId: string,
@@ -110,8 +110,13 @@ function sendTemplateData(
  * 读取交易所模板
  */
 async function readExchangeTemplate(templateId: string): Promise<ExchangeTemplate> {
-  // 这里应该使用实际的 Mongoose 模型
+  // TODO: 这里应该使用实际的 Mongoose 模型
   // 暂时返回模拟数据，等待模型定义
+  console.log(`Reading exchange template: ${templateId}`);
+  
+  // 模拟数据库查询延迟
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
   return {
     _id: templateId,
     name: `Exchange Template ${templateId}`,
@@ -125,8 +130,13 @@ async function readExchangeTemplate(templateId: string): Promise<ExchangeTemplat
  * 读取交易员模板
  */
 async function readTraderTemplates(templateId: string): Promise<TraderTemplate[]> {
-  // 这里应该使用实际的 Mongoose 模型
+  // TODO: 这里应该使用实际的 Mongoose 模型
   // 暂时返回模拟数据，等待模型定义
+  console.log(`Reading trader templates for: ${templateId}`);
+  
+  // 模拟数据库查询延迟
+  await new Promise(resolve => setTimeout(resolve, 200));
+  
   const traderCount = Math.floor(Math.random() * 10) + 5; // 5-15个交易员
   const traders: TraderTemplate[] = [];
 
@@ -142,6 +152,7 @@ async function readTraderTemplates(templateId: string): Promise<TraderTemplate[]
     });
   }
 
+  console.log(`Generated ${traders.length} trader templates`);
   return traders;
 }
 
@@ -149,8 +160,13 @@ async function readTraderTemplates(templateId: string): Promise<TraderTemplate[]
  * 读取股票模板
  */
 async function readStockTemplates(templateId: string): Promise<StockTemplate[]> {
-  // 这里应该使用实际的 Mongoose 模型
+  // TODO: 这里应该使用实际的 Mongoose 模型
   // 暂时返回模拟数据，等待模型定义
+  console.log(`Reading stock templates for: ${templateId}`);
+  
+  // 模拟数据库查询延迟
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
   const stockCount = Math.floor(Math.random() * 20) + 10; // 10-30只股票
   const stocks: StockTemplate[] = [];
 
@@ -173,15 +189,63 @@ async function readStockTemplates(templateId: string): Promise<StockTemplate[]> 
     });
   }
 
+  console.log(`Generated ${stocks.length} stock templates`);
   return stocks;
 }
 
 /**
- * 处理模板读取请求
+ * 验证模板数据完整性
  */
-async function handleTemplateRequest(request: TemplateRequestMessage): Promise<void> {
+function validateTemplateData(
+  exchange: ExchangeTemplate,
+  traders: TraderTemplate[],
+  stocks: StockTemplate[]
+): void {
+  if (!exchange) {
+    throw new Error('Exchange template is missing');
+  }
+  
+  if (!traders || traders.length === 0) {
+    throw new Error('No trader templates found');
+  }
+  
+  if (!stocks || stocks.length === 0) {
+    throw new Error('No stock templates found');
+  }
+  
+  // 验证交易员数据
+  for (const trader of traders) {
+    if (!trader._id || !trader.name || !trader.riskProfile || !trader.initialCapital) {
+      throw new Error(`Invalid trader template: ${trader._id}`);
+    }
+    
+    if (trader.initialCapital <= 0) {
+      throw new Error(`Invalid initial capital for trader: ${trader._id}`);
+    }
+  }
+  
+  // 验证股票数据
+  for (const stock of stocks) {
+    if (!stock._id || !stock.symbol || !stock.companyName || !stock.category) {
+      throw new Error(`Invalid stock template: ${stock._id}`);
+    }
+    
+    if (stock.issuePrice <= 0 || stock.totalShares <= 0) {
+      throw new Error(`Invalid stock parameters for: ${stock.symbol}`);
+    }
+  }
+  
+  console.log('Template data validation passed');
+}
+
+/**
+ * 处理市场模板读取请求
+ */
+export async function handleMarketTemplateRequest(request: TemplateRequestMessage): Promise<void> {
   const { requestId, payload } = request;
   const { templateId, userId } = payload;
+
+  console.log(`Processing market template request: ${requestId} for template: ${templateId}`);
 
   try {
     // 发送初始进度
@@ -207,9 +271,7 @@ async function handleTemplateRequest(request: TemplateRequestMessage): Promise<v
     sendProgress(requestId, 'DATA_PROCESSING', 95, 'Processing template data...');
 
     // 验证数据完整性
-    if (!exchange || traders.length === 0 || stocks.length === 0) {
-      throw new Error('Incomplete template data');
-    }
+    validateTemplateData(exchange, traders, stocks);
 
     // 发送完成进度
     sendProgress(requestId, 'COMPLETE', 100, 'Template data ready', {
@@ -221,29 +283,12 @@ async function handleTemplateRequest(request: TemplateRequestMessage): Promise<v
 
     // 发送模板数据
     sendTemplateData(requestId, exchange, traders, stocks);
+    
+    console.log(`Market template request completed: ${requestId}`);
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error(`Market template request failed: ${requestId}`, error);
     sendError(requestId, 'TEMPLATE_READ_ERROR', errorMessage, { templateId, userId });
   }
-}
-
-/**
- * Worker Thread 主入口
- */
-if (parentPort) {
-  parentPort.on('message', async (message: WorkerMessage) => {
-    if (message.type === 'TEMPLATE_REQUEST') {
-      await handleTemplateRequest(message as TemplateRequestMessage);
-    }
-  });
-
-  // 发送 Worker 就绪信号
-  parentPort.postMessage({
-    type: 'READY',
-    timestamp: new Date()
-  });
-} else {
-  console.error('Worker thread: parentPort is not available');
-  process.exit(1);
 }

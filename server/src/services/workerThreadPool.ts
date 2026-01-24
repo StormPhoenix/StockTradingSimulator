@@ -225,10 +225,10 @@ export class WorkerThreadPool extends EventEmitter {
 
     // 根据环境选择正确的 worker 文件路径
     if (process.env.NODE_ENV === 'production') {
-      this.workerScript = join(__dirname, '../workers/templateReader.js');
+      this.workerScript = join(__dirname, '../workers/workerExecution.js');
     } else {
       // 开发环境使用 ts-node 运行 TypeScript 文件
-      this.workerScript = join(__dirname, '../workers/templateReader.ts');
+      this.workerScript = join(__dirname, '../workers/workerExecution.ts');
     }
 
     this.initializePool();
