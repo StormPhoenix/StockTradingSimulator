@@ -142,11 +142,11 @@ export class GameInstanceController extends EventEmitter {
   /**
    * 创建新环境
    */
-  public async createEnvironment(
+  public createEnvironment(
     templateId: string,
     userId: string,
     customName?: string
-  ): Promise<string> {
+  ): string {
     const requestId = `env_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     // 创建请求记录
@@ -178,14 +178,14 @@ export class GameInstanceController extends EventEmitter {
     this.emit(EnvironmentManagerEvents.PROGRESS_UPDATE, initialProgress);
     
     try {
-      // 验证模板存在性
-      await this.validateTemplate(templateId, userId);
+      // @TODO 验证模板存在性
+      // this.validateTemplate(templateId, userId);
       
       // 更新进度到模板读取阶段
       this.updateProgress(requestId, CreationStage.READING_TEMPLATES, 10, 'Reading template data...');
       
       // 提交到 Worker Thread 池服务
-      const taskId = await this.workerPoolService.submitMarketTemplateTask(templateId, userId);
+      const taskId = this.workerPoolService.submitMarketTemplateTask(templateId, userId);
       
       // 关联 taskId 和 requestId
       this.associateTaskWithRequest(taskId, requestId);
@@ -194,27 +194,9 @@ export class GameInstanceController extends EventEmitter {
       
     } catch (error) {
       // 处理创建失败
-      await this.handleCreationFailure(requestId, error);
+      this.handleCreationFailure(requestId, error);
       throw error;
     }
-  }
-
-  /**
-   * 验证模板
-   */
-  private async validateTemplate(templateId: string, userId: string): Promise<void> {
-    // TODO: 实现模板验证逻辑
-    // 1. 检查模板是否存在
-    // 2. 检查用户是否有权限访问
-    // 3. 检查模板数据完整性
-    
-    // 暂时模拟验证
-    if (!templateId || templateId.length === 0) {
-      throw new Error('Invalid template ID');
-    }
-    
-    // 模拟异步验证
-    await new Promise(resolve => setTimeout(resolve, 100));
   }
 
   /**
@@ -426,7 +408,7 @@ export class GameInstanceController extends EventEmitter {
   /**
    * 处理创建失败
    */
-  private async handleCreationFailure(requestId: string, error: any): Promise<void> {
+  private handleCreationFailure(requestId: string, error: any): void {
     const workerError = this.errorHandler.handleError(error, { requestId });
     
     // 更新进度为错误状态
@@ -445,7 +427,7 @@ export class GameInstanceController extends EventEmitter {
     );
     
     // 清理资源
-    await this.rollbackCreation(requestId);
+    this.rollbackCreation(requestId);
     
     // 发出创建失败事件
     this.emit(EnvironmentManagerEvents.ENVIRONMENT_CREATION_FAILED, {

@@ -14,6 +14,14 @@ export enum TaskType {
 }
 
 /**
+ * 基础任务 Payload 接口
+ * 所有任务 payload 都必须包含 type 字段
+ */
+export interface BaseTaskPayload {
+  type: string;
+}
+
+/**
  * 任务错误信息
  */
 export interface TaskError {
@@ -26,9 +34,8 @@ export interface TaskError {
 /**
  * 通用任务请求接口
  */
-export interface GenericTaskRequest<TPayload = any> {
+export interface GenericTaskRequest<TPayload extends BaseTaskPayload = BaseTaskPayload> {
   taskId: string;
-  taskType: string;
   timestamp: Date;
   payload: TPayload;
   metadata?: Record<string, any>;
@@ -79,7 +86,7 @@ export interface WorkerReadyMessage {
 /**
  * 任务处理器接口
  */
-export interface TaskHandler<TPayload = any, TResult = any> {
+export interface TaskHandler<TPayload extends BaseTaskPayload = BaseTaskPayload, TResult = any> {
   readonly taskType: string;
   
   /**
@@ -101,13 +108,13 @@ export interface TaskHandler<TPayload = any, TResult = any> {
 /**
  * 任务适配器接口
  */
-export interface TaskAdapter<TRequest, TResponse> {
+export interface TaskAdapter<TRequest extends BaseTaskPayload, TResponse> {
   readonly taskType: string;
   
   /**
    * 将业务请求转换为通用任务请求
    */
-  adaptRequest(businessRequest: TRequest): GenericTaskRequest;
+  adaptRequest(businessRequest: TRequest): GenericTaskRequest<TRequest>;
   
   /**
    * 将通用任务响应转换为业务响应

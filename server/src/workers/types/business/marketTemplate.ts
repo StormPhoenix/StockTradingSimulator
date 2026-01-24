@@ -4,10 +4,13 @@
  * 定义市场模板相关的业务数据结构
  */
 
+import { BaseTaskPayload, TaskType } from '../worker/genericTask';
+
 /**
  * 市场模板请求
  */
-export interface MarketTemplateRequest {
+export interface MarketTemplateRequest extends BaseTaskPayload {
+  type: TaskType.MARKET_TEMPLATE;
   templateId: string;
   userId: string;
 }

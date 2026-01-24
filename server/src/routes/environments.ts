@@ -1,7 +1,7 @@
 /**
- * 游戏实例 API 路由
+ * 环境管理 API 路由
  * 
- * 提供游戏实例创建、管理、监控的 RESTful API 端点
+ * 提供环境创建、管理、监控的 RESTful API 端点
  */
 
 /// <reference path="../types/express.d.ts" />

@@ -47,13 +47,14 @@ class GenericWorkerExecution {
    */
   public async dispatchTask(request: GenericTaskRequest): Promise<void> {
     try {
-      const handler = this.taskHandlers.get(request.taskType);
+      const taskType = request.payload.type;
+      const handler = this.taskHandlers.get(taskType);
       
       if (!handler) {
-        throw new Error(`No handler registered for task type: ${request.taskType}`);
+        throw new Error(`No handler registered for task type: ${taskType}`);
       }
 
-      console.log(`Dispatching task: ${request.taskId} (type: ${request.taskType})`);
+      console.log(`Dispatching task: ${request.taskId} (type: ${taskType})`);
       
       // 执行任务
       const result = await handler.handleTask(request);
@@ -61,7 +62,7 @@ class GenericWorkerExecution {
       // 发送成功响应
       this.sendTaskResponse({
         taskId: request.taskId,
-        taskType: request.taskType,
+        taskType: taskType,
         timestamp: new Date(),
         status: 'SUCCESS',
         result
@@ -70,12 +71,13 @@ class GenericWorkerExecution {
       console.log(`Task completed successfully: ${request.taskId}`);
 
     } catch (error) {
+      const taskType = request.payload.type;
       console.error(`Task failed: ${request.taskId}`, error);
       
       // 发送错误响应
       this.sendTaskResponse({
         taskId: request.taskId,
-        taskType: request.taskType,
+        taskType: taskType,
         timestamp: new Date(),
         status: 'ERROR',
         error: {
@@ -144,7 +146,7 @@ const workerExecution = new GenericWorkerExecution();
 if (parentPort) {
   // 监听来自主线程的消息
   parentPort.on('message', async (message: GenericTaskRequest) => {
-    console.log(`Worker received task: ${message.taskId} (type: ${message.taskType})`);
+    console.log(`Worker received task: ${message.taskId} (type: ${message.payload.type})`);
     await workerExecution.dispatchTask(message);
   });
 

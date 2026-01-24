@@ -12,12 +12,12 @@ import {
   GenericTaskProgress,
   TaskError,
   TaskType
-} from '../workers/types/worker/genericTask';
+} from '../types/worker/genericTask';
 import {
   MarketTemplateRequest,
   MarketTemplateResponse,
   MarketTemplateStage
-} from '../workers/types/business/marketTemplate';
+} from '../types/business/marketTemplate';
 
 /**
  * 市场模板任务适配器
@@ -31,7 +31,6 @@ export class MarketTemplateTaskAdapter extends EventEmitter implements TaskAdapt
   public adaptRequest(businessRequest: MarketTemplateRequest): GenericTaskRequest<MarketTemplateRequest> {
     return {
       taskId: this.generateTaskId(),
-      taskType: this.taskType,
       timestamp: new Date(),
       payload: businessRequest,
       metadata: {

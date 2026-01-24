@@ -11,14 +11,13 @@ import {
   GenericTaskResponse,
   GenericTaskProgress,
   GenericWorkerMessage,
-  TaskError
-} from './types/worker/genericTask';
+} from '../../workers/types/worker/genericTask';
 import {
   WorkerThreadStatus,
   PoolConfig,
   WorkerThreadInfo,
   PoolEvents
-} from './types/worker/poolConfig';
+} from '../../workers/types/worker/poolConfig';
 
 /**
  * 通用 Worker 线程包装器

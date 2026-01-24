@@ -6,7 +6,7 @@
 
 import { EventEmitter } from 'events';
 import { GenericWorkerThreadPool, createGenericWorkerThreadPool } from '../workers/genericWorkerThreadPool';
-import { MarketTemplateTaskAdapter, createMarketTemplateTaskAdapter } from '../adapters/marketTemplateTaskAdapter';
+import { MarketTemplateTaskAdapter, createMarketTemplateTaskAdapter } from '../workers/adapters/marketTemplateTaskAdapter';
 import {
   MarketTemplateRequest,
   MarketTemplateResponse
@@ -79,16 +79,17 @@ export class WorkerThreadPoolService extends EventEmitter {
   /**
    * 提交市场模板任务
    */
-  public async submitMarketTemplateTask(
+  public submitMarketTemplateTask(
     templateId: string,
     userId: string
-  ): Promise<string> {
+  ): string {
     const request: MarketTemplateRequest = {
+      type: TaskType.MARKET_TEMPLATE,
       templateId,
       userId
     };
 
-    return this.pool.submitTask(TaskType.MARKET_TEMPLATE, request);
+    return this.pool.submitTask(request);
   }
 
   /**

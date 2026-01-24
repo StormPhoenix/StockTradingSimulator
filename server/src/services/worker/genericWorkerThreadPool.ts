@@ -8,16 +8,16 @@ import { EventEmitter } from 'events';
 import { join } from 'path';
 import { GenericWorkerWrapper } from './genericWorkerWrapper';
 import {
+    BaseTaskPayload,
   GenericTaskRequest,
-  TaskAdapter,
-  BaseTaskPayload
-} from './types/worker/genericTask';
+  TaskAdapter
+} from '../../workers/types/worker/genericTask';
 import {
   PoolConfig,
   WorkerThreadStatus,
   PoolStatus,
   PoolEvents
-} from './types/worker/poolConfig';
+} from '../../workers/types/worker/poolConfig';
 
 /**
  * 通用 Worker 线程池
@@ -36,10 +36,10 @@ export class GenericWorkerThreadPool extends EventEmitter {
 
     // 根据环境选择正确的 worker 文件路径
     if (process.env.NODE_ENV === 'production') {
-      this.workerScript = join(__dirname, './genericWorkerExecution.js');
+      this.workerScript = join(__dirname, '../../workers/genericWorkerExecution.js');
     } else {
       // 开发环境使用 ts-node 运行 TypeScript 文件
-      this.workerScript = join(__dirname, './genericWorkerExecution.ts');
+      this.workerScript = join(__dirname, '../../workers/genericWorkerExecution.ts');
     }
 
     this.initializePool();
@@ -58,10 +58,10 @@ export class GenericWorkerThreadPool extends EventEmitter {
   /**
    * 提交任务（使用适配器）
    */
-  public submitTask<TRequest extends BaseTaskPayload, TResponse>(
+  public submitTask<TRequest, TResponse>(
+    taskType: string,
     businessRequest: TRequest
   ): string {
-    const taskType = businessRequest.type;
     const adapter = this.taskAdapters.get(taskType);
     if (!adapter) {
       throw new Error(`No adapter registered for task type: ${taskType}`);
