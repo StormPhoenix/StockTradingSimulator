@@ -1,12 +1,12 @@
 /**
- * 环境管理服务
+ * 游戏实例控制器
  * 
- * 协调 Worker Thread 池和 GameObject 系统，管理环境的完整生命周期
+ * 协调 Worker Thread 池和 GameObject 系统，管理游戏实例的完整生命周期
  */
 
 import { EventEmitter } from 'events';
-import { WorkerThreadPool, createWorkerThreadPool } from './workerThreadPool';
-import { WorkerErrorHandler, WorkerError, createWorkerErrorHandler } from '../utils/workerErrorHandler';
+import { WorkerThreadPool, createWorkerThreadPool } from '../services/workerThreadPool';
+import { WorkerErrorHandler, createWorkerErrorHandler } from '../utils/workerErrorHandler';
 import { CreationProgress, CreationStage } from '../../../shared/types/progress';
 import { EnvironmentPreview, EnvironmentDetails, EnvironmentStatus } from '../../../shared/types/environment';
 import { EnvironmentManagerEvents, ErrorHandlerEvents } from '../types/eventTypes';
@@ -36,9 +36,9 @@ export interface EnvironmentInstance {
 }
 
 /**
- * 环境管理器
+ * 游戏实例控制器
  */
-export class EnvironmentManager extends EventEmitter {
+export class GameInstanceController extends EventEmitter {
   private workerPool: WorkerThreadPool;
   private errorHandler: WorkerErrorHandler;
   private activeEnvironments: Map<string, EnvironmentInstance> = new Map();
@@ -827,3 +827,5 @@ export class EnvironmentManager extends EventEmitter {
     };
   }
 }
+
+export default new GameInstanceController();

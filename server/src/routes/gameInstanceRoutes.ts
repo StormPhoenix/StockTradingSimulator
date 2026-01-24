@@ -1,15 +1,12 @@
 /**
- * 环境管理 API 路由
+ * 游戏实例 API 路由
  * 
- * 提供环境创建、管理、监控的 RESTful API 端点
+ * 提供游戏实例创建、管理、监控的 RESTful API 端点
  */
 
 /// <reference path="../types/express.d.ts" />
 import { Router, Request, Response } from 'express';
-import { EnvironmentManager } from '../services/environmentManager';
-
-// 创建服务实例
-const environmentManager = new EnvironmentManager();
+import gameInstanceController from '../controllers/gameInstanceController';
 
 const router = Router();
 
@@ -22,7 +19,7 @@ router.get('/', async (req: Request, res: Response) => {
     // TODO: 从认证中间件获取用户ID
     const userId = req.user?.id || 'default-user';
     
-    const environments = environmentManager.getEnvironments(userId);
+    const environments = gameInstanceController.getEnvironments(userId);
     
     const response = {
       success: true,
@@ -73,7 +70,7 @@ router.post('/', async (req: Request, res: Response) => {
     const userId = req.user?.id || 'default-user';
     
     // 创建环境
-    const requestId = await environmentManager.createEnvironment(templateId, userId, name);
+    const requestId = await gameInstanceController.createEnvironment(templateId, userId, name);
     
     const response = {
       success: true,
@@ -120,7 +117,7 @@ router.get('/:environmentId', async (req: Request, res: Response) => {
     // TODO: 从认证中间件获取用户ID
     const userId = req.user?.id || 'default-user';
     
-    const environment = environmentManager.getEnvironmentDetails(environmentId, userId);
+    const environment = gameInstanceController.getEnvironmentDetails(environmentId, userId);
     
     if (!environment) {
       return res.status(404).json({
@@ -160,7 +157,7 @@ router.delete('/:environmentId', async (req: Request, res: Response) => {
     // TODO: 从认证中间件获取用户ID
     const userId = req.user?.id || 'default-user';
     
-    await environmentManager.destroyEnvironment(environmentId, userId);
+    await gameInstanceController.destroyEnvironment(environmentId, userId);
     
     res.json({
       success: true,
@@ -209,7 +206,7 @@ router.get('/progress/:requestId', async (req: Request, res: Response) => {
   try {
     const requestId = req.params.requestId as string;
     
-    const progress = environmentManager.getCreationProgress(requestId);
+    const progress = gameInstanceController.getCreationProgress(requestId);
     
     if (!progress) {
       return res.status(404).json({
@@ -251,7 +248,7 @@ router.get('/:environmentId/export', async (req: Request, res: Response) => {
     const userId = req.user?.id || 'default-user';
     
     // 导出环境状态
-    const exportData = await environmentManager.exportEnvironmentState(environmentId, userId);
+    const exportData = await gameInstanceController.exportEnvironmentState(environmentId, userId);
     
     if (format === 'json') {
       res.json({
@@ -303,7 +300,7 @@ router.get('/:environmentId/logs', async (req: Request, res: Response) => {
     const userId = req.user?.id || 'default-user';
     
     // 验证环境存在
-    const environment = environmentManager.getEnvironmentDetails(environmentId, userId);
+    const environment = gameInstanceController.getEnvironmentDetails(environmentId, userId);
     
     if (!environment) {
       return res.status(404).json({
@@ -346,7 +343,7 @@ router.get('/:environmentId/logs', async (req: Request, res: Response) => {
  */
 router.get('/_status', async (req: Request, res: Response) => {
   try {
-    const status = environmentManager.getManagerStatus();
+    const status = gameInstanceController.getManagerStatus();
     
     res.json({
       success: true,
@@ -366,26 +363,26 @@ router.get('/_status', async (req: Request, res: Response) => {
 });
 
 // 设置进度更新事件监听器
-environmentManager.on('progressUpdate', (progress) => {
+gameInstanceController.on('progressUpdate', (progress) => {
   // TODO: 实现 WebSocket 或 Server-Sent Events 来推送进度更新
   console.log('Progress update:', progress);
 });
 
-environmentManager.on('environmentCreated', (event) => {
+gameInstanceController.on('environmentCreated', (event) => {
   console.log('Environment created:', event);
 });
 
-environmentManager.on('environmentCreationFailed', (event) => {
+gameInstanceController.on('environmentCreationFailed', (event) => {
   console.error('Environment creation failed:', event);
 });
 
-environmentManager.on('environmentDestroyed', (event) => {
+gameInstanceController.on('environmentDestroyed', (event) => {
   console.log('Environment destroyed:', event);
 });
 
 // 定期清理过期的进度跟踪
 setInterval(() => {
-  environmentManager.cleanupExpiredProgress();
+  gameInstanceController.cleanupExpiredProgress();
 }, 60 * 60 * 1000); // 每小时清理一次
 
 export default router;
