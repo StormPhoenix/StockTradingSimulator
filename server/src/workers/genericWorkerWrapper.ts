@@ -110,13 +110,6 @@ export class GenericWorkerWrapper extends TypedEventEmitter<WorkerWrapperEventDa
     this.worker.on('message', (message: GenericWorkerMessage) => {
       this.lastActiveAt = new Date();
 
-      // 检查消息类型
-      if ('type' in message && message.type === 'READY') {
-        // Worker 就绪消息
-        console.log(`Worker ${this.id} is ready`);
-        return;
-      }
-
       // 根据消息属性判断类型
       if ('status' in message) {
         // 任务响应消息

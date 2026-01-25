@@ -15,17 +15,15 @@ import {
 /**
  * Worker 线程池服务 (单例模式)
  */
-export class WorkerThreadPoolService extends EventEmitter {
+export class WorkerThreadPoolService {
   private static instance: WorkerThreadPoolService | null = null;
   private pool: GenericWorkerThreadPool;
   private taskCallbacks: Map<string, TaskCallback> = new Map();
 
   private constructor() {
-    super();
-    
     // 创建通用线程池
     this.pool = createGenericWorkerThreadPool();
-    
+
     // 设置事件转发（保持向后兼容）
     this.setupEventForwarding();
   }
@@ -58,10 +56,10 @@ export class WorkerThreadPoolService extends EventEmitter {
     callback: TaskCallback
   ): string {
     const taskId = this.pool.submitTask(request);
-    
+
     // 存储回调对象
     this.taskCallbacks.set(taskId, callback);
-    
+
     return taskId;
   }
 
@@ -71,19 +69,19 @@ export class WorkerThreadPoolService extends EventEmitter {
   private setupEventForwarding(): void {
     // 转发线程池事件
     this.pool.bind(PoolEvents.TASK_SUBMITTED, (event: { taskId: string; taskType: string; }) => {
-      this.emit('taskSubmitted', event);
+      // TODO 任务提交事件
     });
 
     this.pool.bind(PoolEvents.TASK_STARTED, (event: { workerId: string; taskId: string; taskType: string; }) => {
-      this.emit('taskStarted', event);
+      // TODO 任务开始事件
     });
 
-    this.pool.bind(PoolEvents.TASK_COMPLETED, (event: { 
-      workerId: string; 
-      taskId: string; 
-      taskType: string; 
-      result: any; 
-      businessResponse?: any; 
+    this.pool.bind(PoolEvents.TASK_COMPLETED, (event: {
+      workerId: string;
+      taskId: string;
+      taskType: string;
+      result: any;
+      businessResponse?: any;
     }) => {
       // 触发回调
       const callback = this.taskCallbacks.get(event.taskId);
@@ -92,16 +90,13 @@ export class WorkerThreadPoolService extends EventEmitter {
         // 清理回调引用
         this.taskCallbacks.delete(event.taskId);
       }
-      
-      // 保持事件转发（向后兼容）
-      this.emit('taskCompleted', event);
     });
 
-    this.pool.bind(PoolEvents.TASK_FAILED, (event: { 
-      workerId: string; 
-      taskId: string; 
-      taskType: string; 
-      error: any; 
+    this.pool.bind(PoolEvents.TASK_FAILED, (event: {
+      workerId: string;
+      taskId: string;
+      taskType: string;
+      error: any;
     }) => {
       // 触发回调
       const callback = this.taskCallbacks.get(event.taskId);
@@ -110,21 +105,18 @@ export class WorkerThreadPoolService extends EventEmitter {
         // 清理回调引用
         this.taskCallbacks.delete(event.taskId);
       }
-      
-      // 保持事件转发（向后兼容）
-      this.emit('taskFailed', event);
     });
 
-    this.pool.bind(PoolEvents.TASK_PROGRESS, (event: { 
-      workerId: string; 
-      taskId: string; 
-      taskType: string; 
+    this.pool.bind(PoolEvents.TASK_PROGRESS, (event: {
+      workerId: string;
+      taskId: string;
+      taskType: string;
       progress: {
         stage: string;
         percentage: number;
         message: string;
         details?: any;
-      }; 
+      };
     }) => {
       // 触发回调
       const callback = this.taskCallbacks.get(event.taskId);
@@ -137,9 +129,6 @@ export class WorkerThreadPoolService extends EventEmitter {
           event.progress.details
         );
       }
-      
-      // 保持事件转发（向后兼容）
-      this.emit('taskProgress', event);
     });
   }
 

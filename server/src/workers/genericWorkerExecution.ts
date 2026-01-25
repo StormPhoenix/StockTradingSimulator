@@ -10,7 +10,6 @@ import {
   GenericTaskResponse,
   GenericTaskProgress,
   TaskHandler,
-  TaskType,
   TaskError
 } from './types/worker/genericTask';
 import { MarketTemplateTaskHandler } from './handlers/marketTemplateTaskHandler';
@@ -49,16 +48,16 @@ class GenericWorkerExecution {
     try {
       const taskType = request.payload.type;
       const handler = this.taskHandlers.get(taskType);
-      
+
       if (!handler) {
         throw new Error(`No handler registered for task type: ${taskType}`);
       }
 
       console.log(`Dispatching task: ${request.taskId} (type: ${taskType})`);
-      
+
       // 执行任务
       const result = await handler.handleTask(request);
-      
+
       // 发送成功响应
       this.sendTaskResponse({
         taskId: request.taskId,
@@ -67,13 +66,13 @@ class GenericWorkerExecution {
         status: 'SUCCESS',
         result
       });
-      
+
       console.log(`Task completed successfully: ${request.taskId}`);
 
     } catch (error) {
       const taskType = request.payload.type;
       console.error(`Task failed: ${request.taskId}`, error);
-      
+
       // 发送错误响应
       this.sendTaskResponse({
         taskId: request.taskId,
@@ -96,45 +95,6 @@ class GenericWorkerExecution {
   private sendTaskResponse(response: GenericTaskResponse): void {
     parentPort?.postMessage(response);
   }
-
-  /**
-   * 发送进度更新到主线程
-   */
-  public sendProgress(
-    taskId: string,
-    taskType: string,
-    stage: string,
-    percentage: number,
-    message: string,
-    details?: any
-  ): void {
-    const progress: GenericTaskProgress = {
-      taskId,
-      taskType,
-      timestamp: new Date(),
-      stage,
-      percentage,
-      message,
-      details
-    };
-
-    parentPort?.postMessage(progress);
-  }
-
-  /**
-   * 发送错误到主线程
-   */
-  public sendError(taskId: string, taskType: string, error: TaskError): void {
-    const response: GenericTaskResponse = {
-      taskId,
-      taskType,
-      timestamp: new Date(),
-      status: 'ERROR',
-      error
-    };
-
-    parentPort?.postMessage(response);
-  }
 }
 
 // 创建执行器实例
@@ -155,7 +115,7 @@ if (parentPort) {
     type: 'READY',
     timestamp: new Date()
   });
-  
+
   console.log('Generic worker thread initialized and ready');
 } else {
   console.error('Worker thread: parentPort is not available');

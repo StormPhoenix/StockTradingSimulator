@@ -74,12 +74,12 @@ export interface TaskCallback<TResult = any> {
    * 任务完成回调
    */
   onTaskCompleted(taskId: string, result: TResult): void;
-  
+
   /**
    * 任务失败回调
    */
   onTaskFailed(taskId: string, error: TaskError): void;
-  
+
   /**
    * 任务进度回调（可选）
    */
@@ -89,38 +89,19 @@ export interface TaskCallback<TResult = any> {
 /**
  * Worker 消息类型
  */
-export type GenericWorkerMessage = 
-  | GenericTaskRequest
+export type GenericWorkerMessage =
   | GenericTaskResponse
   | GenericTaskProgress
-  | WorkerReadyMessage;
 
-/**
- * Worker 就绪消息
- */
-export interface WorkerReadyMessage {
-  type: 'READY';
-  timestamp: Date;
-}
 
 /**
  * 任务处理器接口
  */
 export interface TaskHandler<TPayload extends BaseTaskPayload = BaseTaskPayload, TResult = any> {
   readonly taskType: string;
-  
+
   /**
    * 处理任务
    */
   handleTask(request: GenericTaskRequest<TPayload>): Promise<TResult>;
-  
-  /**
-   * 发送进度更新
-   */
-  sendProgress(taskId: string, stage: string, percentage: number, message: string, details?: any): void;
-  
-  /**
-   * 发送错误
-   */
-  sendError(taskId: string, error: TaskError): void;
 }
