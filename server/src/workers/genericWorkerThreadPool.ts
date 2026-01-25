@@ -15,14 +15,15 @@ import {
   PoolConfig,
   WorkerThreadStatus,
   PoolStatus,
-  PoolEvents
+  PoolEvents,
+  WorkerEvent
 } from './types/worker/poolConfig';
 import { TypedEventEmitter } from '../types/typedEventEmitter';
 
 /**
  * 线程池事件数据接口
  */
-export interface GenericWorkerThreadPoolEventData {
+export interface GenericWorkerThreadPoolEventData extends Record<PoolEvents, any[]> {
   [PoolEvents.TASK_SUBMITTED]: [
     data: {
       taskId: string;
@@ -178,15 +179,15 @@ export class GenericWorkerThreadPool extends TypedEventEmitter<GenericWorkerThre
     const worker = new GenericWorkerWrapper(id, this.workerScript, this.config);
 
     // 设置事件监听器
-    worker.bind(PoolEvents.TASK_COMPLETED, (workerId: string, taskId: string, taskType: string, result: any) => {
+    worker.bind(WorkerEvent.TASK_COMPLETED, (workerId: string, taskId: string, taskType: string, result: any) => {
       this.handleTaskCompleted({ workerId, taskId, taskType, result });
     });
 
-    worker.bind(PoolEvents.TASK_FAILED, (workerId: string, taskId: string, taskType: string, error: TaskError) => {
+    worker.bind(WorkerEvent.TASK_FAILED, (workerId: string, taskId: string, taskType: string, error: TaskError) => {
       this.handleTaskFailed({ workerId, taskId, taskType, error });
     });
 
-    worker.bind(PoolEvents.TASK_PROGRESS, (workerId: string, taskId: string, taskType: string, progress: {
+    worker.bind(WorkerEvent.TASK_PROGRESS, (workerId: string, taskId: string, taskType: string, progress: {
       stage: string;
       percentage: number;
       message: string;
@@ -195,15 +196,15 @@ export class GenericWorkerThreadPool extends TypedEventEmitter<GenericWorkerThre
       this.handleTaskProgress({ workerId, taskId, taskType, progress });
     });
 
-    worker.bind(PoolEvents.TASK_STARTED, (workerId: string, taskId: string, taskType: string) => {
+    worker.bind(WorkerEvent.TASK_STARTED, (workerId: string, taskId: string, taskType: string) => {
       this.broadcast(PoolEvents.TASK_STARTED, { workerId, taskId, taskType });
     });
 
-    worker.bind(PoolEvents.WORKER_TIMEOUT, (workerId: string, taskId?: string) => {
+    worker.bind(WorkerEvent.WORKER_TIMEOUT, (workerId: string, taskId?: string) => {
       this.handleWorkerTimeout({ workerId, taskId });
     });
 
-    worker.bind(PoolEvents.WORKER_ERROR, (workerId: string, taskId: string, error: TaskError) => {
+    worker.bind(WorkerEvent.WORKER_ERROR, (workerId: string, taskId: string, error: TaskError) => {
       this.handleWorkerError({ workerId, taskId, error });
     });
 

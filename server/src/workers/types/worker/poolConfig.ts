@@ -64,3 +64,16 @@ export enum PoolEvents {
   WORKER_TIMEOUT = 'worker:timeout',
   WORKER_CRASH = 'worker:crash'
 }
+
+/**
+ * Worker 线程事件类型（用于 GenericWorkerWrapper）
+ */
+export enum WorkerEvent {
+  TASK_STARTED = 'worker:task:started',
+  TASK_COMPLETED = 'worker:task:completed',
+  TASK_FAILED = 'worker:task:failed',
+  TASK_PROGRESS = 'worker:task:progress',
+  WORKER_ERROR = 'worker:error',
+  WORKER_TIMEOUT = 'worker:timeout',
+  WORKER_TERMINATED = 'worker:terminated'
+}

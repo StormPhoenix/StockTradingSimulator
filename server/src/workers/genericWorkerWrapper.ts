@@ -16,32 +16,32 @@ import {
   WorkerThreadStatus,
   PoolConfig,
   WorkerThreadInfo,
-  PoolEvents
+  WorkerEvent
 } from './types/worker/poolConfig';
 import { TypedEventEmitter } from '../types/typedEventEmitter';
 
 /**
  * Worker Wrapper 事件数据接口
  */
-export interface WorkerWrapperEventData {
-  [PoolEvents.TASK_STARTED]: [
+export interface WorkerWrapperEventData extends Record<WorkerEvent, any[]> {
+  [WorkerEvent.TASK_STARTED]: [
     workerId: string,
     taskId: string,
     taskType: string];
 
-  [PoolEvents.TASK_COMPLETED]: [
+  [WorkerEvent.TASK_COMPLETED]: [
     workerId: string,
     taskId: string,
     taskType: string,
     result: any];
 
-  [PoolEvents.TASK_FAILED]: [
+  [WorkerEvent.TASK_FAILED]: [
     workerId: string,
     taskId: string,
     taskType: string,
     error: TaskError];
 
-  [PoolEvents.TASK_PROGRESS]: [
+  [WorkerEvent.TASK_PROGRESS]: [
     workerId: string,
     taskId: string,
     taskType: string,
@@ -52,16 +52,16 @@ export interface WorkerWrapperEventData {
       details?: any;
     }];
 
-  [PoolEvents.WORKER_ERROR]: [
+  [WorkerEvent.WORKER_ERROR]: [
     workerId: string,
     taskId: string,
     error: TaskError]
 
-  [PoolEvents.WORKER_TIMEOUT]: [
+  [WorkerEvent.WORKER_TIMEOUT]: [
     workerId: string,
     taskId?: string];
 
-  [PoolEvents.WORKER_TERMINATED]: [
+  [WorkerEvent.WORKER_TERMINATED]: [
     workerId: string,
     exitCode: number]
 }
@@ -130,7 +130,7 @@ export class GenericWorkerWrapper extends TypedEventEmitter<WorkerWrapperEventDa
     this.worker.on('error', (error: Error) => {
       this.errorCount++;
       this.status = WorkerThreadStatus.ERROR;
-      this.broadcast(PoolEvents.WORKER_ERROR,
+      this.broadcast(WorkerEvent.WORKER_ERROR,
         this.id,
         this.currentTaskId || '',
         {
@@ -143,7 +143,7 @@ export class GenericWorkerWrapper extends TypedEventEmitter<WorkerWrapperEventDa
 
     this.worker.on('exit', (code: number) => {
       this.status = WorkerThreadStatus.TERMINATED;
-      this.broadcast(PoolEvents.WORKER_TERMINATED,
+      this.broadcast(WorkerEvent.WORKER_TERMINATED,
         this.id,
         code
       );
@@ -160,7 +160,7 @@ export class GenericWorkerWrapper extends TypedEventEmitter<WorkerWrapperEventDa
     this.currentTaskId = undefined;
 
     if (message.status === 'SUCCESS') {
-      this.broadcast(PoolEvents.TASK_COMPLETED,
+      this.broadcast(WorkerEvent.TASK_COMPLETED,
         this.id,
         message.taskId,
         message.taskType,
@@ -168,7 +168,7 @@ export class GenericWorkerWrapper extends TypedEventEmitter<WorkerWrapperEventDa
       );
     } else {
       this.errorCount++;
-      this.broadcast(PoolEvents.TASK_FAILED,
+      this.broadcast(WorkerEvent.TASK_FAILED,
         this.id,
         message.taskId,
         message.taskType,
@@ -184,7 +184,7 @@ export class GenericWorkerWrapper extends TypedEventEmitter<WorkerWrapperEventDa
    * 处理进度更新
    */
   private handleProgress(message: GenericTaskProgress): void {
-    this.broadcast(PoolEvents.TASK_PROGRESS,
+    this.broadcast(WorkerEvent.TASK_PROGRESS,
       this.id,
       message.taskId,
       message.taskType,
@@ -218,7 +218,7 @@ export class GenericWorkerWrapper extends TypedEventEmitter<WorkerWrapperEventDa
     this.worker.postMessage(request);
 
     // 发出任务开始事件
-    this.broadcast(PoolEvents.TASK_STARTED,
+    this.broadcast(WorkerEvent.TASK_STARTED,
       this.id,
       request.taskId,
       request.payload.type
@@ -235,7 +235,7 @@ export class GenericWorkerWrapper extends TypedEventEmitter<WorkerWrapperEventDa
     const taskId = this.currentTaskId;
     this.currentTaskId = undefined;
 
-    this.broadcast(PoolEvents.WORKER_TIMEOUT,
+    this.broadcast(WorkerEvent.WORKER_TIMEOUT,
       this.id,
       taskId
     );
