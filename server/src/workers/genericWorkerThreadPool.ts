@@ -4,7 +4,6 @@
  * 提供与业务逻辑解耦的通用任务处理能力
  */
 
-import { EventEmitter } from 'events';
 import { join } from 'path';
 import { GenericWorkerWrapper } from './genericWorkerWrapper';
 import {
@@ -18,11 +17,93 @@ import {
   PoolStatus,
   PoolEvents
 } from './types/worker/poolConfig';
+import { TypedEventEmitter } from '../types/typedEventEmitter';
+
+/**
+ * 线程池事件数据接口
+ */
+export interface GenericWorkerThreadPoolEventData extends Record<string, any[]> {
+  [PoolEvents.TASK_SUBMITTED]: [
+    data: {
+      taskId: string;
+      taskType: string;
+    }
+  ];
+
+  [PoolEvents.TASK_STARTED]: [
+    data: {
+      workerId: string;
+      taskId: string;
+      taskType: string;
+    }
+  ];
+
+  [PoolEvents.TASK_COMPLETED]: [
+    data: {
+      workerId: string;
+      taskId: string;
+      taskType: string;
+      result: any;
+      businessResponse?: any;
+    }
+  ];
+
+  [PoolEvents.TASK_FAILED]: [
+    data: {
+      workerId: string;
+      taskId: string;
+      taskType: string;
+      error: TaskError;
+    }
+  ];
+
+  [PoolEvents.TASK_PROGRESS]: [
+    data: {
+      workerId: string;
+      taskId: string;
+      taskType: string;
+      progress: {
+        stage: string;
+        percentage: number;
+        message: string;
+        details?: any;
+      };
+    }
+  ];
+
+  [PoolEvents.WORKER_CREATED]: [
+    data: {
+      workerId: string;
+    }
+  ];
+
+  [PoolEvents.WORKER_TERMINATED]: [
+    data: {
+      workerId: string;
+      exitCode?: number;
+    }
+  ];
+
+  [PoolEvents.WORKER_ERROR]: [
+    data: {
+      workerId: string;
+      taskId?: string;
+      error: TaskError;
+    }
+  ];
+
+  [PoolEvents.WORKER_TIMEOUT]: [
+    data: {
+      workerId: string;
+      taskId?: string;
+    }
+  ];
+}
 
 /**
  * 通用 Worker 线程池
  */
-export class GenericWorkerThreadPool extends EventEmitter {
+export class GenericWorkerThreadPool extends TypedEventEmitter<GenericWorkerThreadPoolEventData> {
   private workers: Map<string, GenericWorkerWrapper> = new Map();
   private taskQueue: GenericTaskRequest[] = [];
   private activeTasks: Map<string, string> = new Map(); // taskId -> workerId
@@ -72,7 +153,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
     this.taskQueue.push(request);
 
     // 发出任务提交事件
-    this.emit(PoolEvents.TASK_SUBMITTED, {
+    this.broadcast(PoolEvents.TASK_SUBMITTED, {
       taskId: request.taskId,
       taskType: request.payload.type
     });
@@ -115,7 +196,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
     });
 
     worker.bind(PoolEvents.TASK_STARTED, (workerId: string, taskId: string, taskType: string) => {
-      this.emit(PoolEvents.TASK_STARTED, { workerId, taskId, taskType });
+      this.broadcast(PoolEvents.TASK_STARTED, { workerId, taskId, taskType });
     });
 
     worker.bind(PoolEvents.WORKER_TIMEOUT, (workerId: string, taskId?: string) => {
@@ -128,7 +209,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
 
     this.workers.set(id, worker);
 
-    this.emit(PoolEvents.WORKER_CREATED, {
+    this.broadcast(PoolEvents.WORKER_CREATED, {
       workerId: id
     });
   }
@@ -141,13 +222,13 @@ export class GenericWorkerThreadPool extends EventEmitter {
 
     try {
       const businessResponse = event.result;
-      this.emit(PoolEvents.TASK_COMPLETED, {
+      this.broadcast(PoolEvents.TASK_COMPLETED, {
         ...event,
         businessResponse
       });
     } catch (error) {
       console.error('Error adapting response:', error);
-      this.emit(PoolEvents.TASK_COMPLETED, event);
+      this.broadcast(PoolEvents.TASK_COMPLETED, event);
     }
 
     this.processQueue();
@@ -159,7 +240,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
   private handleTaskFailed(event: any): void {
     this.activeTasks.delete(event.taskId);
 
-    this.emit(PoolEvents.TASK_FAILED, event);
+    this.broadcast(PoolEvents.TASK_FAILED, event);
     this.processQueue();
   }
 
@@ -168,7 +249,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
    */
   private handleTaskProgress(event: any): void {
 
-    this.emit(PoolEvents.TASK_PROGRESS, event);
+    this.broadcast(PoolEvents.TASK_PROGRESS, event);
   }
 
   /**
@@ -179,7 +260,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
       this.activeTasks.delete(event.taskId);
     }
 
-    this.emit(PoolEvents.WORKER_TIMEOUT, event);
+    this.broadcast(PoolEvents.WORKER_TIMEOUT, event);
 
     // 重启超时的 Worker
     this.restartWorker(event.workerId);
@@ -194,7 +275,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
       this.activeTasks.delete(event.taskId);
     }
 
-    this.emit(PoolEvents.WORKER_ERROR, event);
+    this.broadcast(PoolEvents.WORKER_ERROR, event);
 
     // 重启错误的 Worker
     this.restartWorker(event.workerId);
@@ -240,8 +321,8 @@ export class GenericWorkerThreadPool extends EventEmitter {
     const request = this.taskQueue.shift()!;
     this.activeTasks.set(request.taskId, idleWorker.id);
 
-    idleWorker.executeTask(request).catch((error) => {
-      this.emit(PoolEvents.WORKER_ERROR, {
+    idleWorker.executeTask(request).catch((error: Error) => {
+      this.broadcast(PoolEvents.WORKER_ERROR, {
         workerId: idleWorker.id,
         taskId: request.taskId,
         error: {

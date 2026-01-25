@@ -70,15 +70,21 @@ export class WorkerThreadPoolService extends EventEmitter {
    */
   private setupEventForwarding(): void {
     // 转发线程池事件
-    this.pool.on(PoolEvents.TASK_SUBMITTED, (event) => {
+    this.pool.bind(PoolEvents.TASK_SUBMITTED, (event: { taskId: string; taskType: string; }) => {
       this.emit('taskSubmitted', event);
     });
 
-    this.pool.on(PoolEvents.TASK_STARTED, (event) => {
+    this.pool.bind(PoolEvents.TASK_STARTED, (event: { workerId: string; taskId: string; taskType: string; }) => {
       this.emit('taskStarted', event);
     });
 
-    this.pool.on(PoolEvents.TASK_COMPLETED, (event) => {
+    this.pool.bind(PoolEvents.TASK_COMPLETED, (event: { 
+      workerId: string; 
+      taskId: string; 
+      taskType: string; 
+      result: any; 
+      businessResponse?: any; 
+    }) => {
       // 触发回调
       const callback = this.taskCallbacks.get(event.taskId);
       if (callback) {
@@ -91,7 +97,12 @@ export class WorkerThreadPoolService extends EventEmitter {
       this.emit('taskCompleted', event);
     });
 
-    this.pool.on(PoolEvents.TASK_FAILED, (event) => {
+    this.pool.bind(PoolEvents.TASK_FAILED, (event: { 
+      workerId: string; 
+      taskId: string; 
+      taskType: string; 
+      error: any; 
+    }) => {
       // 触发回调
       const callback = this.taskCallbacks.get(event.taskId);
       if (callback) {
@@ -104,7 +115,17 @@ export class WorkerThreadPoolService extends EventEmitter {
       this.emit('taskFailed', event);
     });
 
-    this.pool.on(PoolEvents.TASK_PROGRESS, (event) => {
+    this.pool.bind(PoolEvents.TASK_PROGRESS, (event: { 
+      workerId: string; 
+      taskId: string; 
+      taskType: string; 
+      progress: {
+        stage: string;
+        percentage: number;
+        message: string;
+        details?: any;
+      }; 
+    }) => {
       // 触发回调
       const callback = this.taskCallbacks.get(event.taskId);
       if (callback && callback.onTaskProgress) {
