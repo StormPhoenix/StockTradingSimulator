@@ -569,12 +569,6 @@ export class GameObjectManager {
     totalObjects: number;
     objectsByState: Record<GameObjectState, number>;
     pendingRequests: number;
-    errorStatistics: {
-      totalObjects: number;
-      objectsWithErrors: number;
-      totalErrors: number;
-      objectsNearLimit: number;
-    };
     performance: {
       actualFPS: number;
       tickDuration: number;
@@ -585,15 +579,13 @@ export class GameObjectManager {
   } {
     const loopStatus = this.gameLoop.getLoopStatus();
     const perfStats = this.gameLoop.getPerformanceStats();
-    const errorStats = this.errorManager.getErrorStatistics();
-
+    
     return {
       isRunning: loopStatus.isRunning,
       fps: loopStatus.fps,
       totalObjects: this.getTotalObjectCount(),
       objectsByState: this.getObjectCount(),
       pendingRequests: this.getPendingRequestCount(),
-      errorStatistics: errorStats,
       performance: {
         actualFPS: perfStats.fps,
         tickDuration: perfStats.tickDuration,

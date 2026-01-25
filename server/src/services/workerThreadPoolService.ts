@@ -7,7 +7,7 @@
 
 import { EventEmitter } from 'events';
 import { GenericWorkerThreadPool, createGenericWorkerThreadPool } from '../workers/genericWorkerThreadPool';
-import { BaseTaskPayload } from '../workers/types/worker/genericTask';
+import { BaseTaskPayload, TaskCallback } from '../workers/types/worker/genericTask';
 import {
   PoolEvents
 } from '../workers/types/worker/poolConfig';
@@ -18,6 +18,7 @@ import {
 export class WorkerThreadPoolService extends EventEmitter {
   private static instance: WorkerThreadPoolService | null = null;
   private pool: GenericWorkerThreadPool;
+  private taskCallbacks: Map<string, TaskCallback> = new Map();
 
   private constructor() {
     super();
@@ -25,7 +26,7 @@ export class WorkerThreadPoolService extends EventEmitter {
     // 创建通用线程池
     this.pool = createGenericWorkerThreadPool();
     
-    // 设置事件转发
+    // 设置事件转发（保持向后兼容）
     this.setupEventForwarding();
   }
 
@@ -50,16 +51,22 @@ export class WorkerThreadPoolService extends EventEmitter {
   }
 
   /**
-   * 提交任务
+   * 提交任务（使用回调接口）
    */
   public submitTask<TRequest extends BaseTaskPayload>(
-    request: TRequest
+    request: TRequest,
+    callback: TaskCallback
   ): string {
-    return this.pool.submitTask(request);
+    const taskId = this.pool.submitTask(request);
+    
+    // 存储回调对象
+    this.taskCallbacks.set(taskId, callback);
+    
+    return taskId;
   }
 
   /**
-   * 设置事件转发
+   * 设置事件转发（保持向后兼容）
    */
   private setupEventForwarding(): void {
     // 转发线程池事件
@@ -72,14 +79,45 @@ export class WorkerThreadPoolService extends EventEmitter {
     });
 
     this.pool.on(PoolEvents.TASK_COMPLETED, (event) => {
+      // 触发回调
+      const callback = this.taskCallbacks.get(event.taskId);
+      if (callback) {
+        callback.onTaskCompleted(event.taskId, event.result);
+        // 清理回调引用
+        this.taskCallbacks.delete(event.taskId);
+      }
+      
+      // 保持事件转发（向后兼容）
       this.emit('taskCompleted', event);
     });
 
     this.pool.on(PoolEvents.TASK_FAILED, (event) => {
+      // 触发回调
+      const callback = this.taskCallbacks.get(event.taskId);
+      if (callback) {
+        callback.onTaskFailed(event.taskId, event.error);
+        // 清理回调引用
+        this.taskCallbacks.delete(event.taskId);
+      }
+      
+      // 保持事件转发（向后兼容）
       this.emit('taskFailed', event);
     });
 
     this.pool.on(PoolEvents.TASK_PROGRESS, (event) => {
+      // 触发回调
+      const callback = this.taskCallbacks.get(event.taskId);
+      if (callback && callback.onTaskProgress) {
+        callback.onTaskProgress(
+          event.taskId,
+          event.progress.stage,
+          event.progress.percentage,
+          event.progress.message,
+          event.progress.details
+        );
+      }
+      
+      // 保持事件转发（向后兼容）
       this.emit('taskProgress', event);
     });
   }
@@ -95,6 +133,8 @@ export class WorkerThreadPoolService extends EventEmitter {
    * 关闭线程池
    */
   public async shutdown(): Promise<void> {
+    // 清理所有回调引用
+    this.taskCallbacks.clear();
     await this.pool.shutdown();
   }
 }

@@ -6,12 +6,11 @@
 
 import { EventEmitter } from 'events';
 import { WorkerThreadPoolService } from '../services/workerThreadPoolService';
-import { WorkerErrorHandler, createWorkerErrorHandler } from '../utils/workerErrorHandler';
 import { CreationProgress, CreationStage } from '../../../shared/types/progress';
 import { EnvironmentPreview, EnvironmentDetails, EnvironmentStatus } from '../../../shared/types/environment';
-import { EnvironmentManagerEvents, ErrorHandlerEvents } from '../types/eventTypes';
+import { EnvironmentManagerEvents } from '../types/eventTypes';
 import { MarketTemplateRequest } from '../workers/types/business/marketTemplate';
-import { TaskType } from '../workers/types/worker/genericTask';
+import { TaskType, TaskCallback, TaskError } from '../workers/types/worker/genericTask';
 
 /**
  * 环境创建请求
@@ -40,9 +39,8 @@ export interface EnvironmentInstance {
 /**
  * 游戏实例控制器
  */
-export class GameInstanceController extends EventEmitter {
+export class GameInstanceController extends EventEmitter implements TaskCallback {
   private workerPoolService: WorkerThreadPoolService;
-  private errorHandler: WorkerErrorHandler;
   private activeEnvironments: Map<string, EnvironmentInstance> = new Map();
   private creationRequests: Map<string, MarketInstanceCreationRequest> = new Map();
   private progressTracking: Map<string, CreationProgress> = new Map();
@@ -50,43 +48,9 @@ export class GameInstanceController extends EventEmitter {
 
   constructor() {
     super();
+
     // 获取单例服务实例
     this.workerPoolService = WorkerThreadPoolService.getInstance();
-    this.errorHandler = createWorkerErrorHandler();
-    
-    this.setupEventListeners();
-  }
-
-  /**
-   * 设置事件监听器
-   */
-  private setupEventListeners(): void {
-    // Worker Pool Service 事件
-    this.workerPoolService.on('taskCompleted', (event) => {
-      this.handleTaskCompleted(event);
-    });
-
-    this.workerPoolService.on('taskFailed', (event) => {
-      this.handleTaskFailed(event);
-    });
-
-    // 市场模板适配器事件
-    this.workerPoolService.on('taskProgress', (progress) => {
-      this.handleProgressUpdate(progress);
-    });
-
-    this.workerPoolService.on('taskFailed', (error) => {
-      this.handleMarketTemplateError(error);
-    });
-
-    // 错误处理器事件
-    this.errorHandler.on(ErrorHandlerEvents.RECOVERY, (event) => {
-      this.handleErrorRecovery(event);
-    });
-
-    this.errorHandler.on(ErrorHandlerEvents.ESCALATION, (event) => {
-      this.handleErrorEscalation(event);
-    });
   }
 
   /**
@@ -97,53 +61,6 @@ export class GameInstanceController extends EventEmitter {
   }
 
   /**
-   * 处理任务完成
-   */
-  private handleTaskCompleted(event: any): void {
-    const requestId = this.taskToRequestMapping.get(event.taskId);
-    if (!requestId) {
-      console.warn(`No request found for completed task: ${event.taskId}`);
-      return;
-    }
-
-    // 清理映射
-    this.taskToRequestMapping.delete(event.taskId);
-
-    // 处理模板数据
-    if (event.businessResponse) {
-      this.handleTemplateDataReceived({
-        requestId,
-        data: event.businessResponse
-      });
-    }
-  }
-
-  /**
-   * 处理任务失败
-   */
-  private handleTaskFailed(event: any): void {
-    const requestId = this.taskToRequestMapping.get(event.taskId);
-    if (!requestId) {
-      console.warn(`No request found for failed task: ${event.taskId}`);
-      return;
-    }
-
-    // 清理映射
-    this.taskToRequestMapping.delete(event.taskId);
-
-    // 处理错误
-    this.handleCreationFailure(requestId, new Error(event.error?.message || 'Task failed'));
-  }
-
-  /**
-   * 处理市场模板错误
-   */
-  private handleMarketTemplateError(error: any): void {
-    console.error('Market template error:', error);
-    // 这里可以添加特定的市场模板错误处理逻辑
-  }
-
-  /**
    * 创建新环境
    */
   public createMarketInstance(
@@ -151,7 +68,7 @@ export class GameInstanceController extends EventEmitter {
     userId: string,
     customName?: string
   ): string {
-    const requestId = `env_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const requestId = `env_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     
     // 创建请求记录
     const request: MarketInstanceCreationRequest = {
@@ -195,8 +112,8 @@ export class GameInstanceController extends EventEmitter {
         userId
       };
       
-      // 提交到 Worker Thread 池服务
-      const taskId = this.workerPoolService.submitTask(marketTemplateRequest);
+      // 提交到 Worker Thread 池服务，传入回调接口
+      const taskId = this.workerPoolService.submitTask(marketTemplateRequest, this);
       
       // 关联 taskId 和 requestId
       this.associateTaskWithRequest(taskId, requestId);
@@ -246,7 +163,7 @@ export class GameInstanceController extends EventEmitter {
       });
       
     } catch (error) {
-      await this.handleCreationFailure(requestId, error);
+      this.handleCreationFailure(requestId, error);
     }
   }
 
@@ -339,32 +256,6 @@ export class GameInstanceController extends EventEmitter {
   }
 
   /**
-   * 处理进度更新
-   */
-  private handleProgressUpdate(event: any): void {
-    const { requestId, progress } = event;
-    const currentProgress = this.progressTracking.get(requestId);
-    
-    if (!currentProgress) {
-      return;
-    }
-    
-    // 更新进度信息
-    const updatedProgress: CreationProgress = {
-      ...currentProgress,
-      percentage: Math.max(currentProgress.percentage, progress.percentage),
-      message: progress.message,
-      details: {
-        ...currentProgress.details,
-        ...progress.details
-      }
-    };
-    
-    this.progressTracking.set(requestId, updatedProgress);
-    this.emit(EnvironmentManagerEvents.PROGRESS_UPDATE, updatedProgress);
-  }
-
-  /**
    * 更新进度
    */
   private updateProgress(
@@ -400,28 +291,9 @@ export class GameInstanceController extends EventEmitter {
   }
 
   /**
-   * 处理 Worker 错误
-   */
-  private handleWorkerError(event: any): void {
-    const { requestId, error } = event;
-    this.handleCreationFailure(requestId, error);
-  }
-
-  /**
-   * 处理 Worker 超时
-   */
-  private handleWorkerTimeout(event: any): void {
-    const { requestId } = event;
-    const timeoutError = new Error('Template reading timeout');
-    this.handleCreationFailure(requestId, timeoutError);
-  }
-
-  /**
    * 处理创建失败
    */
   private handleCreationFailure(requestId: string, error: any): void {
-    const workerError = this.errorHandler.handleError(error, { requestId });
-    
     // 更新进度为错误状态
     this.updateProgress(
       requestId,
@@ -429,22 +301,12 @@ export class GameInstanceController extends EventEmitter {
       -1,
       'Environment creation failed',
       {
-        error: {
-          code: workerError.code,
-          message: workerError.message,
-          details: workerError.details
-        }
+        error: error
       }
     );
     
     // 清理资源
     this.rollbackCreation(requestId);
-    
-    // 发出创建失败事件
-    this.emit(EnvironmentManagerEvents.ENVIRONMENT_CREATION_FAILED, {
-      requestId,
-      error: workerError
-    });
   }
 
   /**
@@ -510,34 +372,6 @@ export class GameInstanceController extends EventEmitter {
         break;
       default:
         console.warn(`Unknown recovery strategy: ${strategy.type}`);
-    }
-  }
-
-  /**
-   * 处理错误升级
-   */
-  private handleErrorEscalation(event: any): void {
-    const { error, level } = event;
-    
-    console.error(`Error escalated to level ${level}:`, error);
-    
-    // 根据升级级别采取不同的行动
-    switch (level) {
-      case 'WARNING':
-        // 记录警告，继续执行
-        break;
-      case 'CRITICAL':
-        // 记录严重错误，可能需要停止相关操作
-        if (error.requestId) {
-          this.handleCreationFailure(error.requestId, new Error(`Critical error: ${error.message}`));
-        }
-        break;
-      case 'FATAL':
-        // 致命错误，可能需要重启服务
-        console.error('Fatal error detected, consider service restart');
-        break;
-      default:
-        console.warn(`Unknown escalation level: ${level}`);
     }
   }
 
@@ -902,14 +736,81 @@ export class GameInstanceController extends EventEmitter {
     activeEnvironments: number;
     pendingCreations: number;
     workerPoolStatus: any;
-    errorStats: any;
   } {
     return {
       activeEnvironments: this.activeEnvironments.size,
       pendingCreations: this.creationRequests.size,
       workerPoolStatus: this.workerPoolService.getPoolStatus(),
-      errorStats: this.errorHandler.getErrorStats()
     };
+  }
+
+  /**
+   * TaskCallback 接口实现：任务完成回调
+   */
+  public onTaskCompleted(taskId: string, result: any): void {
+    const requestId = this.taskToRequestMapping.get(taskId);
+    if (!requestId) {
+      console.warn(`No request found for completed task: ${taskId}`);
+      return;
+    }
+
+    // 清理映射
+    this.taskToRequestMapping.delete(taskId);
+
+    // 处理模板数据
+    this.handleTemplateDataReceived({
+      requestId,
+      data: result
+    });
+  }
+
+  /**
+   * TaskCallback 接口实现：任务失败回调
+   */
+  public onTaskFailed(taskId: string, error: TaskError): void {
+    const requestId = this.taskToRequestMapping.get(taskId);
+    if (!requestId) {
+      console.warn(`No request found for failed task: ${taskId}`);
+      return;
+    }
+
+    // 清理映射
+    this.taskToRequestMapping.delete(taskId);
+
+    // 处理错误
+    this.handleCreationFailure(requestId, new Error(error.message || 'Task failed'));
+  }
+
+  /**
+   * TaskCallback 接口实现：任务进度回调
+   */
+  public onTaskProgress(taskId: string, stage: string, percentage: number, message: string, details?: any): void {
+    const requestId = this.taskToRequestMapping.get(taskId);
+    if (!requestId) {
+      return;
+    }
+
+    const currentProgress = this.progressTracking.get(requestId);
+    if (!currentProgress) {
+      return;
+    }
+
+    // 更新进度信息
+    const updatedProgress: CreationProgress = {
+      ...currentProgress,
+      stage: stage as CreationStage,
+      percentage,
+      message,
+      details
+    };
+
+    this.progressTracking.set(requestId, updatedProgress);
+
+    // 发出进度更新事件
+    this.emit(EnvironmentManagerEvents.PROGRESS_UPDATE, {
+      requestId,
+      progress: updatedProgress
+    });
   }
 }
 

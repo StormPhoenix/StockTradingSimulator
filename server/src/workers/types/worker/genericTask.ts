@@ -66,6 +66,27 @@ export interface GenericTaskProgress {
 }
 
 /**
+ * 任务回调接口
+ * 业务层实现此接口来接收任务执行结果
+ */
+export interface TaskCallback<TResult = any> {
+  /**
+   * 任务完成回调
+   */
+  onTaskCompleted(taskId: string, result: TResult): void;
+  
+  /**
+   * 任务失败回调
+   */
+  onTaskFailed(taskId: string, error: TaskError): void;
+  
+  /**
+   * 任务进度回调（可选）
+   */
+  onTaskProgress?(taskId: string, stage: string, percentage: number, message: string, details?: any): void;
+}
+
+/**
  * Worker 消息类型
  */
 export type GenericWorkerMessage = 
