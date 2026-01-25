@@ -23,7 +23,7 @@ import { TypedEventEmitter } from '../types/typedEventEmitter';
 /**
  * Worker Wrapper 事件数据接口
  */
-export interface WorkerWrapperEventData extends Record<string, any[]> {
+export interface WorkerWrapperEventData {
   [PoolEvents.TASK_STARTED]: [
     workerId: string,
     taskId: string,

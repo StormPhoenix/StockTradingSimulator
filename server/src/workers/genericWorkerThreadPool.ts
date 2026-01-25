@@ -22,7 +22,7 @@ import { TypedEventEmitter } from '../types/typedEventEmitter';
 /**
  * 线程池事件数据接口
  */
-export interface GenericWorkerThreadPoolEventData extends Record<string, any[]> {
+export interface GenericWorkerThreadPoolEventData {
   [PoolEvents.TASK_SUBMITTED]: [
     data: {
       taskId: string;
