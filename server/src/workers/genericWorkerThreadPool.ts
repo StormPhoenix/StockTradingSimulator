@@ -9,7 +9,6 @@ import { join } from 'path';
 import { GenericWorkerWrapper } from './genericWorkerWrapper';
 import {
   GenericTaskRequest,
-  TaskAdapter,
   BaseTaskPayload
 } from './types/worker/genericTask';
 import {
@@ -26,7 +25,6 @@ export class GenericWorkerThreadPool extends EventEmitter {
   private workers: Map<string, GenericWorkerWrapper> = new Map();
   private taskQueue: GenericTaskRequest[] = [];
   private activeTasks: Map<string, string> = new Map(); // taskId -> workerId
-  private taskAdapters: Map<string, TaskAdapter<any, any>> = new Map();
   private config: PoolConfig;
   private workerScript: string;
 
@@ -46,28 +44,18 @@ export class GenericWorkerThreadPool extends EventEmitter {
   }
 
   /**
-   * 注册任务适配器
-   */
-  public registerTaskAdapter<TRequest extends BaseTaskPayload, TResponse>(
-    adapter: TaskAdapter<TRequest, TResponse>
-  ): void {
-    this.taskAdapters.set(adapter.taskType, adapter);
-    console.log(`Registered task adapter for type: ${adapter.taskType}`);
-  }
-
-  /**
    * 提交任务（使用适配器）
    */
   public submitTask<TRequest extends BaseTaskPayload>(
     businessRequest: TRequest
   ): string {
-    const taskType = businessRequest.type;
-    const adapter = this.taskAdapters.get(taskType);
-    if (!adapter) {
-      throw new Error(`No adapter registered for task type: ${taskType}`);
-    }
+    // 内置 adaptRequest 逻辑：生成任务ID和时间戳，包装业务请求
+    const genericRequest: GenericTaskRequest<TRequest> = {
+      taskId: this.generateTaskId(),
+      timestamp: new Date(),
+      payload: businessRequest,
+    };
 
-    const genericRequest = adapter.adaptRequest(businessRequest);
     return this.submitGenericTask(genericRequest);
   }
 
@@ -145,28 +133,14 @@ export class GenericWorkerThreadPool extends EventEmitter {
   private handleTaskCompleted(event: any): void {
     this.activeTasks.delete(event.taskId);
     
-    // 通过适配器处理响应
-    const adapter = this.taskAdapters.get(event.taskType);
-    if (adapter) {
-      const genericResponse = {
-        taskId: event.taskId,
-        taskType: event.taskType,
-        timestamp: new Date(),
-        status: 'SUCCESS' as const,
-        result: event.result
-      };
-      
-      try {
-        const businessResponse = adapter.adaptResponse(genericResponse);
-        this.emit(PoolEvents.TASK_COMPLETED, {
-          ...event,
-          businessResponse
-        });
-      } catch (error) {
-        console.error('Error adapting response:', error);
-        this.emit(PoolEvents.TASK_COMPLETED, event);
-      }
-    } else {
+    try {
+      const businessResponse = event.result;
+      this.emit(PoolEvents.TASK_COMPLETED, {
+        ...event,
+        businessResponse
+      });
+    } catch (error) {
+      console.error('Error adapting response:', error);
       this.emit(PoolEvents.TASK_COMPLETED, event);
     }
     
@@ -179,12 +153,6 @@ export class GenericWorkerThreadPool extends EventEmitter {
   private handleTaskFailed(event: any): void {
     this.activeTasks.delete(event.taskId);
     
-    // 通过适配器处理错误
-    const adapter = this.taskAdapters.get(event.taskType);
-    if (adapter) {
-      adapter.handleError(event.taskId, event.error);
-    }
-    
     this.emit(PoolEvents.TASK_FAILED, event);
     this.processQueue();
   }
@@ -193,21 +161,6 @@ export class GenericWorkerThreadPool extends EventEmitter {
    * 处理任务进度
    */
   private handleTaskProgress(event: any): void {
-    // 通过适配器处理进度
-    const adapter = this.taskAdapters.get(event.taskType);
-    if (adapter) {
-      const progress = {
-        taskId: event.taskId,
-        taskType: event.taskType,
-        timestamp: new Date(),
-        stage: event.progress.stage,
-        percentage: event.progress.percentage,
-        message: event.progress.message,
-        details: event.progress.details
-      };
-      
-      adapter.handleProgress(progress);
-    }
     
     this.emit(PoolEvents.TASK_PROGRESS, event);
   }
@@ -301,7 +254,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
    * 生成任务ID
    */
   private generateTaskId(): string {
-    return `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `task_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
 
   /**

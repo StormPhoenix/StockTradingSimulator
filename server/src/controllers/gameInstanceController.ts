@@ -6,7 +6,6 @@
 
 import { EventEmitter } from 'events';
 import { WorkerThreadPoolService } from '../services/workerThreadPoolService';
-import { MarketTemplateTaskAdapter, createMarketTemplateTaskAdapter } from '../workers/adapters/marketTemplateTaskAdapter';
 import { WorkerErrorHandler, createWorkerErrorHandler } from '../utils/workerErrorHandler';
 import { CreationProgress, CreationStage } from '../../../shared/types/progress';
 import { EnvironmentPreview, EnvironmentDetails, EnvironmentStatus } from '../../../shared/types/environment';
@@ -43,7 +42,6 @@ export interface EnvironmentInstance {
  */
 export class GameInstanceController extends EventEmitter {
   private workerPoolService: WorkerThreadPoolService;
-  private marketTemplateAdapter: MarketTemplateTaskAdapter;
   private errorHandler: WorkerErrorHandler;
   private activeEnvironments: Map<string, EnvironmentInstance> = new Map();
   private creationRequests: Map<string, MarketInstanceCreationRequest> = new Map();
@@ -54,11 +52,7 @@ export class GameInstanceController extends EventEmitter {
     super();
     // 获取单例服务实例
     this.workerPoolService = WorkerThreadPoolService.getInstance();
-    this.marketTemplateAdapter = createMarketTemplateTaskAdapter();
     this.errorHandler = createWorkerErrorHandler();
-    
-    // 注册适配器
-    this.workerPoolService.registerTaskAdapter(this.marketTemplateAdapter);
     
     this.setupEventListeners();
   }
@@ -77,11 +71,11 @@ export class GameInstanceController extends EventEmitter {
     });
 
     // 市场模板适配器事件
-    this.marketTemplateAdapter.on('marketTemplateProgress', (progress) => {
+    this.workerPoolService.on('taskProgress', (progress) => {
       this.handleProgressUpdate(progress);
     });
 
-    this.marketTemplateAdapter.on('marketTemplateError', (error) => {
+    this.workerPoolService.on('taskFailed', (error) => {
       this.handleMarketTemplateError(error);
     });
 

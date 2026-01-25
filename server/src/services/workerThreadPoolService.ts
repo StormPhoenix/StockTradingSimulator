@@ -7,10 +7,7 @@
 
 import { EventEmitter } from 'events';
 import { GenericWorkerThreadPool, createGenericWorkerThreadPool } from '../workers/genericWorkerThreadPool';
-import {
-  BaseTaskPayload,
-  TaskAdapter
-} from '../workers/types/worker/genericTask';
+import { BaseTaskPayload } from '../workers/types/worker/genericTask';
 import {
   PoolEvents
 } from '../workers/types/worker/poolConfig';
@@ -50,15 +47,6 @@ export class WorkerThreadPoolService extends EventEmitter {
       await WorkerThreadPoolService.instance.shutdown();
       WorkerThreadPoolService.instance = null;
     }
-  }
-
-  /**
-   * 注册任务适配器
-   */
-  public registerTaskAdapter<TRequest extends BaseTaskPayload, TResponse>(
-    adapter: TaskAdapter<TRequest, TResponse>
-  ): void {
-    this.pool.registerTaskAdapter(adapter);
   }
 
   /**

@@ -38,7 +38,6 @@ export interface GenericTaskRequest<TPayload extends BaseTaskPayload = BaseTaskP
   taskId: string;
   timestamp: Date;
   payload: TPayload;
-  metadata?: Record<string, any>;
 }
 
 /**
@@ -103,31 +102,4 @@ export interface TaskHandler<TPayload extends BaseTaskPayload = BaseTaskPayload,
    * 发送错误
    */
   sendError(taskId: string, error: TaskError): void;
-}
-
-/**
- * 任务适配器接口
- */
-export interface TaskAdapter<TRequest extends BaseTaskPayload, TResponse> {
-  readonly taskType: string;
-  
-  /**
-   * 将业务请求转换为通用任务请求
-   */
-  adaptRequest(businessRequest: TRequest): GenericTaskRequest<TRequest>;
-  
-  /**
-   * 将通用任务响应转换为业务响应
-   */
-  adaptResponse(genericResponse: GenericTaskResponse): TResponse;
-  
-  /**
-   * 处理进度更新
-   */
-  handleProgress(progress: GenericTaskProgress): void;
-  
-  /**
-   * 处理错误
-   */
-  handleError(taskId: string, error: TaskError): void;
 }
