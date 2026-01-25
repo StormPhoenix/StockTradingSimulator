@@ -7,6 +7,8 @@
 /// <reference path="../types/express.d.ts" />
 import { Router, Request, Response } from 'express';
 import gameInstanceController from '../controllers/gameInstanceController';
+import { EnvironmentManagerEvents } from '../types/eventTypes';
+import { CreationProgress } from '../../../shared/types/progress';
 
 const router = Router();
 
@@ -363,20 +365,31 @@ router.get('/_status', async (req: Request, res: Response) => {
 });
 
 // 设置进度更新事件监听器
-gameInstanceController.on('progressUpdate', (progress) => {
+gameInstanceController.bind(EnvironmentManagerEvents.PROGRESS_UPDATE, (progress: CreationProgress) => {
   // TODO: 实现 WebSocket 或 Server-Sent Events 来推送进度更新
   console.log('Progress update:', progress);
 });
 
-gameInstanceController.on('environmentCreated', (event) => {
+gameInstanceController.bind(EnvironmentManagerEvents.ENVIRONMENT_CREATED, (event: {
+  requestId: string;
+  environmentId: string;
+  environment: any;
+}) => {
   console.log('Environment created:', event);
 });
 
-gameInstanceController.on('environmentCreationFailed', (event) => {
+gameInstanceController.bind(EnvironmentManagerEvents.ENVIRONMENT_CREATION_FAILED, (event: {
+  requestId: string;
+  error: any;
+}) => {
   console.error('Environment creation failed:', event);
 });
 
-gameInstanceController.on('environmentDestroyed', (event) => {
+gameInstanceController.bind(EnvironmentManagerEvents.ENVIRONMENT_DESTROYED, (event: {
+  environmentId: string;
+  userId: string;
+  destroyedAt: Date;
+}) => {
   console.log('Environment destroyed:', event);
 });
 

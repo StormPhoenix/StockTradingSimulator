@@ -4,13 +4,13 @@
  * 协调 Worker Thread 池和 GameObject 系统，管理游戏实例的完整生命周期
  */
 
-import { EventEmitter } from 'events';
 import { WorkerThreadPoolService } from '../services/workerThreadPoolService';
 import { CreationProgress, CreationStage } from '../../../shared/types/progress';
 import { EnvironmentPreview, EnvironmentDetails, EnvironmentStatus } from '../../../shared/types/environment';
 import { EnvironmentManagerEvents } from '../types/eventTypes';
 import { MarketTemplateRequest } from '../workers/types/business/marketTemplate';
 import { TaskType, TaskCallback, TaskError } from '../workers/types/worker/genericTask';
+import { TypedEventEmitter } from '../types/typedEventEmitter';
 
 /**
  * 环境创建请求
@@ -37,9 +37,40 @@ export interface EnvironmentInstance {
 }
 
 /**
+ * GameInstanceController 事件数据接口
+ */
+export interface GameInstanceControllerEventData extends Record<EnvironmentManagerEvents, any[]> {
+  [EnvironmentManagerEvents.PROGRESS_UPDATE]: [progress: CreationProgress];
+  
+  [EnvironmentManagerEvents.ENVIRONMENT_CREATED]: [event: {
+    requestId: string;
+    environmentId: string;
+    environment: EnvironmentInstance;
+  }];
+  
+  [EnvironmentManagerEvents.ENVIRONMENT_CREATION_FAILED]: [event: {
+    requestId: string;
+    error: TaskError;
+  }];
+  
+  [EnvironmentManagerEvents.ENVIRONMENT_DESTROYED]: [event: {
+    environmentId: string;
+    userId: string;
+    destroyedAt: Date;
+  }];
+
+  // 其他事件类型暂时保持兼容
+  [EnvironmentManagerEvents.TEMPLATE_DATA]: [data: any];
+  [EnvironmentManagerEvents.PROGRESS]: [progress: any];
+  [EnvironmentManagerEvents.ERROR]: [error: any];
+  [EnvironmentManagerEvents.TIMEOUT]: [timeout: any];
+  [EnvironmentManagerEvents.RECOVERY]: [recovery: any];
+}
+
+/**
  * 游戏实例控制器
  */
-export class GameInstanceController extends EventEmitter implements TaskCallback {
+export class GameInstanceController extends TypedEventEmitter<GameInstanceControllerEventData> implements TaskCallback {
   private workerPoolService: WorkerThreadPoolService;
   private activeEnvironments: Map<string, EnvironmentInstance> = new Map();
   private creationRequests: Map<string, MarketInstanceCreationRequest> = new Map();
@@ -96,7 +127,7 @@ export class GameInstanceController extends EventEmitter implements TaskCallback
     };
     
     this.progressTracking.set(requestId, initialProgress);
-    this.emit(EnvironmentManagerEvents.PROGRESS_UPDATE, initialProgress);
+    this.broadcast(EnvironmentManagerEvents.PROGRESS_UPDATE, initialProgress);
     
     try {
       // @TODO 验证模板存在性
@@ -156,7 +187,7 @@ export class GameInstanceController extends EventEmitter implements TaskCallback
       this.creationRequests.delete(requestId);
       
       // 发出环境创建完成事件
-      this.emit(EnvironmentManagerEvents.ENVIRONMENT_CREATED, {
+      this.broadcast(EnvironmentManagerEvents.ENVIRONMENT_CREATED, {
         requestId,
         environmentId: environmentInstance.id,
         environment: environmentInstance
@@ -287,7 +318,7 @@ export class GameInstanceController extends EventEmitter implements TaskCallback
     }
     
     this.progressTracking.set(requestId, updatedProgress);
-    this.emit(EnvironmentManagerEvents.PROGRESS_UPDATE, updatedProgress);
+    this.broadcast(EnvironmentManagerEvents.PROGRESS_UPDATE, updatedProgress);
   }
 
   /**
@@ -518,7 +549,7 @@ export class GameInstanceController extends EventEmitter implements TaskCallback
       this.activeEnvironments.delete(environmentId);
       
       // 发出环境销毁事件
-      this.emit(EnvironmentManagerEvents.ENVIRONMENT_DESTROYED, {
+      this.broadcast(EnvironmentManagerEvents.ENVIRONMENT_DESTROYED, {
         environmentId,
         userId,
         destroyedAt: new Date()
@@ -807,10 +838,7 @@ export class GameInstanceController extends EventEmitter implements TaskCallback
     this.progressTracking.set(requestId, updatedProgress);
 
     // 发出进度更新事件
-    this.emit(EnvironmentManagerEvents.PROGRESS_UPDATE, {
-      requestId,
-      progress: updatedProgress
-    });
+    this.broadcast(EnvironmentManagerEvents.PROGRESS_UPDATE, updatedProgress);
   }
 }
 
