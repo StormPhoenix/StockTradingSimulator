@@ -8,9 +8,7 @@
  * 任务类型枚举
  */
 export enum TaskType {
-  MARKET_TEMPLATE = 'MARKET_TEMPLATE',
-  USER_DATA = 'USER_DATA',
-  CONFIG_SYNC = 'CONFIG_SYNC'
+  CREATE_MARKET_INSTANCE = 'MARKET_TEMPLATE',
 }
 
 /**
@@ -18,6 +16,14 @@ export enum TaskType {
  * 所有任务 payload 都必须包含 type 字段
  */
 export interface BaseTaskPayload {
+  type: string;
+}
+
+/**
+ * 基础任务结果接口
+ * 所有任务结果都必须包含 type 字段
+ */
+export interface BaseTaskResult {
   type: string;
 }
 
@@ -32,6 +38,24 @@ export interface TaskError {
 }
 
 /**
+ * Worker 消息类型枚举
+ */
+export enum WorkerMessageType {
+  TASK_RESPONSE = 'TASK_RESPONSE',
+  TASK_PROGRESS = 'TASK_PROGRESS'
+}
+
+/**
+ * 基础 Worker 消息接口
+ * 所有从 Worker 线程返回的消息都必须继承此接口
+ */
+export interface BaseWorkerMessage {
+  messageType: WorkerMessageType;
+  taskId: string;
+  timestamp: Date;
+}
+
+/**
  * 通用任务请求接口
  */
 export interface GenericTaskRequest<TPayload extends BaseTaskPayload = BaseTaskPayload> {
@@ -43,10 +67,8 @@ export interface GenericTaskRequest<TPayload extends BaseTaskPayload = BaseTaskP
 /**
  * 通用任务响应接口
  */
-export interface GenericTaskResponse<TResult = any> {
-  taskId: string;
-  taskType: string;
-  timestamp: Date;
+export interface GenericTaskResponse<TResult extends BaseTaskResult = BaseTaskResult> extends BaseWorkerMessage {
+  messageType: WorkerMessageType.TASK_RESPONSE;
   status: 'SUCCESS' | 'ERROR';
   result?: TResult;
   error?: TaskError;
@@ -55,10 +77,9 @@ export interface GenericTaskResponse<TResult = any> {
 /**
  * 通用任务进度报告接口
  */
-export interface GenericTaskProgress {
-  taskId: string;
+export interface GenericTaskProgress extends BaseWorkerMessage {
+  messageType: WorkerMessageType.TASK_PROGRESS;
   taskType: string;
-  timestamp: Date;
   stage: string;
   percentage: number;
   message: string;
@@ -69,7 +90,7 @@ export interface GenericTaskProgress {
  * 任务回调接口
  * 业务层实现此接口来接收任务执行结果
  */
-export interface TaskCallback<TResult = any> {
+export interface TaskCallback<TResult extends BaseTaskResult = BaseTaskResult> {
   /**
    * 任务完成回调
    */
@@ -89,15 +110,16 @@ export interface TaskCallback<TResult = any> {
 /**
  * Worker 消息类型
  */
-export type GenericWorkerMessage =
+export type GenericWorkerMessage = BaseWorkerMessage & (
   | GenericTaskResponse
   | GenericTaskProgress
+);
 
 
 /**
  * 任务处理器接口
  */
-export interface TaskHandler<TPayload extends BaseTaskPayload = BaseTaskPayload, TResult = any> {
+export interface TaskHandler<TPayload extends BaseTaskPayload = BaseTaskPayload, TResult extends BaseTaskResult = BaseTaskResult> {
   readonly taskType: string;
 
   /**

@@ -8,7 +8,7 @@ import { WorkerThreadPoolService } from '../services/workerThreadPoolService';
 import { CreationProgress, CreationStage } from '../../../shared/types/progress';
 import { EnvironmentPreview, EnvironmentDetails, EnvironmentStatus } from '../../../shared/types/environment';
 import { EnvironmentManagerEvents } from '../types/eventTypes';
-import { MarketTemplateRequest } from '../workers/types/business/marketTemplate';
+import { MarketTemplateRequest, MarketTemplateResponse } from '../workers/types/business/marketTemplate';
 import { TaskType, TaskCallback, TaskError } from '../workers/types/worker/genericTask';
 import { TypedEventEmitter } from '../types/typedEventEmitter';
 
@@ -41,18 +41,18 @@ export interface EnvironmentInstance {
  */
 export interface GameInstanceControllerEventData extends Record<EnvironmentManagerEvents, any[]> {
   [EnvironmentManagerEvents.PROGRESS_UPDATE]: [progress: CreationProgress];
-  
+
   [EnvironmentManagerEvents.ENVIRONMENT_CREATED]: [event: {
     requestId: string;
     environmentId: string;
     environment: EnvironmentInstance;
   }];
-  
+
   [EnvironmentManagerEvents.ENVIRONMENT_CREATION_FAILED]: [event: {
     requestId: string;
     error: TaskError;
   }];
-  
+
   [EnvironmentManagerEvents.ENVIRONMENT_DESTROYED]: [event: {
     environmentId: string;
     userId: string;
@@ -70,7 +70,7 @@ export interface GameInstanceControllerEventData extends Record<EnvironmentManag
 /**
  * 游戏实例控制器
  */
-export class GameInstanceController extends TypedEventEmitter<GameInstanceControllerEventData> implements TaskCallback {
+export class GameInstanceController extends TypedEventEmitter<GameInstanceControllerEventData> implements TaskCallback<MarketTemplateResponse> {
   private workerPoolService: WorkerThreadPoolService;
   private activeEnvironments: Map<string, EnvironmentInstance> = new Map();
   private creationRequests: Map<string, MarketInstanceCreationRequest> = new Map();
@@ -100,7 +100,7 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
     customName?: string
   ): string {
     const requestId = `env_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    
+
     // 创建请求记录
     const request: MarketInstanceCreationRequest = {
       requestId,
@@ -108,9 +108,9 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
       userId,
       customName
     };
-    
+
     this.creationRequests.set(requestId, request);
-    
+
     // 初始化进度跟踪
     const initialProgress: CreationProgress = {
       requestId,
@@ -125,32 +125,32 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
       },
       startedAt: new Date()
     };
-    
+
     this.progressTracking.set(requestId, initialProgress);
     this.broadcast(EnvironmentManagerEvents.PROGRESS_UPDATE, initialProgress);
-    
+
     try {
       // @TODO 验证模板存在性
       // this.validateTemplate(templateId, userId);
-      
+
       // 更新进度到模板读取阶段
       this.updateProgress(requestId, CreationStage.READING_TEMPLATES, 10, 'Reading template data...');
-      
+
       // 构建市场模板请求
       const marketTemplateRequest: MarketTemplateRequest = {
-        type: TaskType.MARKET_TEMPLATE,
+        type: TaskType.CREATE_MARKET_INSTANCE,
         templateId,
         userId
       };
-      
+
       // 提交到 Worker Thread 池服务，传入回调接口
       const taskId = this.workerPoolService.submitTask(marketTemplateRequest, this);
-      
+
       // 关联 taskId 和 requestId
       this.associateTaskWithRequest(taskId, requestId);
-      
+
       return requestId;
-      
+
     } catch (error) {
       // 处理创建失败
       this.handleCreationFailure(requestId, error);
@@ -161,38 +161,37 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
   /**
    * 处理模板数据接收
    */
-  private async handleTemplateDataReceived(event: any): Promise<void> {
-    const { requestId, data } = event;
+  private async handleTemplateDataReceived(requestId: string, data: MarketTemplateResponse): Promise<void> {
     const request = this.creationRequests.get(requestId);
-    
+
     if (!request) {
       console.error(`No creation request found for requestId: ${requestId}`);
       return;
     }
-    
+
     try {
       // 更新进度到对象创建阶段
       this.updateProgress(requestId, CreationStage.CREATING_OBJECTS, 70, 'Creating runtime instances...');
-      
+
       // 创建 GameObject 实例
       const environmentInstance = await this.createGameObjects(request, data);
-      
+
       // 注册环境实例
       this.activeEnvironments.set(environmentInstance.id, environmentInstance);
-      
+
       // 完成创建
       this.updateProgress(requestId, CreationStage.COMPLETE, 100, 'Environment created successfully');
-      
+
       // 清理创建请求
       this.creationRequests.delete(requestId);
-      
+
       // 发出环境创建完成事件
       this.broadcast(EnvironmentManagerEvents.ENVIRONMENT_CREATED, {
         requestId,
         environmentId: environmentInstance.id,
         environment: environmentInstance
       });
-      
+
     } catch (error) {
       this.handleCreationFailure(requestId, error);
     }
@@ -203,31 +202,30 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
    */
   private async createGameObjects(
     request: MarketInstanceCreationRequest,
-    templateData: any
+    templateData: MarketTemplateResponse
   ): Promise<EnvironmentInstance> {
-    const { exchange, traders, stocks } = templateData;
-    
+
     // 导入运行时实例类
     const { ExchangeInstance } = await import('../models/runtime/exchangeInstance');
     const { AITraderInstance } = await import('../models/runtime/aiTraderInstance');
     const { StockInstance } = await import('../models/runtime/stockInstance');
-    
+
     // 导入 GameObjectManager
     const { GameObjectManager } = await import('../lifecycle/core/gameObjectManager');
-    
+
     // 获取 GameObjectManager 单例实例
     const gameObjectManager = GameObjectManager.getInstance();
-    
+
     try {
       // 创建交易所实例
       const exchangeInstance = gameObjectManager.createObject(ExchangeInstance, {
-        templateId: exchange._id,
-        name: request.customName || exchange.name,
-        description: exchange.description
+        templateId: templateData.exchange._id,
+        name: request.customName || templateData.exchange.name,
+        description: templateData.exchange.description
       });
 
       // 创建股票实例
-      const stockInstances = stocks.map((stockTemplate: any) => {
+      const stockInstances = templateData.stocks.map((stockTemplate: any) => {
         return gameObjectManager.createObject(StockInstance, {
           templateId: stockTemplate._id,
           symbol: stockTemplate.symbol,
@@ -239,7 +237,7 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
       });
 
       // 创建交易员实例
-      const traderInstances = traders.map((traderTemplate: any) => {
+      const traderInstances = templateData.traders.map((traderTemplate: any) => {
         return gameObjectManager.createObject(AITraderInstance, {
           templateId: traderTemplate._id,
           name: traderTemplate.name,
@@ -274,7 +272,7 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
         lastActiveAt: new Date(),
         templateId: request.templateId,
         userId: request.userId,
-        name: request.customName || exchange.name
+        name: request.customName || templateData.exchange.name
       };
 
       return environmentInstance;
@@ -297,11 +295,11 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
     details?: any
   ): void {
     const currentProgress = this.progressTracking.get(requestId);
-    
+
     if (!currentProgress) {
       return;
     }
-    
+
     const updatedProgress: CreationProgress = {
       ...currentProgress,
       stage,
@@ -312,11 +310,11 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
         ...details
       }
     };
-    
+
     if (stage === CreationStage.COMPLETE || stage === CreationStage.ERROR) {
       updatedProgress.completedAt = new Date();
     }
-    
+
     this.progressTracking.set(requestId, updatedProgress);
     this.broadcast(EnvironmentManagerEvents.PROGRESS_UPDATE, updatedProgress);
   }
@@ -335,7 +333,7 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
         error: error
       }
     );
-    
+
     // 清理资源
     this.rollbackCreation(requestId);
   }
@@ -362,10 +360,10 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
         try {
           // 销毁交易所实例（会自动销毁关联的交易员和股票）
           gameObjectManager.destroyObject(environmentInstance.exchangeInstance.id);
-          
+
           // 从活跃环境中移除
           this.activeEnvironments.delete(environmentInstance.id);
-          
+
           console.log(`Rollback: Destroyed environment ${environmentInstance.id} and all associated objects`);
         } catch (destroyError) {
           console.error(`Rollback: Failed to destroy GameObject instances:`, destroyError);
@@ -374,9 +372,9 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
 
       // 清理跟踪数据
       this.creationRequests.delete(requestId);
-      
+
       console.log(`Rollback completed for request: ${requestId}`);
-      
+
     } catch (rollbackError) {
       console.error(`Rollback failed for request ${requestId}:`, rollbackError);
     }
@@ -387,7 +385,7 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
    */
   private handleErrorRecovery(event: any): void {
     const { error, strategy } = event;
-    
+
     switch (strategy.type) {
       case 'RETRY':
         // 重试逻辑将由 Worker Pool 处理
@@ -412,7 +410,7 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
   public getEnvironments(userId: string): EnvironmentPreview[] {
     const userEnvironments = Array.from(this.activeEnvironments.values())
       .filter(env => env.userId === userId);
-    
+
     return userEnvironments.map(env => {
       // 从实际 GameObject 实例获取统计信息
       let statistics = {
@@ -448,11 +446,11 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
    */
   public getEnvironmentDetails(environmentId: string, userId: string): EnvironmentDetails | null {
     const environment = this.activeEnvironments.get(environmentId);
-    
+
     if (!environment || environment.userId !== userId) {
       return null;
     }
-    
+
     // 从实际 GameObject 实例获取详细信息
     if (environment.exchangeInstance) {
       const summary = environment.exchangeInstance.getEnvironmentSummary();
@@ -528,11 +526,11 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
    */
   public async destroyEnvironment(environmentId: string, userId: string): Promise<void> {
     const environment = this.activeEnvironments.get(environmentId);
-    
+
     if (!environment || environment.userId !== userId) {
       throw new Error('Environment not found or access denied');
     }
-    
+
     try {
       // 实现实际的 GameObject 清理逻辑
       if (environment.exchangeInstance) {
@@ -541,20 +539,20 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
 
         // 调用 GameObject.onDestroy() 并从 GameObjectManager 中移除
         gameObjectManager.destroyObject(environment.exchangeInstance.id);
-        
+
         console.log(`Destroyed GameObject instance for environment ${environmentId}`);
       }
-      
+
       // 从活跃环境中移除
       this.activeEnvironments.delete(environmentId);
-      
+
       // 发出环境销毁事件
       this.broadcast(EnvironmentManagerEvents.ENVIRONMENT_DESTROYED, {
         environmentId,
         userId,
         destroyedAt: new Date()
       });
-      
+
     } catch (error) {
       throw new Error(`Failed to destroy environment: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -572,7 +570,7 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
    */
   public async exportEnvironmentState(environmentId: string, userId: string): Promise<any> {
     const environment = this.activeEnvironments.get(environmentId);
-    
+
     if (!environment || environment.userId !== userId) {
       throw new Error('Environment not found or access denied');
     }
@@ -750,10 +748,10 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
   public cleanupExpiredProgress(): void {
     const now = new Date();
     const maxAge = 24 * 60 * 60 * 1000; // 24小时
-    
+
     for (const [requestId, progress] of this.progressTracking.entries()) {
       const age = now.getTime() - progress.startedAt.getTime();
-      
+
       if (age > maxAge) {
         this.progressTracking.delete(requestId);
       }
@@ -778,7 +776,7 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
   /**
    * TaskCallback 接口实现：任务完成回调
    */
-  public onTaskCompleted(taskId: string, result: any): void {
+  public onTaskCompleted(taskId: string, result: MarketTemplateResponse): void {
     const requestId = this.taskToRequestMapping.get(taskId);
     if (!requestId) {
       console.warn(`No request found for completed task: ${taskId}`);
@@ -789,10 +787,7 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
     this.taskToRequestMapping.delete(taskId);
 
     // 处理模板数据
-    this.handleTemplateDataReceived({
-      requestId,
-      data: result
-    });
+    this.handleTemplateDataReceived(requestId, result);
   }
 
   /**

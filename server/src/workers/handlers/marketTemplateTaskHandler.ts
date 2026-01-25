@@ -8,8 +8,7 @@ import mongoose from 'mongoose';
 import {
   GenericTaskRequest,
   TaskHandler,
-  TaskType,
-  TaskError
+  TaskType
 } from '../types/worker/genericTask';
 import {
   MarketTemplateRequest,
@@ -29,7 +28,7 @@ import {
  * 市场模板任务处理器
  */
 export class MarketTemplateTaskHandler implements TaskHandler<MarketTemplateRequest, MarketTemplateResponse> {
-  public readonly taskType = TaskType.MARKET_TEMPLATE;
+  public readonly taskType = TaskType.CREATE_MARKET_INSTANCE;
 
   private isConnected = false;
 
@@ -79,6 +78,7 @@ export class MarketTemplateTaskHandler implements TaskHandler<MarketTemplateRequ
       console.log(`Market template task completed: ${taskId}`);
 
       return {
+        type: this.taskType as TaskType.CREATE_MARKET_INSTANCE,
         exchange,
         traders,
         stocks

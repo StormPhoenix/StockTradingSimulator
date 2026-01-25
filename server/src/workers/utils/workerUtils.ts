@@ -6,9 +6,11 @@
 
 import { parentPort } from 'worker_threads';
 import {
-  GenericTaskProgress,
-  GenericTaskResponse,
-  TaskError
+    GenericTaskProgress,
+    GenericTaskResponse,
+    BaseTaskResult,
+    WorkerMessageType,
+    TaskError
 } from '../types/worker/genericTask';
 
 /**
@@ -22,24 +24,25 @@ import {
  * @param details - 可选的详细信息
  */
 export function sendProgress(
-  taskId: string,
-  taskType: string,
-  stage: string,
-  percentage: number,
-  message: string,
-  details?: any
+    taskId: string,
+    taskType: string,
+    stage: string,
+    percentage: number,
+    message: string,
+    details?: any
 ): void {
-  const progress: GenericTaskProgress = {
-    taskId,
-    taskType,
-    timestamp: new Date(),
-    stage,
-    percentage,
-    message,
-    details
-  };
+    const progress: GenericTaskProgress = {
+        messageType: WorkerMessageType.TASK_PROGRESS,
+        taskId,
+        taskType,
+        timestamp: new Date(),
+        stage,
+        percentage,
+        message,
+        details
+    };
 
-  parentPort?.postMessage(progress);
+    parentPort?.postMessage(progress);
 }
 
 /**
@@ -50,42 +53,22 @@ export function sendProgress(
  * @param error - 错误信息
  */
 export function sendError(
-  taskId: string,
-  taskType: string,
-  error: TaskError
+    taskId: string,
+    taskType: string,
+    error: TaskError
 ): void {
-  const response: GenericTaskResponse = {
-    taskId,
-    taskType,
-    timestamp: new Date(),
-    status: 'ERROR',
-    error
-  };
+    const response: GenericTaskResponse = {
+        messageType: WorkerMessageType.TASK_RESPONSE,
+        taskId,
+        timestamp: new Date(),
+        status: 'ERROR',
+        error,
+        result: {
+            type: taskType
+        }
+    };
 
-  parentPort?.postMessage(response);
-}
-
-/**
- * 发送成功结果到主线程
- * 
- * @param taskId - 任务ID
- * @param taskType - 任务类型
- * @param result - 任务结果
- */
-export function sendSuccess<TResult = any>(
-  taskId: string,
-  taskType: string,
-  result: TResult
-): void {
-  const response: GenericTaskResponse<TResult> = {
-    taskId,
-    taskType,
-    timestamp: new Date(),
-    status: 'SUCCESS',
-    result
-  };
-
-  parentPort?.postMessage(response);
+    parentPort?.postMessage(response);
 }
 
 /**
@@ -98,17 +81,17 @@ export function sendSuccess<TResult = any>(
  * @returns TaskError 对象
  */
 export function createTaskError(
-  code: string,
-  message: string,
-  details?: any,
-  stack?: string
+    code: string,
+    message: string,
+    details?: any,
+    stack?: string
 ): TaskError {
-  return {
-    code,
-    message,
-    details,
-    stack
-  };
+    return {
+        code,
+        message,
+        details,
+        stack
+    };
 }
 
 /**
@@ -120,14 +103,14 @@ export function createTaskError(
  * @returns TaskError 对象
  */
 export function createTaskErrorFromError(
-  error: Error,
-  code: string = 'UNKNOWN_ERROR',
-  details?: any
+    error: Error,
+    code: string = 'UNKNOWN_ERROR',
+    details?: any
 ): TaskError {
-  return {
-    code,
-    message: error.message,
-    stack: error.stack,
-    details
-  };
+    return {
+        code,
+        message: error.message,
+        stack: error.stack,
+        details
+    };
 }

@@ -8,6 +8,7 @@ import { join } from 'path';
 import { GenericWorkerWrapper } from './genericWorkerWrapper';
 import {
   GenericTaskRequest,
+  GenericTaskResponse,
   BaseTaskPayload,
   TaskError
 } from './types/worker/genericTask';
@@ -40,13 +41,7 @@ export interface GenericWorkerThreadPoolEventData extends Record<PoolEvents, any
   ];
 
   [PoolEvents.TASK_COMPLETED]: [
-    data: {
-      workerId: string;
-      taskId: string;
-      taskType: string;
-      result: any;
-      businessResponse?: any;
-    }
+    response: GenericTaskResponse
   ];
 
   [PoolEvents.TASK_FAILED]: [
@@ -179,8 +174,14 @@ export class GenericWorkerThreadPool extends TypedEventEmitter<GenericWorkerThre
     const worker = new GenericWorkerWrapper(id, this.workerScript, this.config);
 
     // 设置事件监听器
-    worker.bind(WorkerEvent.TASK_COMPLETED, (workerId: string, taskId: string, taskType: string, result: any) => {
-      this.handleTaskCompleted({ workerId, taskId, taskType, result });
+    worker.bind(WorkerEvent.TASK_COMPLETED, (response: GenericTaskResponse) => {
+      this.handleTaskCompleted({ 
+        workerId: worker.id, 
+        taskId: response.taskId, 
+        taskType: response.result?.type || 'UNKNOWN', 
+        result: response.result,
+        response 
+      });
     });
 
     worker.bind(WorkerEvent.TASK_FAILED, (workerId: string, taskId: string, taskType: string, error: TaskError) => {
@@ -222,14 +223,11 @@ export class GenericWorkerThreadPool extends TypedEventEmitter<GenericWorkerThre
     this.activeTasks.delete(event.taskId);
 
     try {
-      const businessResponse = event.result;
-      this.broadcast(PoolEvents.TASK_COMPLETED, {
-        ...event,
-        businessResponse
-      });
+      // 直接传递 GenericTaskResponse 对象
+      this.broadcast(PoolEvents.TASK_COMPLETED, event.response);
     } catch (error) {
-      console.error('Error adapting response:', error);
-      this.broadcast(PoolEvents.TASK_COMPLETED, event);
+      console.error('Error broadcasting task completed:', error);
+      this.broadcast(PoolEvents.TASK_COMPLETED, event.response);
     }
 
     this.processQueue();

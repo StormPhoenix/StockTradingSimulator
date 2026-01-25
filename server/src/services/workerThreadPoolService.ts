@@ -7,7 +7,7 @@
 
 import { EventEmitter } from 'events';
 import { GenericWorkerThreadPool, createGenericWorkerThreadPool } from '../workers/genericWorkerThreadPool';
-import { BaseTaskPayload, TaskCallback } from '../workers/types/worker/genericTask';
+import { BaseTaskPayload, TaskCallback, GenericTaskResponse } from '../workers/types/worker/genericTask';
 import {
   PoolEvents
 } from '../workers/types/worker/poolConfig';
@@ -76,19 +76,13 @@ export class WorkerThreadPoolService {
       // TODO 任务开始事件
     });
 
-    this.pool.bind(PoolEvents.TASK_COMPLETED, (event: {
-      workerId: string;
-      taskId: string;
-      taskType: string;
-      result: any;
-      businessResponse?: any;
-    }) => {
+    this.pool.bind(PoolEvents.TASK_COMPLETED, (response: GenericTaskResponse) => {
       // 触发回调
-      const callback = this.taskCallbacks.get(event.taskId);
-      if (callback) {
-        callback.onTaskCompleted(event.taskId, event.result);
+      const callback = this.taskCallbacks.get(response.taskId);
+      if (callback && response.result) {
+        callback.onTaskCompleted(response.taskId, response.result);
         // 清理回调引用
-        this.taskCallbacks.delete(event.taskId);
+        this.taskCallbacks.delete(response.taskId);
       }
     });
 

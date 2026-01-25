@@ -8,9 +8,8 @@ import { parentPort } from 'worker_threads';
 import {
   GenericTaskRequest,
   GenericTaskResponse,
-  GenericTaskProgress,
-  TaskHandler,
-  TaskError
+  WorkerMessageType,
+  TaskHandler
 } from './types/worker/genericTask';
 import { MarketTemplateTaskHandler } from './handlers/marketTemplateTaskHandler';
 
@@ -60,11 +59,14 @@ class GenericWorkerExecution {
 
       // 发送成功响应
       this.sendTaskResponse({
+        messageType: WorkerMessageType.TASK_RESPONSE,
         taskId: request.taskId,
-        taskType: taskType,
         timestamp: new Date(),
         status: 'SUCCESS',
-        result
+        result: {
+          ...result,
+          type: taskType
+        }
       });
 
       console.log(`Task completed successfully: ${request.taskId}`);
@@ -75,10 +77,13 @@ class GenericWorkerExecution {
 
       // 发送错误响应
       this.sendTaskResponse({
+        messageType: WorkerMessageType.TASK_RESPONSE,
         taskId: request.taskId,
-        taskType: taskType,
         timestamp: new Date(),
         status: 'ERROR',
+        result: {
+          type: taskType
+        },
         error: {
           code: 'TASK_EXECUTION_ERROR',
           message: error instanceof Error ? error.message : 'Unknown error occurred',

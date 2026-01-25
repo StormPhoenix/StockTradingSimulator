@@ -10,6 +10,7 @@ import {
   GenericTaskResponse,
   GenericTaskProgress,
   GenericWorkerMessage,
+  WorkerMessageType,
   TaskError,
 } from './types/worker/genericTask';
 import {
@@ -30,10 +31,7 @@ export interface WorkerWrapperEventData extends Record<WorkerEvent, any[]> {
     taskType: string];
 
   [WorkerEvent.TASK_COMPLETED]: [
-    workerId: string,
-    taskId: string,
-    taskType: string,
-    result: any];
+    response: GenericTaskResponse];
 
   [WorkerEvent.TASK_FAILED]: [
     workerId: string,
@@ -110,13 +108,16 @@ export class GenericWorkerWrapper extends TypedEventEmitter<WorkerWrapperEventDa
     this.worker.on('message', (message: GenericWorkerMessage) => {
       this.lastActiveAt = new Date();
 
-      // 根据消息属性判断类型
-      if ('status' in message) {
-        // 任务响应消息
-        this.handleTaskResponse(message as GenericTaskResponse);
-      } else if ('stage' in message) {
-        // 进度消息
-        this.handleProgress(message as GenericTaskProgress);
+      // 根据 messageType 字段判断消息类型
+      switch (message.messageType) {
+        case WorkerMessageType.TASK_RESPONSE:
+          this.handleTaskResponse(message as GenericTaskResponse);
+          break;
+        case WorkerMessageType.TASK_PROGRESS:
+          this.handleProgress(message as GenericTaskProgress);
+          break;
+        default:
+          console.warn(`Unknown message type: ${(message as any).messageType}`);
       }
     });
 
@@ -153,18 +154,13 @@ export class GenericWorkerWrapper extends TypedEventEmitter<WorkerWrapperEventDa
     this.currentTaskId = undefined;
 
     if (message.status === 'SUCCESS') {
-      this.broadcast(WorkerEvent.TASK_COMPLETED,
-        this.id,
-        message.taskId,
-        message.taskType,
-        message.result
-      );
+      this.broadcast(WorkerEvent.TASK_COMPLETED, message);
     } else {
       this.errorCount++;
       this.broadcast(WorkerEvent.TASK_FAILED,
         this.id,
         message.taskId,
-        message.taskType,
+        message.result?.type || 'UNKNOWN',
         message.error || {
           code: 'UNKNOWN_ERROR',
           message: 'Task failed without error details'

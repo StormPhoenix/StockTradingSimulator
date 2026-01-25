@@ -4,13 +4,13 @@
  * 定义市场模板相关的业务数据结构
  */
 
-import { BaseTaskPayload, TaskType } from '../worker/genericTask';
+import { BaseTaskPayload, BaseTaskResult, TaskType } from '../worker/genericTask';
 
 /**
  * 市场模板请求
  */
 export interface MarketTemplateRequest extends BaseTaskPayload {
-  type: TaskType.MARKET_TEMPLATE;
+  type: TaskType.CREATE_MARKET_INSTANCE;
   templateId: string;
   userId: string;
 }
@@ -53,7 +53,8 @@ export interface StockTemplate {
 /**
  * 市场模板响应
  */
-export interface MarketTemplateResponse {
+export interface MarketTemplateResponse extends BaseTaskResult {
+  type: TaskType.CREATE_MARKET_INSTANCE;
   exchange: ExchangeTemplate;
   traders: TraderTemplate[];
   stocks: StockTemplate[];
