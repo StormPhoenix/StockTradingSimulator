@@ -40,15 +40,7 @@ export interface WorkerWrapperEventData extends Record<WorkerEvent, any[]> {
     error: TaskError];
 
   [WorkerEvent.TASK_PROGRESS]: [
-    workerId: string,
-    taskId: string,
-    taskType: string,
-    progress: {
-      stage: string;
-      percentage: number;
-      message: string;
-      details?: any;
-    }];
+    progress: GenericTaskProgress];
 
   [WorkerEvent.WORKER_ERROR]: [
     workerId: string,
@@ -173,17 +165,7 @@ export class GenericWorkerWrapper extends TypedEventEmitter<WorkerWrapperEventDa
    * 处理进度更新
    */
   private handleProgress(message: GenericTaskProgress): void {
-    this.broadcast(WorkerEvent.TASK_PROGRESS,
-      this.id,
-      message.taskId,
-      message.taskType,
-      {
-        stage: message.stage,
-        percentage: message.percentage,
-        message: message.message,
-        details: message.details
-      }
-    );
+    this.broadcast(WorkerEvent.TASK_PROGRESS, message);
   }
 
   /**

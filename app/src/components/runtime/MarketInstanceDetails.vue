@@ -1,5 +1,5 @@
 <template>
-  <div class="environment-details">
+  <div class="market-instance-details">
     <div class="page-header">
       <div class="header-left">
         <el-button
@@ -10,42 +10,42 @@
           返回列表
         </el-button>
         <div class="title-section">
-          <h1 class="page-title">{{ environment?.name || '环境详情' }}</h1>
-          <p class="page-description">{{ environment?.description }}</p>
+          <h1 class="page-title">{{ marketInstance?.name || '市场实例详情' }}</h1>
+          <p class="page-description">{{ marketInstance?.description }}</p>
         </div>
       </div>
       <div class="header-right">
         <el-tag
-          v-if="environment"
-          :type="getStatusType(environment.status)"
+          v-if="marketInstance"
+          :type="getStatusType(marketInstance.status)"
           size="large"
           class="status-tag"
         >
-          {{ getStatusText(environment.status) }}
+          {{ getStatusText(marketInstance.status) }}
         </el-tag>
         <div class="action-buttons">
           <el-button
             type="success"
             icon="Download"
-            @click="handleExportEnvironment"
+            @click="handleExportMarketInstance"
             :loading="isExporting"
           >
-            导出环境
+            导出市场实例
           </el-button>
           <el-button
             type="danger"
             icon="Delete"
-            @click="handleDeleteEnvironment"
+            @click="handleDeleteMarketInstance"
             :loading="isDeleting"
           >
-            删除环境
+            删除市场实例
           </el-button>
         </div>
       </div>
     </div>
 
     <div v-loading="state.isLoading" class="content-container">
-      <div v-if="environment" class="environment-content">
+      <div v-if="marketInstance" class="market-instance-content">
         <!-- 概览信息 -->
         <div class="overview-section">
           <el-card class="info-card">
@@ -56,20 +56,20 @@
             </template>
             <div class="info-grid">
               <div class="info-item">
-                <span class="info-label">环境ID</span>
-                <span class="info-value">{{ environment.exchangeId }}</span>
+                <span class="info-label">市场实例ID</span>
+                <span class="info-value">{{ marketInstance.exchangeId }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">创建时间</span>
-                <span class="info-value">{{ formatTime(environment.createdAt) }}</span>
+                <span class="info-value">{{ formatTime(marketInstance.createdAt) }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">最后活跃</span>
-                <span class="info-value">{{ formatTime(environment.lastActiveAt) }}</span>
+                <span class="info-value">{{ formatTime(marketInstance.lastActiveAt) }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">模板</span>
-                <span class="info-value">{{ environment.templateInfo.templateName }}</span>
+                <span class="info-value">{{ marketInstance.templateInfo.templateName }}</span>
               </div>
             </div>
           </el-card>
@@ -84,28 +84,28 @@
               <div class="stat-item">
                 <div class="stat-icon">👥</div>
                 <div class="stat-content">
-                  <div class="stat-value">{{ environment.statistics.traderCount }}</div>
+                  <div class="stat-value">{{ marketInstance.statistics.traderCount }}</div>
                   <div class="stat-label">交易员</div>
                 </div>
               </div>
               <div class="stat-item">
                 <div class="stat-icon">📈</div>
                 <div class="stat-content">
-                  <div class="stat-value">{{ environment.statistics.stockCount }}</div>
+                  <div class="stat-value">{{ marketInstance.statistics.stockCount }}</div>
                   <div class="stat-label">股票</div>
                 </div>
               </div>
               <div class="stat-item">
                 <div class="stat-icon">💰</div>
                 <div class="stat-content">
-                  <div class="stat-value">¥{{ formatCurrency(environment.statistics.totalCapital) }}</div>
+                  <div class="stat-value">¥{{ formatCurrency(marketInstance.statistics.totalCapital) }}</div>
                   <div class="stat-label">总资金</div>
                 </div>
               </div>
               <div class="stat-item">
                 <div class="stat-icon">📊</div>
                 <div class="stat-content">
-                  <div class="stat-value">¥{{ formatCurrency(environment.statistics.averageCapitalPerTrader) }}</div>
+                  <div class="stat-value">¥{{ formatCurrency(marketInstance.statistics.averageCapitalPerTrader) }}</div>
                   <div class="stat-label">平均资金</div>
                 </div>
               </div>
@@ -120,11 +120,11 @@
             <el-tab-pane label="交易员" name="traders">
               <div class="traders-section">
                 <div class="section-header">
-                  <h4>交易员列表 ({{ environment.traders.length }})</h4>
+                  <h4>交易员列表 ({{ marketInstance.traders.length }})</h4>
                 </div>
                 <div class="traders-grid">
                   <div
-                    v-for="trader in environment.traders"
+                    v-for="trader in marketInstance.traders"
                     :key="trader.id"
                     class="trader-card"
                   >
@@ -178,9 +178,9 @@
             <el-tab-pane label="股票" name="stocks">
               <div class="stocks-section">
                 <div class="section-header">
-                  <h4>股票列表 ({{ environment.stocks.length }})</h4>
+                  <h4>股票列表 ({{ marketInstance.stocks.length }})</h4>
                 </div>
-                <el-table :data="environment.stocks" class="stocks-table">
+                <el-table :data="marketInstance.stocks" class="stocks-table">
                   <el-table-column prop="symbol" label="代码" width="100" />
                   <el-table-column prop="companyName" label="公司名称" />
                   <el-table-column prop="category" label="行业" width="120" />
@@ -229,7 +229,7 @@
                     @change="loadTradingLogs"
                   >
                     <el-option
-                      v-for="trader in environment.traders"
+                      v-for="trader in marketInstance.traders"
                       :key="trader.id"
                       :label="trader.name"
                       :value="trader.id"
@@ -269,8 +269,8 @@
       <div v-else-if="!state.isLoading" class="error-state">
         <el-result
           icon="warning"
-          title="环境不存在"
-          sub-title="请检查环境ID是否正确"
+          title="市场实例不存在"
+          sub-title="请检查市场实例ID是否正确"
         >
           <template #extra>
             <el-button type="primary" @click="handleGoBack">
@@ -289,7 +289,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { 
   EnvironmentDetails,
-  EnvironmentDetailsState,
+  MarketInstanceDetailsState,
   EnvironmentStatus,
   TradingLog
 } from '@/types/environment';
@@ -299,7 +299,7 @@ const route = useRoute();
 const router = useRouter();
 
 // 响应式状态
-const state = reactive<EnvironmentDetailsState>({
+const state = reactive<MarketInstanceDetailsState>({
   environment: null,
   isLoading: false,
   activeTab: 'overview',
@@ -313,18 +313,18 @@ const state = reactive<EnvironmentDetailsState>({
 
 const isDeleting = ref(false);
 const isExporting = ref(false);
-const environment = computed(() => state.environment);
+const marketInstance = computed(() => state.environment);
 
 // 方法
-const loadEnvironmentDetails = async () => {
+const loadMarketInstanceDetails = async () => {
   try {
     state.isLoading = true;
-    const environmentId = route.params.id as string;
-    const response = await EnvironmentService.getDetails(environmentId);
+    const marketInstanceId = route.params.id as string;
+    const response = await EnvironmentService.getDetails(marketInstanceId);
     state.environment = response;
   } catch (error) {
-    console.error('Failed to load environment details:', error);
-    ElMessage.error('加载环境详情失败');
+    console.error('Failed to load market instance details:', error);
+    ElMessage.error('加载市场实例详情失败');
   } finally {
     state.isLoading = false;
   }
@@ -352,12 +352,12 @@ const handleGoBack = () => {
   router.push('/environments');
 };
 
-const handleDeleteEnvironment = async () => {
+const handleDeleteMarketInstance = async () => {
   if (!state.environment) return;
 
   try {
     await ElMessageBox.confirm(
-      '确定要删除这个环境吗？此操作不可恢复。',
+      '确定要删除这个市场实例吗？此操作不可恢复。',
       '确认删除',
       {
         confirmButtonText: '删除',
@@ -368,19 +368,19 @@ const handleDeleteEnvironment = async () => {
 
     isDeleting.value = true;
     await EnvironmentService.destroy(state.environment.exchangeId);
-    ElMessage.success('环境删除成功');
+    ElMessage.success('市场实例删除成功');
     router.push('/environments');
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('Failed to delete environment:', error);
-      ElMessage.error('删除环境失败');
+      console.error('Failed to delete market instance:', error);
+      ElMessage.error('删除市场实例失败');
     }
   } finally {
     isDeleting.value = false;
   }
 };
 
-const handleExportEnvironment = async () => {
+const handleExportMarketInstance = async () => {
   if (!state.environment) return;
 
   try {
@@ -389,10 +389,10 @@ const handleExportEnvironment = async () => {
     // 使用 environmentApi 的下载功能
     await EnvironmentService.download(state.environment.exchangeId);
     
-    ElMessage.success('环境导出成功');
+    ElMessage.success('市场实例导出成功');
   } catch (error) {
-    console.error('Failed to export environment:', error);
-    ElMessage.error('导出环境失败');
+    console.error('Failed to export market instance:', error);
+    ElMessage.error('导出市场实例失败');
   } finally {
     isExporting.value = false;
   }
@@ -461,7 +461,7 @@ const formatTime = (date: Date | string) => {
 
 // 生命周期
 onMounted(() => {
-  loadEnvironmentDetails();
+  loadMarketInstanceDetails();
 });
 
 // 监听标签页切换
@@ -473,7 +473,7 @@ watch(() => state.activeTab, (newTab) => {
 </script>
 
 <style scoped>
-.environment-details {
+.market-instance-details {
   padding: 24px;
   background-color: #f5f5f5;
   min-height: 100vh;
@@ -532,7 +532,7 @@ watch(() => state.activeTab, (newTab) => {
   min-height: 400px;
 }
 
-.environment-content {
+.market-instance-content {
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -796,7 +796,7 @@ watch(() => state.activeTab, (newTab) => {
 }
 
 @media (max-width: 768px) {
-  .environment-details {
+  .market-instance-details {
     padding: 16px;
   }
 

@@ -679,9 +679,9 @@ export class MarketEnvironmentTemplateService {
    * @param config - 市场配置
    * @returns 创建的市场环境
    */
-  async createMarketEnvironment(config: MarketConfig): Promise<ApiResponse<Document> & { 
-    statistics?: any; 
-    warnings?: string[] 
+  async createMarketEnvironment(config: MarketConfig): Promise<ApiResponse<Document> & {
+    statistics?: any;
+    warnings?: string[]
   }> {
     try {
       // 验证配置
@@ -727,7 +727,7 @@ export class MarketEnvironmentTemplateService {
       return {
         success: true,
         data: saveResult.data,
-        message: '市场环境创建成功',
+        message: '市场模板创建成功',
         statistics: {
           tradersGenerated: traders.length,
           stocksGenerated: stocks.length,
@@ -753,7 +753,7 @@ export class MarketEnvironmentTemplateService {
   async loadTemplates(config: MarketConfig): Promise<TemplateData> {
     // 获取交易员模板ID列表
     const traderTemplateIds = config.traderConfigs.map(tc => tc.templateId)
-    
+
     // 并行加载模板
     const [traderTemplates, stockTemplates] = await Promise.all([
       AITraderTemplate.find({
@@ -779,9 +779,9 @@ export class MarketEnvironmentTemplateService {
       throw new Error(`未找到股票模板: ${missingIds.join(', ')}`)
     }
 
-    return { 
-      traderTemplates: traderTemplates as AITraderTemplateDocument[], 
-      stockTemplates: stockTemplates as StockTemplateDocument[] 
+    return {
+      traderTemplates: traderTemplates as AITraderTemplateDocument[],
+      stockTemplates: stockTemplates as StockTemplateDocument[]
     }
   }
 
@@ -903,7 +903,7 @@ export class MarketEnvironmentTemplateService {
    * @param params - 参数对象
    * @returns 市场环境对象
    */
-  async createMarketEnvironmentObject(params: MarketConfig & { 
+  async createMarketEnvironmentObject(params: MarketConfig & {
     traders: GeneratedTrader[]
     stocks: GeneratedStock[]
     allocationResult: AllocationResult
@@ -1142,7 +1142,7 @@ export class MarketEnvironmentTemplateService {
           ...existingMarket.toObject(),
           ...updateData
         } as MarketConfig
-        
+
         const validation = MarketUtils.validateMarketConfig(config)
         if (!validation.valid) {
           throw new Error(`配置验证失败: ${validation.errors.join(', ')}`)

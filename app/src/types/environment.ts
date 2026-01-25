@@ -69,9 +69,9 @@ export interface CreationProgress {
 }
 
 /**
- * 环境列表UI状态
+ * 市场实例列表UI状态
  */
-export interface EnvironmentListState {
+export interface MarketInstanceListState {
   environments: EnvironmentPreview[];
   isLoading: boolean;
   selectedEnvironment: string | null;
@@ -82,9 +82,9 @@ export interface EnvironmentListState {
 }
 
 /**
- * 环境详情UI状态
+ * 市场实例详情UI状态
  */
-export interface EnvironmentDetailsState {
+export interface MarketInstanceDetailsState {
   environment: EnvironmentDetails | null;
   isLoading: boolean;
   activeTab: 'overview' | 'traders' | 'stocks' | 'logs';
@@ -95,6 +95,10 @@ export interface EnvironmentDetailsState {
     limit: number;
   };
 }
+
+// 保持向后兼容性的别名
+export type EnvironmentListState = MarketInstanceListState;
+export type EnvironmentDetailsState = MarketInstanceDetailsState;
 
 /**
  * 环境管理操作

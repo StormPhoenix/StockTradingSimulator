@@ -5,9 +5,8 @@
  * 这是一个通用的线程池服务，不包含具体的业务逻辑
  */
 
-import { EventEmitter } from 'events';
 import { GenericWorkerThreadPool, createGenericWorkerThreadPool } from '../workers/genericWorkerThreadPool';
-import { BaseTaskPayload, TaskCallback, GenericTaskResponse } from '../workers/types/worker/genericTask';
+import { BaseTaskPayload, TaskCallback, GenericTaskResponse, GenericTaskProgress } from '../workers/types/worker/genericTask';
 import {
   PoolEvents
 } from '../workers/types/worker/poolConfig';
@@ -101,26 +100,16 @@ export class WorkerThreadPoolService {
       }
     });
 
-    this.pool.bind(PoolEvents.TASK_PROGRESS, (event: {
-      workerId: string;
-      taskId: string;
-      taskType: string;
-      progress: {
-        stage: string;
-        percentage: number;
-        message: string;
-        details?: any;
-      };
-    }) => {
+    this.pool.bind(PoolEvents.TASK_PROGRESS, (progress: GenericTaskProgress) => {
       // 触发回调
-      const callback = this.taskCallbacks.get(event.taskId);
+      const callback = this.taskCallbacks.get(progress.taskId);
       if (callback && callback.onTaskProgress) {
         callback.onTaskProgress(
-          event.taskId,
-          event.progress.stage,
-          event.progress.percentage,
-          event.progress.message,
-          event.progress.details
+          progress.taskId,
+          progress.stage,
+          progress.percentage,
+          progress.message,
+          progress.details
         );
       }
     });

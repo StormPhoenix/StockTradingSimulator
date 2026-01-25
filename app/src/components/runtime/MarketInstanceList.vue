@@ -1,8 +1,8 @@
 <template>
-  <div class="environment-list">
+  <div class="market-instance-list">
     <div class="page-header">
-      <h1 class="page-title">环境管理</h1>
-      <p class="page-description">管理您的交易环境实例</p>
+      <h1 class="page-title">市场实例管理</h1>
+      <p class="page-description">管理您的交易市场实例</p>
     </div>
 
     <!-- 工具栏 -->
@@ -10,7 +10,7 @@
       <div class="toolbar-left">
         <el-input
           v-model="state.searchQuery"
-          placeholder="搜索环境..."
+          placeholder="搜索市场实例..."
           prefix-icon="Search"
           class="search-input"
           @input="handleSearch"
@@ -34,7 +34,7 @@
           icon="Plus"
           @click="handleOpenCreateDialog"
         >
-          创建环境
+          创建市场实例
         </el-button>
         <el-button
           icon="Refresh"
@@ -46,25 +46,25 @@
       </div>
     </div>
 
-    <!-- 环境列表 -->
-    <div class="environment-grid" v-loading="state.isLoading">
+    <!-- 市场实例列表 -->
+    <div class="market-instance-grid" v-loading="state.isLoading">
       <div
-        v-for="environment in filteredEnvironments"
-        :key="environment.exchangeId"
-        class="environment-card"
-        @click="handleViewEnvironment(environment.exchangeId)"
+        v-for="marketInstance in filteredMarketInstances"
+        :key="marketInstance.exchangeId"
+        class="market-instance-card"
+        @click="handleViewMarketInstance(marketInstance.exchangeId)"
       >
         <div class="card-header">
-          <div class="environment-info">
-            <h3 class="environment-name">{{ environment.name }}</h3>
-            <p class="environment-description">{{ environment.description }}</p>
+          <div class="market-instance-info">
+            <h3 class="market-instance-name">{{ marketInstance.name }}</h3>
+            <p class="market-instance-description">{{ marketInstance.description }}</p>
           </div>
-          <div class="environment-status">
+          <div class="market-instance-status">
             <el-tag
-              :type="getStatusType(environment.status)"
+              :type="getStatusType(marketInstance.status)"
               class="status-tag"
             >
-              {{ getStatusText(environment.status) }}
+              {{ getStatusText(marketInstance.status) }}
             </el-tag>
           </div>
         </div>
@@ -73,21 +73,21 @@
           <div class="statistics">
             <div class="stat-item">
               <span class="stat-label">交易员</span>
-              <span class="stat-value">{{ environment.statistics.traderCount }}</span>
+              <span class="stat-value">{{ marketInstance.statistics.traderCount }}</span>
             </div>
             <div class="stat-item">
               <span class="stat-label">股票</span>
-              <span class="stat-value">{{ environment.statistics.stockCount }}</span>
+              <span class="stat-value">{{ marketInstance.statistics.stockCount }}</span>
             </div>
             <div class="stat-item">
               <span class="stat-label">总资金</span>
-              <span class="stat-value">¥{{ formatCurrency(environment.statistics.totalCapital) }}</span>
+              <span class="stat-value">¥{{ formatCurrency(marketInstance.statistics.totalCapital) }}</span>
             </div>
           </div>
 
           <div class="template-info">
             <el-tag size="small" type="info">
-              {{ environment.templateInfo.templateName }}
+              {{ marketInstance.templateInfo.templateName }}
             </el-tag>
           </div>
         </div>
@@ -95,10 +95,10 @@
         <div class="card-footer">
           <div class="time-info">
             <span class="created-time">
-              创建于 {{ formatTime(environment.createdAt) }}
+              创建于 {{ formatTime(marketInstance.createdAt) }}
             </span>
             <span class="last-active">
-              最后活跃 {{ formatTime(environment.lastActiveAt) }}
+              最后活跃 {{ formatTime(marketInstance.lastActiveAt) }}
             </span>
           </div>
           <div class="actions">
@@ -106,7 +106,7 @@
               size="small"
               type="primary"
               text
-              @click.stop="handleViewEnvironment(environment.exchangeId)"
+              @click.stop="handleViewMarketInstance(marketInstance.exchangeId)"
             >
               查看详情
             </el-button>
@@ -114,7 +114,7 @@
               size="small"
               type="danger"
               text
-              @click.stop="handleDeleteEnvironment(environment.exchangeId)"
+              @click.stop="handleDeleteMarketInstance(marketInstance.exchangeId)"
             >
               删除
             </el-button>
@@ -123,21 +123,21 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-if="filteredEnvironments.length === 0 && !state.isLoading" class="empty-state">
-        <el-empty description="暂无环境">
+      <div v-if="filteredMarketInstances.length === 0 && !state.isLoading" class="empty-state">
+        <el-empty description="暂无市场实例">
           <el-button type="primary" @click="handleOpenCreateDialog">
-            创建第一个环境
+            创建第一个市场实例
           </el-button>
         </el-empty>
       </div>
     </div>
 
     <!-- 分页 -->
-    <div class="pagination" v-if="filteredEnvironments.length > 0">
+    <div class="pagination" v-if="filteredMarketInstances.length > 0">
       <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
-        :total="filteredEnvironments.length"
+        :total="filteredMarketInstances.length"
         :page-sizes="[12, 24, 48]"
         layout="total, sizes, prev, pager, next, jumper"
         @size-change="handleSizeChange"
@@ -145,16 +145,16 @@
       />
     </div>
 
-    <!-- 创建环境弹窗 -->
+    <!-- 创建市场实例弹窗 -->
     <el-dialog
       v-model="createDialogVisible"
-      title="创建交易环境"
+      title="创建交易市场实例"
       width="600px"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
       @close="handleCloseCreateDialog"
     >
-      <div class="create-environment-form">
+      <div class="create-market-instance-form">
         <el-form
           ref="createFormRef"
           :model="createForm"
@@ -165,7 +165,7 @@
           <el-form-item label="选择模板" prop="templateId">
             <el-select
               v-model="createForm.templateId"
-              placeholder="请选择环境模板"
+              placeholder="请选择市场实例模板"
               style="width: 100%"
               :loading="isLoadingTemplates"
               @change="handleTemplateChange"
@@ -182,7 +182,7 @@
           <el-form-item label="自定义名称" prop="customName">
             <el-input
               v-model="createForm.customName"
-              placeholder="输入环境名称（可选）"
+              placeholder="输入市场实例名称（可选）"
               clearable
             />
           </el-form-item>
@@ -229,11 +229,11 @@
           </el-button>
           <el-button
             type="primary"
-            @click="handleCreateEnvironment"
+            @click="handleCreateMarketInstance"
             :loading="isCreating"
-            :disabled="!canCreateEnvironment"
+            :disabled="!canCreateMarketInstance"
           >
-            {{ isCreating ? '创建中...' : '创建环境' }}
+            {{ isCreating ? '创建中...' : '创建市场实例' }}
           </el-button>
         </div>
       </template>
@@ -248,7 +248,7 @@ import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
 import type { 
   EnvironmentPreview, 
   EnvironmentStatus,
-  EnvironmentListState 
+  MarketInstanceListState 
 } from '@/types/environment';
 import { EnvironmentService } from '@/services/environmentApi';
 import templateService from '@/services/templateService';
@@ -256,7 +256,7 @@ import templateService from '@/services/templateService';
 const router = useRouter();
 
 // 响应式状态
-const state = reactive<EnvironmentListState>({
+const state = reactive<MarketInstanceListState>({
   environments: [],
   isLoading: false,
   selectedEnvironment: null,
@@ -270,14 +270,14 @@ const state = reactive<EnvironmentListState>({
 const currentPage = ref(1);
 const pageSize = ref(12);
 
-// 创建环境弹窗状态
+// 创建市场实例弹窗状态
 const createDialogVisible = ref(false);
 const createFormRef = ref<FormInstance>();
 const isLoadingTemplates = ref(false);
 const isCreating = ref(false);
 const availableTemplates = ref<any[]>([]);
 
-// 创建环境表单
+// 创建市场实例表单
 const createForm = reactive({
   templateId: '',
   customName: ''
@@ -286,15 +286,15 @@ const createForm = reactive({
 // 表单验证规则
 const createFormRules = {
   templateId: [
-    { required: true, message: '请选择环境模板', trigger: 'change' }
+    { required: true, message: '请选择市场实例模板', trigger: 'change' }
   ]
 };
 
 // 计算属性
-const filteredEnvironments = computed(() => {
+const filteredMarketInstances = computed(() => {
   // 确保 environments 是一个数组
-  const environments = Array.isArray(state.environments) ? state.environments : [];
-  let filtered = [...environments];
+  const marketInstances = Array.isArray(state.environments) ? state.environments : [];
+  let filtered = [...marketInstances];
 
   // 状态筛选
   if (state.filterStatus !== 'all') {
@@ -337,20 +337,20 @@ const selectedTemplate = computed(() => {
   return availableTemplates.value.find(t => t.id === createForm.templateId);
 });
 
-const canCreateEnvironment = computed(() => {
+const canCreateMarketInstance = computed(() => {
   return createForm.templateId && !isCreating.value;
 });
 
 // 方法
-const loadEnvironments = async () => {
+const loadMarketInstances = async () => {
   try {
     state.isLoading = true;
     const response = await EnvironmentService.getAll();
     // 确保 environments 是一个数组
     state.environments = Array.isArray(response.environments) ? response.environments : [];
   } catch (error) {
-    console.error('Failed to load environments:', error);
-    ElMessage.error('加载环境列表失败');
+    console.error('Failed to load market instances:', error);
+    ElMessage.error('加载市场实例列表失败');
     // 发生错误时确保 environments 是空数组
     state.environments = [];
   } finally {
@@ -398,10 +398,10 @@ const handleFilterChange = () => {
 };
 
 const handleRefresh = () => {
-  loadEnvironments();
+  loadMarketInstances();
 };
 
-const handleCreateEnvironment = async () => {
+const handleCreateMarketInstance = async () => {
   if (!createFormRef.value) return;
   
   try {
@@ -411,15 +411,15 @@ const handleCreateEnvironment = async () => {
     isCreating.value = true;
     
     await EnvironmentService.create(createForm.templateId, createForm.customName || undefined);
-    ElMessage.success('环境创建成功');
+    ElMessage.success('市场实例创建成功');
     
     // 关闭弹窗并重新加载列表
     createDialogVisible.value = false;
     resetCreateForm();
-    await loadEnvironments();
+    await loadMarketInstances();
   } catch (error) {
-    console.error('Failed to create environment:', error);
-    ElMessage.error('创建环境失败');
+    console.error('Failed to create market instance:', error);
+    ElMessage.error('创建市场实例失败');
   } finally {
     isCreating.value = false;
   }
@@ -432,7 +432,7 @@ const handleOpenCreateDialog = async () => {
 
 const handleCloseCreateDialog = () => {
   if (isCreating.value) {
-    ElMessage.warning('环境创建中，请稍候...');
+    ElMessage.warning('市场实例创建中，请稍候...');
     return;
   }
   createDialogVisible.value = false;
@@ -451,14 +451,14 @@ const resetCreateForm = () => {
   }
 };
 
-const handleViewEnvironment = (environmentId: string) => {
-  router.push(`/environments/${environmentId}`);
+const handleViewMarketInstance = (marketInstanceId: string) => {
+  router.push(`/environments/${marketInstanceId}`);
 };
 
-const handleDeleteEnvironment = async (environmentId: string) => {
+const handleDeleteMarketInstance = async (marketInstanceId: string) => {
   try {
     await ElMessageBox.confirm(
-      '确定要删除这个环境吗？此操作不可恢复。',
+      '确定要删除这个市场实例吗？此操作不可恢复。',
       '确认删除',
       {
         confirmButtonText: '删除',
@@ -467,13 +467,13 @@ const handleDeleteEnvironment = async (environmentId: string) => {
       }
     );
 
-    await EnvironmentService.destroy(environmentId);
-    ElMessage.success('环境删除成功');
-    await loadEnvironments();
+    await EnvironmentService.destroy(marketInstanceId);
+    ElMessage.success('市场实例删除成功');
+    await loadMarketInstances();
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('Failed to delete environment:', error);
-      ElMessage.error('删除环境失败');
+      console.error('Failed to delete market instance:', error);
+      ElMessage.error('删除市场实例失败');
     }
   }
 };
@@ -537,12 +537,12 @@ const getDifficultyTagType = (difficulty: string) => {
 
 // 生命周期
 onMounted(() => {
-  loadEnvironments();
+  loadMarketInstances();
 });
 </script>
 
 <style scoped>
-.environment-list {
+.market-instance-list {
   padding: 24px;
   background-color: #f5f5f5;
   min-height: 100vh;
@@ -595,14 +595,14 @@ onMounted(() => {
   gap: 12px;
 }
 
-.environment-grid {
+.market-instance-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: 24px;
   margin-bottom: 24px;
 }
 
-.environment-card {
+.market-instance-card {
   background: white;
   border-radius: 12px;
   padding: 20px;
@@ -612,7 +612,7 @@ onMounted(() => {
   border: 1px solid #e1e8ed;
 }
 
-.environment-card:hover {
+.market-instance-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
@@ -624,25 +624,25 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
-.environment-info {
+.market-instance-info {
   flex: 1;
 }
 
-.environment-name {
+.market-instance-name {
   font-size: 18px;
   font-weight: 600;
   color: #2c3e50;
   margin: 0 0 4px 0;
 }
 
-.environment-description {
+.market-instance-description {
   font-size: 14px;
   color: #7f8c8d;
   margin: 0;
   line-height: 1.4;
 }
 
-.environment-status {
+.market-instance-status {
   margin-left: 16px;
 }
 
@@ -726,7 +726,7 @@ onMounted(() => {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .environment-list {
+  .market-instance-list {
     padding: 16px;
   }
 
@@ -745,7 +745,7 @@ onMounted(() => {
     width: 100%;
   }
 
-  .environment-grid {
+  .market-instance-grid {
     grid-template-columns: 1fr;
     gap: 16px;
   }
@@ -766,8 +766,8 @@ onMounted(() => {
   }
 }
 
-/* 创建环境弹窗样式 */
-.create-environment-form {
+/* 创建市场实例弹窗样式 */
+.create-market-instance-form {
   padding: 8px 0;
 }
 

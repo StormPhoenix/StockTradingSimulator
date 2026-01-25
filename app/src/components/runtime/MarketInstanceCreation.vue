@@ -1,21 +1,21 @@
 <template>
-  <div class="environment-creation">
+  <div class="market-instance-creation">
     <div class="creation-container">
       <!-- Header -->
       <div class="creation-header">
-        <h1 class="creation-title">Create Market Environment</h1>
+        <h1 class="creation-title">Create Market Instance</h1>
         <p class="creation-subtitle">
-          Select a template to create a new trading simulation environment
+          Select a template to create a new trading simulation market instance
         </p>
       </div>
 
       <!-- Creation Form -->
       <div v-if="!isCreating && !currentProgress" class="creation-form">
-        <form @submit.prevent="handleCreateEnvironment">
+        <form @submit.prevent="handleCreateMarketInstance">
           <!-- Template Selection -->
           <div class="form-group">
             <label for="template-select" class="form-label">
-              Market Environment Template
+              Market Instance Template
             </label>
             <select
               id="template-select"
@@ -51,14 +51,14 @@
             </div>
           </div>
 
-          <!-- Environment Name (Optional) -->
+          <!-- Market Instance Name (Optional) -->
           <div class="form-group">
-            <label for="environment-name" class="form-label">
-              Environment Name (Optional)
+            <label for="market-instance-name" class="form-label">
+              Market Instance Name (Optional)
             </label>
             <input
-              id="environment-name"
-              v-model="environmentName"
+              id="market-instance-name"
+              v-model="marketInstanceName"
               type="text"
               class="form-input"
               placeholder="Enter custom name or leave blank for auto-generated name"
@@ -74,7 +74,7 @@
               :disabled="!selectedTemplateId || isLoading"
             >
               <span v-if="isLoading" class="btn-spinner"></span>
-              {{ isLoading ? 'Loading Templates...' : 'Create Environment' }}
+              {{ isLoading ? 'Loading Templates...' : 'Create Market Instance' }}
             </button>
           </div>
         </form>
@@ -114,8 +114,8 @@
 
         <!-- Success Actions -->
         <div v-if="isCompleted && !currentProgress?.error" class="success-actions">
-          <button @click="viewEnvironment" class="btn-primary">
-            View Environment
+          <button @click="viewMarketInstance" class="btn-primary">
+            View Market Instance
           </button>
           <button @click="createAnother" class="btn-secondary">
             Create Another
@@ -140,8 +140,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import ProgressTracker from './ProgressTracker.vue';
-import { environmentApi } from '../services/environmentApi';
-import type { MarketTemplate, CreationProgress } from '../types/environment';
+import { environmentApi } from '../../services/environmentApi';
+import type { MarketTemplate, CreationProgress } from '../../types/environment';
 
 // Router
 const router = useRouter();
@@ -149,7 +149,7 @@ const router = useRouter();
 // Reactive state
 const templates = ref<MarketTemplate[]>([]);
 const selectedTemplateId = ref<string>('');
-const environmentName = ref<string>('');
+const marketInstanceName = ref<string>('');
 const isLoading = ref<boolean>(false);
 const isCreating = ref<boolean>(false);
 const error = ref<string>('');
@@ -182,7 +182,7 @@ const loadTemplates = async (): Promise<void> => {
   }
 };
 
-const handleCreateEnvironment = async (): Promise<void> => {
+const handleCreateMarketInstance = async (): Promise<void> => {
   if (!selectedTemplateId.value) return;
 
   isCreating.value = true;
@@ -192,7 +192,7 @@ const handleCreateEnvironment = async (): Promise<void> => {
   try {
     const response = await environmentApi.createEnvironment({
       templateId: selectedTemplateId.value,
-      name: environmentName.value || undefined
+      name: marketInstanceName.value || undefined
     });
 
     currentRequestId.value = response.requestId;
@@ -200,8 +200,8 @@ const handleCreateEnvironment = async (): Promise<void> => {
 
   } catch (err) {
     isCreating.value = false;
-    error.value = err instanceof Error ? err.message : 'Failed to create environment';
-    console.error('Failed to create environment:', err);
+    error.value = err instanceof Error ? err.message : 'Failed to create market instance';
+    console.error('Failed to create market instance:', err);
   }
 };
 
@@ -271,22 +271,22 @@ const cancelCreation = (): void => {
 const retryCreation = (): void => {
   currentProgress.value = null;
   currentRequestId.value = '';
-  handleCreateEnvironment();
+  handleCreateMarketInstance();
 };
 
 const createAnother = (): void => {
   // Reset form
   selectedTemplateId.value = '';
-  environmentName.value = '';
+  marketInstanceName.value = '';
   currentProgress.value = null;
   currentRequestId.value = '';
   isCreating.value = false;
   error.value = '';
 };
 
-const viewEnvironment = (): void => {
+const viewMarketInstance = (): void => {
   if (currentProgress.value?.requestId) {
-    // Navigate to environment details (assuming we have the environment ID)
+    // Navigate to market instance details (assuming we have the market instance ID)
     router.push(`/environments`);
   }
 };
@@ -302,7 +302,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.environment-creation {
+.market-instance-creation {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 20px;
@@ -591,7 +591,7 @@ onUnmounted(() => {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .environment-creation {
+  .market-instance-creation {
     padding: 16px;
   }
 

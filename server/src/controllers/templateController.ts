@@ -105,14 +105,14 @@ class TemplateController {
     // 使用新的市场环境模板服务
   }
   // ==================== 股票模板管理 ====================
-  
+
   /**
    * 获取所有股票模板
    */
   async getStockTemplates(req: Request<{}, {}, {}, StockTemplateQueryParams>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { page = '1', limit = '10', status, category, search } = req.query
-      
+
       const options = {
         page: parseInt(page, 10),
         limit: parseInt(limit, 10),
@@ -120,9 +120,9 @@ class TemplateController {
         category,
         search
       }
-      
+
       const result = await stockTemplateService.getAll(options)
-      
+
       res.json({
         success: true,
         data: result.templates,
@@ -132,7 +132,7 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 根据ID获取股票模板
    */
@@ -140,7 +140,7 @@ class TemplateController {
     try {
       const { id } = req.params
       const template = await stockTemplateService.getById(id)
-      
+
       if (!template) {
         res.status(404).json({
           success: false,
@@ -148,7 +148,7 @@ class TemplateController {
         })
         return
       }
-      
+
       res.json({
         success: true,
         data: template
@@ -157,7 +157,7 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 创建股票模板
    */
@@ -173,9 +173,9 @@ class TemplateController {
         })
         return
       }
-      
+
       const template = await stockTemplateService.create(req.body)
-      
+
       res.status(201).json({
         success: true,
         data: template,
@@ -192,14 +192,14 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 更新股票模板
    */
   async updateStockTemplate(req: Request<{ id: string }, {}, Partial<StockTemplateRequest>>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params
-      
+
       // 数据验证
       const validation = validateStockTemplate(req.body)
       if (!validation.isValid) {
@@ -210,9 +210,9 @@ class TemplateController {
         })
         return
       }
-      
+
       const template = await stockTemplateService.update(id, req.body)
-      
+
       if (!template) {
         res.status(404).json({
           success: false,
@@ -220,7 +220,7 @@ class TemplateController {
         })
         return
       }
-      
+
       res.json({
         success: true,
         data: template,
@@ -237,7 +237,7 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 删除股票模板
    */
@@ -245,7 +245,7 @@ class TemplateController {
     try {
       const { id } = req.params
       const result = await stockTemplateService.delete(id)
-      
+
       if (!result) {
         res.status(404).json({
           success: false,
@@ -253,7 +253,7 @@ class TemplateController {
         })
         return
       }
-      
+
       res.json({
         success: true,
         message: '股票模板删除成功'
@@ -262,16 +262,16 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   // ==================== AI交易员模板管理 ====================
-  
+
   /**
    * 获取所有AI交易员模板
    */
   async getTraderTemplates(req: Request<{}, {}, {}, TraderTemplateQueryParams>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { page = '1', limit = '10', status, riskProfile, search } = req.query
-      
+
       const options = {
         page: parseInt(page, 10),
         limit: parseInt(limit, 10),
@@ -279,9 +279,9 @@ class TemplateController {
         riskProfile: riskProfile as any,
         search
       }
-      
+
       const result = await aiTraderTemplateService.getAll(options)
-      
+
       res.json({
         success: true,
         data: result.templates,
@@ -291,7 +291,7 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 根据ID获取AI交易员模板
    */
@@ -299,7 +299,7 @@ class TemplateController {
     try {
       const { id } = req.params
       const template = await aiTraderTemplateService.getById(id)
-      
+
       if (!template) {
         res.status(404).json({
           success: false,
@@ -307,7 +307,7 @@ class TemplateController {
         })
         return
       }
-      
+
       res.json({
         success: true,
         data: template
@@ -316,7 +316,7 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 创建AI交易员模板
    */
@@ -332,9 +332,9 @@ class TemplateController {
         })
         return
       }
-      
+
       const template = await aiTraderTemplateService.create(req.body as any)
-      
+
       res.status(201).json({
         success: true,
         data: template,
@@ -344,14 +344,14 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 更新AI交易员模板
    */
   async updateTraderTemplate(req: Request<{ id: string }, {}, Partial<TraderTemplateRequest>>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params
-      
+
       // 数据验证
       const validation = validateTraderTemplate(req.body)
       if (!validation.isValid) {
@@ -362,9 +362,9 @@ class TemplateController {
         })
         return
       }
-      
+
       const template = await aiTraderTemplateService.update(id, req.body as any)
-      
+
       if (!template) {
         res.status(404).json({
           success: false,
@@ -372,7 +372,7 @@ class TemplateController {
         })
         return
       }
-      
+
       res.json({
         success: true,
         data: template,
@@ -382,7 +382,7 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 删除AI交易员模板
    */
@@ -390,7 +390,7 @@ class TemplateController {
     try {
       const { id } = req.params
       const result = await aiTraderTemplateService.delete(id)
-      
+
       if (!result) {
         res.status(404).json({
           success: false,
@@ -398,7 +398,7 @@ class TemplateController {
         })
         return
       }
-      
+
       res.json({
         success: true,
         message: 'AI交易员模板删除成功'
@@ -407,9 +407,9 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   // ==================== 市场环境模板管理 ====================
-  
+
   /**
    * 获取市场环境列表
    * GET /api/templates/markets
@@ -417,7 +417,7 @@ class TemplateController {
   async getMarketEnvironments(req: Request<{}, {}, {}, MarketEnvironmentQueryParams>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { page, limit, sort, order, populate, search } = req.query
-      
+
       // 构建查询条件
       const query: any = {}
       if (search) {
@@ -436,7 +436,7 @@ class TemplateController {
       }
 
       const result = await marketEnvironmentTemplateService.getMarketEnvironments(query, options)
-      
+
       res.json({
         success: true,
         data: result.data?.data || [],
@@ -446,7 +446,7 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 根据ID获取市场环境详情
    * GET /api/templates/markets/:id
@@ -454,7 +454,7 @@ class TemplateController {
   async getMarketEnvironmentById(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await marketEnvironmentTemplateService.getMarketEnvironmentById(req.params.id)
-      
+
       res.json({
         success: true,
         data: result.data
@@ -463,12 +463,12 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 创建市场环境
    * POST /api/templates/markets
    */
-  async createMarketEnvironment(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async createMarketTemplate(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const config = {
         ...req.body,
@@ -476,19 +476,19 @@ class TemplateController {
       }
 
       const result = await marketEnvironmentTemplateService.createMarketEnvironment(config)
-      
+
       res.status(201).json({
         success: true,
         data: result.data,
         statistics: result.statistics,
         warnings: result.warnings,
-        message: '市场环境创建成功'
+        message: '市场模板创建成功'
       })
     } catch (error) {
       next(error)
     }
   }
-  
+
   /**
    * 更新市场环境
    * PUT /api/templates/markets/:id
@@ -501,7 +501,7 @@ class TemplateController {
       }
 
       const result = await marketEnvironmentTemplateService.updateMarketEnvironment(req.params.id, updateData)
-      
+
       res.json({
         success: true,
         data: result.data,
@@ -511,7 +511,7 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 删除市场环境
    * DELETE /api/templates/markets/:id
@@ -519,7 +519,7 @@ class TemplateController {
   async deleteMarketEnvironment(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await marketEnvironmentTemplateService.deleteMarketEnvironment(req.params.id)
-      
+
       res.json({
         success: true,
         message: result.message
@@ -528,7 +528,7 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 导出市场环境数据
    * GET /api/templates/markets/:id/export
@@ -536,12 +536,12 @@ class TemplateController {
   async exportMarketEnvironment(req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await marketEnvironmentTemplateService.exportMarketEnvironment(req.params.id)
-      
+
       // 设置下载响应头
       res.setHeader('Content-Type', 'application/json; charset=utf-8')
       res.setHeader('Content-Disposition', `attachment; filename="${result.data?.filename || 'export.json'}"`)
       res.setHeader('Cache-Control', 'no-cache')
-      
+
       // 返回前端期望的格式：{ success: true, data: exportData, filename: string }
       res.json({
         success: result.success,
@@ -561,7 +561,7 @@ class TemplateController {
     try {
       const marketResult = await marketEnvironmentTemplateService.getMarketEnvironmentById(req.params.id)
       const validation = marketEnvironmentTemplateService.validateMarketEnvironment(marketResult.data as any)
-      
+
       res.json({
         success: true,
         data: {
@@ -576,14 +576,14 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 批量导出市场环境数据
    */
   async batchExportMarketEnvironments(req: Request<{}, {}, BatchExportRequest>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { ids } = req.body
-      
+
       if (!Array.isArray(ids) || ids.length === 0) {
         res.status(400).json({
           success: false,
@@ -591,15 +591,15 @@ class TemplateController {
         })
         return
       }
-      
+
       // Export each market environment individually since batch export doesn't exist
       const exportPromises = ids.map(id => marketEnvironmentTemplateService.exportMarketEnvironment(id))
       const results = await Promise.allSettled(exportPromises)
-      
+
       const successfulExports = results
         .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
         .map(result => result.value.data)
-      
+
       res.json({
         success: true,
         data: successfulExports,
@@ -609,7 +609,7 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 获取市场统计摘要
    * GET /api/templates/markets/stats/summary
@@ -618,7 +618,7 @@ class TemplateController {
     try {
       const result = await marketEnvironmentTemplateService.getMarketEnvironments({}, { limit: 1000 })
       const markets = result.data?.data || []
-      
+
       const summary = {
         totalMarkets: markets.length,
         totalTraders: 0,
@@ -690,7 +690,7 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 获取市场环境趋势数据
    * GET /api/templates/markets/stats/trends
@@ -698,11 +698,11 @@ class TemplateController {
   async getMarketTrends(req: Request<{}, {}, {}, TrendQueryParams>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { period = '30d' } = req.query
-      
+
       // 计算时间范围
       const now = new Date()
       let startDate: Date
-      
+
       switch (period) {
         case '7d':
           startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -723,7 +723,7 @@ class TemplateController {
 
       const result = await marketEnvironmentTemplateService.getMarketEnvironments(query, { limit: 1000 })
       const markets = result.data?.data || []
-      
+
       // 按日期分组统计
       const trends: Record<string, any> = {}
       markets.forEach((market: any) => {
@@ -737,7 +737,7 @@ class TemplateController {
             totalCapital: 0
           }
         }
-        
+
         trends[date].count++
         trends[date].totalTraders += market.statistics?.traderCount || 0
         trends[date].totalStocks += market.statistics?.stockCount || 0
@@ -762,7 +762,7 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 批量删除市场环境
    * DELETE /api/templates/markets/batch
@@ -770,7 +770,7 @@ class TemplateController {
   async batchDeleteMarketEnvironments(req: Request<{}, {}, BatchDeleteMarketRequest>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { ids } = req.body
-      
+
       if (!Array.isArray(ids) || ids.length === 0) {
         res.status(400).json({
           success: false,
@@ -810,16 +810,16 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   // ==================== 批量操作 ====================
-  
+
   /**
    * 批量删除模板
    */
   async batchDeleteTemplates(req: Request<{}, {}, BatchDeleteRequest>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { type, ids } = req.body
-      
+
       if (!type || !Array.isArray(ids) || ids.length === 0) {
         res.status(400).json({
           success: false,
@@ -827,7 +827,7 @@ class TemplateController {
         })
         return
       }
-      
+
       let result: any
       if (type === 'stock') {
         // Use individual delete calls since batchDelete doesn't exist
@@ -851,7 +851,7 @@ class TemplateController {
         })
         return
       }
-      
+
       res.json({
         success: true,
         data: result,
@@ -861,14 +861,14 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   /**
    * 批量更新模板状态
    */
   async batchUpdateTemplateStatus(req: Request<{}, {}, BatchUpdateStatusRequest>, res: Response, next: NextFunction): Promise<void> {
     try {
       const { type, ids, status } = req.body
-      
+
       if (!type || !Array.isArray(ids) || ids.length === 0 || !status) {
         res.status(400).json({
           success: false,
@@ -876,7 +876,7 @@ class TemplateController {
         })
         return
       }
-      
+
       if (!['active', 'inactive'].includes(status)) {
         res.status(400).json({
           success: false,
@@ -884,7 +884,7 @@ class TemplateController {
         })
         return
       }
-      
+
       let result: any
       if (type === 'stock') {
         // Use individual update calls since batchUpdateStatus doesn't exist
@@ -908,7 +908,7 @@ class TemplateController {
         })
         return
       }
-      
+
       res.json({
         success: true,
         data: result,
@@ -918,9 +918,9 @@ class TemplateController {
       next(error)
     }
   }
-  
+
   // ==================== 统计信息 ====================
-  
+
   /**
    * 获取模板统计信息
    */
@@ -930,25 +930,25 @@ class TemplateController {
       const stockTemplates = await stockTemplateService.getAll({ page: 1, limit: 1000 })
       const traderTemplates = await aiTraderTemplateService.getAll({ page: 1, limit: 1000 })
       const marketEnvironments = await marketEnvironmentTemplateService.getMarketEnvironments({}, { page: 1, limit: 1000, sort: { createdAt: -1 }, populate: false })
-      
+
       const stockStats = {
         total: stockTemplates.pagination.total,
         active: stockTemplates.templates.filter((t: any) => t.status === 'active').length,
         inactive: stockTemplates.templates.filter((t: any) => t.status === 'inactive').length
       }
-      
+
       const traderStats = {
         total: traderTemplates.pagination.total,
         active: traderTemplates.templates.filter((t: any) => t.status === 'active').length,
         inactive: traderTemplates.templates.filter((t: any) => t.status === 'inactive').length
       }
-      
+
       const marketStats = {
         total: marketEnvironments.data?.pagination?.total || 0,
         active: (marketEnvironments.data?.data as any[])?.filter((m: any) => m.status === 'active').length || 0,
         inactive: (marketEnvironments.data?.data as any[])?.filter((m: any) => m.status === 'inactive').length || 0
       }
-      
+
       const stats = {
         stock: stockStats,
         trader: traderStats,
@@ -959,7 +959,7 @@ class TemplateController {
           inactive: stockStats.inactive + traderStats.inactive + marketStats.inactive
         }
       }
-      
+
       res.json({
         success: true,
         data: stats

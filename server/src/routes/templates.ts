@@ -84,7 +84,7 @@ router.get('/', (_req: Request, res: Response): void => {
         },
         traders: {
           list: 'GET /traders',
-          detail: 'GET /traders/:id', 
+          detail: 'GET /traders/:id',
           create: 'POST /traders',
           update: 'PUT /traders/:id',
           delete: 'DELETE /traders/:id'
@@ -128,7 +128,7 @@ router.get('/stocks/:id', templateController.getStockTemplateById)
  * @route POST /api/templates/stocks
  * @desc 创建新的股票模板
  */
-router.post('/stocks', 
+router.post('/stocks',
   validateRequest({ body: commonSchemas.stockTemplate }),
   templateController.createStockTemplate
 )
@@ -224,7 +224,7 @@ router.get('/markets/:id', templateController.getMarketEnvironmentById)
  */
 router.post('/markets',
   validateRequest({ body: createMarketSchema }),
-  templateController.createMarketEnvironment
+  templateController.createMarketTemplate
 )
 
 /**
@@ -306,7 +306,7 @@ router.param('id', (_req: Request, res: Response, next: NextFunction, id: string
  */
 router.use((error: any, _req: Request, res: Response, next: NextFunction): void => {
   console.error('Template Route Error:', error)
-  
+
   // 数据库连接错误
   if (error.name === 'MongoError' || error.name === 'MongooseError') {
     res.status(503).json({
@@ -316,7 +316,7 @@ router.use((error: any, _req: Request, res: Response, next: NextFunction): void 
     })
     return
   }
-  
+
   // 验证错误
   if (error.name === 'ValidationError') {
     res.status(400).json({
@@ -326,7 +326,7 @@ router.use((error: any, _req: Request, res: Response, next: NextFunction): void 
     })
     return
   }
-  
+
   // 转换错误
   if (error.name === 'CastError') {
     res.status(400).json({
@@ -335,7 +335,7 @@ router.use((error: any, _req: Request, res: Response, next: NextFunction): void 
     })
     return
   }
-  
+
   // 默认错误处理
   next(error)
 })

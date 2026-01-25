@@ -67,18 +67,18 @@ const routes: RouteRecordRaw[] = [
       {
         path: '',
         name: 'EnvironmentList',
-        component: () => import('@/components/EnvironmentList.vue'),
+        component: () => import('@/components/runtime/MarketInstanceList.vue'),
         meta: {
-          title: '环境管理',
+          title: '市场实例管理',
           icon: 'Grid',
         } as RouteMeta,
       },
       {
         path: ':id',
         name: 'EnvironmentDetails',
-        component: () => import('@/components/EnvironmentDetails.vue'),
+        component: () => import('@/components/runtime/MarketInstanceDetails.vue'),
         meta: {
-          title: '环境详情',
+          title: '市场实例详情',
           icon: 'View',
         } as RouteMeta,
       },

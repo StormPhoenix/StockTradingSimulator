@@ -9,6 +9,7 @@ import { GenericWorkerWrapper } from './genericWorkerWrapper';
 import {
   GenericTaskRequest,
   GenericTaskResponse,
+  GenericTaskProgress,
   BaseTaskPayload,
   TaskError
 } from './types/worker/genericTask';
@@ -54,17 +55,7 @@ export interface GenericWorkerThreadPoolEventData extends Record<PoolEvents, any
   ];
 
   [PoolEvents.TASK_PROGRESS]: [
-    data: {
-      workerId: string;
-      taskId: string;
-      taskType: string;
-      progress: {
-        stage: string;
-        percentage: number;
-        message: string;
-        details?: any;
-      };
-    }
+    progress: GenericTaskProgress
   ];
 
   [PoolEvents.WORKER_CREATED]: [
@@ -188,13 +179,8 @@ export class GenericWorkerThreadPool extends TypedEventEmitter<GenericWorkerThre
       this.handleTaskFailed({ workerId, taskId, taskType, error });
     });
 
-    worker.bind(WorkerEvent.TASK_PROGRESS, (workerId: string, taskId: string, taskType: string, progress: {
-      stage: string;
-      percentage: number;
-      message: string;
-      details?: any;
-    }) => {
-      this.handleTaskProgress({ workerId, taskId, taskType, progress });
+    worker.bind(WorkerEvent.TASK_PROGRESS, (progress: GenericTaskProgress) => {
+      this.handleTaskProgress(progress);
     });
 
     worker.bind(WorkerEvent.TASK_STARTED, (workerId: string, taskId: string, taskType: string) => {
@@ -246,9 +232,8 @@ export class GenericWorkerThreadPool extends TypedEventEmitter<GenericWorkerThre
   /**
    * 处理任务进度
    */
-  private handleTaskProgress(event: any): void {
-
-    this.broadcast(PoolEvents.TASK_PROGRESS, event);
+  private handleTaskProgress(progress: GenericTaskProgress): void {
+    this.broadcast(PoolEvents.TASK_PROGRESS, progress);
   }
 
   /**

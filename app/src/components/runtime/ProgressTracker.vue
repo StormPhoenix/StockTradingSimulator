@@ -75,7 +75,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { CreationProgress } from '../types/environment';
+import type { CreationProgress } from '../../types/environment';
 
 // Props
 interface Props {
