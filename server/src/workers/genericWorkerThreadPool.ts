@@ -9,7 +9,8 @@ import { join } from 'path';
 import { GenericWorkerWrapper } from './genericWorkerWrapper';
 import {
   GenericTaskRequest,
-  BaseTaskPayload
+  BaseTaskPayload,
+  TaskError
 } from './types/worker/genericTask';
 import {
   PoolConfig,
@@ -69,7 +70,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
     }
 
     this.taskQueue.push(request);
-    
+
     // 发出任务提交事件
     this.emit(PoolEvents.TASK_SUBMITTED, {
       taskId: request.taskId,
@@ -94,34 +95,39 @@ export class GenericWorkerThreadPool extends EventEmitter {
    */
   private createWorker(id: string): void {
     const worker = new GenericWorkerWrapper(id, this.workerScript, this.config);
-    
+
     // 设置事件监听器
-    worker.on(PoolEvents.TASK_COMPLETED, (event) => {
-      this.handleTaskCompleted(event);
+    worker.bind(PoolEvents.TASK_COMPLETED, (workerId: string, taskId: string, taskType: string, result: any) => {
+      this.handleTaskCompleted({ workerId, taskId, taskType, result });
     });
-    
-    worker.on(PoolEvents.TASK_FAILED, (event) => {
-      this.handleTaskFailed(event);
+
+    worker.bind(PoolEvents.TASK_FAILED, (workerId: string, taskId: string, taskType: string, error: TaskError) => {
+      this.handleTaskFailed({ workerId, taskId, taskType, error });
     });
-    
-    worker.on(PoolEvents.TASK_PROGRESS, (event) => {
-      this.handleTaskProgress(event);
+
+    worker.bind(PoolEvents.TASK_PROGRESS, (workerId: string, taskId: string, taskType: string, progress: {
+      stage: string;
+      percentage: number;
+      message: string;
+      details?: any;
+    }) => {
+      this.handleTaskProgress({ workerId, taskId, taskType, progress });
     });
-    
-    worker.on(PoolEvents.TASK_STARTED, (event) => {
-      this.emit(PoolEvents.TASK_STARTED, event);
+
+    worker.bind(PoolEvents.TASK_STARTED, (workerId: string, taskId: string, taskType: string) => {
+      this.emit(PoolEvents.TASK_STARTED, { workerId, taskId, taskType });
     });
-    
-    worker.on(PoolEvents.WORKER_TIMEOUT, (event) => {
-      this.handleWorkerTimeout(event);
+
+    worker.bind(PoolEvents.WORKER_TIMEOUT, (workerId: string, taskId?: string) => {
+      this.handleWorkerTimeout({ workerId, taskId });
     });
-    
-    worker.on(PoolEvents.WORKER_ERROR, (event) => {
-      this.handleWorkerError(event);
+
+    worker.bind(PoolEvents.WORKER_ERROR, (workerId: string, taskId: string, error: TaskError) => {
+      this.handleWorkerError({ workerId, taskId, error });
     });
 
     this.workers.set(id, worker);
-    
+
     this.emit(PoolEvents.WORKER_CREATED, {
       workerId: id
     });
@@ -132,7 +138,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
    */
   private handleTaskCompleted(event: any): void {
     this.activeTasks.delete(event.taskId);
-    
+
     try {
       const businessResponse = event.result;
       this.emit(PoolEvents.TASK_COMPLETED, {
@@ -143,7 +149,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
       console.error('Error adapting response:', error);
       this.emit(PoolEvents.TASK_COMPLETED, event);
     }
-    
+
     this.processQueue();
   }
 
@@ -152,7 +158,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
    */
   private handleTaskFailed(event: any): void {
     this.activeTasks.delete(event.taskId);
-    
+
     this.emit(PoolEvents.TASK_FAILED, event);
     this.processQueue();
   }
@@ -161,7 +167,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
    * 处理任务进度
    */
   private handleTaskProgress(event: any): void {
-    
+
     this.emit(PoolEvents.TASK_PROGRESS, event);
   }
 
@@ -172,9 +178,9 @@ export class GenericWorkerThreadPool extends EventEmitter {
     if (event.taskId) {
       this.activeTasks.delete(event.taskId);
     }
-    
+
     this.emit(PoolEvents.WORKER_TIMEOUT, event);
-    
+
     // 重启超时的 Worker
     this.restartWorker(event.workerId);
     this.processQueue();
@@ -187,9 +193,9 @@ export class GenericWorkerThreadPool extends EventEmitter {
     if (event.taskId) {
       this.activeTasks.delete(event.taskId);
     }
-    
+
     this.emit(PoolEvents.WORKER_ERROR, event);
-    
+
     // 重启错误的 Worker
     this.restartWorker(event.workerId);
     this.processQueue();
@@ -204,7 +210,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
       await worker.terminate();
       this.workers.delete(workerId);
     }
-    
+
     // 创建新的 Worker
     this.createWorker(workerId);
   }
@@ -233,7 +239,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
     // 分配任务
     const request = this.taskQueue.shift()!;
     this.activeTasks.set(request.taskId, idleWorker.id);
-    
+
     idleWorker.executeTask(request).catch((error) => {
       this.emit(PoolEvents.WORKER_ERROR, {
         workerId: idleWorker.id,
@@ -262,7 +268,7 @@ export class GenericWorkerThreadPool extends EventEmitter {
    */
   public getPoolStatus(): PoolStatus {
     const workers = Array.from(this.workers.values());
-    
+
     return {
       totalWorkers: workers.length,
       idleWorkers: workers.filter(w => w.status === WorkerThreadStatus.IDLE).length,
@@ -280,11 +286,11 @@ export class GenericWorkerThreadPool extends EventEmitter {
   public async shutdown(): Promise<void> {
     // 清空队列
     this.taskQueue = [];
-    
+
     // 终止所有 Worker
     const terminatePromises = Array.from(this.workers.values())
       .map(worker => worker.terminate());
-    
+
     await Promise.all(terminatePromises);
     this.workers.clear();
     this.activeTasks.clear();

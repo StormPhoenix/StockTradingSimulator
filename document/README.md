@@ -365,6 +365,7 @@ VITE_APP_TITLE=Stock Trading Simulator
 - Follow Vue.js style guide
 - Add JSDoc comments for functions
 - Use meaningful variable names
+- **TypeScript函数参数必须包含明确的类型注解** - 所有函数参数都必须显式声明类型，不得省略
 
 #### Git Workflow
 - Use conventional commit messages

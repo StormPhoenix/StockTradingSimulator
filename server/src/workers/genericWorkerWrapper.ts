@@ -5,13 +5,12 @@
  */
 
 import { Worker } from 'worker_threads';
-import { EventEmitter } from 'events';
 import {
   GenericTaskRequest,
   GenericTaskResponse,
   GenericTaskProgress,
   GenericWorkerMessage,
-  TaskError
+  TaskError,
 } from './types/worker/genericTask';
 import {
   WorkerThreadStatus,
@@ -19,11 +18,58 @@ import {
   WorkerThreadInfo,
   PoolEvents
 } from './types/worker/poolConfig';
+import { TypedEventEmitter } from '../types/typedEventEmitter';
+
+/**
+ * Worker Wrapper 事件数据接口
+ */
+export interface WorkerWrapperEventData extends Record<string, any[]> {
+  [PoolEvents.TASK_STARTED]: [
+    workerId: string,
+    taskId: string,
+    taskType: string];
+
+  [PoolEvents.TASK_COMPLETED]: [
+    workerId: string,
+    taskId: string,
+    taskType: string,
+    result: any];
+
+  [PoolEvents.TASK_FAILED]: [
+    workerId: string,
+    taskId: string,
+    taskType: string,
+    error: TaskError];
+
+  [PoolEvents.TASK_PROGRESS]: [
+    workerId: string,
+    taskId: string,
+    taskType: string,
+    progress: {
+      stage: string;
+      percentage: number;
+      message: string;
+      details?: any;
+    }];
+
+  [PoolEvents.WORKER_ERROR]: [
+    workerId: string,
+    taskId: string,
+    error: TaskError]
+
+  [PoolEvents.WORKER_TIMEOUT]: [
+    workerId: string,
+    taskId?: string];
+
+  [PoolEvents.WORKER_TERMINATED]: [
+    workerId: string,
+    exitCode: number]
+}
 
 /**
  * 通用 Worker 线程包装器
  */
-export class GenericWorkerWrapper extends EventEmitter {
+export class GenericWorkerWrapper extends TypedEventEmitter<WorkerWrapperEventData> {
   public readonly id: string;
   public status: WorkerThreadStatus = WorkerThreadStatus.IDLE;
   public currentTaskId?: string;
@@ -42,7 +88,7 @@ export class GenericWorkerWrapper extends EventEmitter {
   ) {
     super();
     this.id = id;
-    
+
     // 根据环境创建不同的 Worker
     if (process.env.NODE_ENV === 'production') {
       // 生产环境直接使用编译后的 JS 文件
@@ -53,7 +99,7 @@ export class GenericWorkerWrapper extends EventEmitter {
         execArgv: ['--require', 'ts-node/register']
       });
     }
-    
+
     this.setupWorkerListeners();
   }
 
@@ -63,14 +109,14 @@ export class GenericWorkerWrapper extends EventEmitter {
   private setupWorkerListeners(): void {
     this.worker.on('message', (message: GenericWorkerMessage) => {
       this.lastActiveAt = new Date();
-      
+
       // 检查消息类型
       if ('type' in message && message.type === 'READY') {
         // Worker 就绪消息
         console.log(`Worker ${this.id} is ready`);
         return;
       }
-      
+
       // 根据消息属性判断类型
       if ('status' in message) {
         // 任务响应消息
@@ -84,23 +130,23 @@ export class GenericWorkerWrapper extends EventEmitter {
     this.worker.on('error', (error: Error) => {
       this.errorCount++;
       this.status = WorkerThreadStatus.ERROR;
-      this.emit(PoolEvents.WORKER_ERROR, {
-        workerId: this.id,
-        taskId: this.currentTaskId,
-        error: {
+      this.broadcast(PoolEvents.WORKER_ERROR,
+        this.id,
+        this.currentTaskId || '',
+        {
           code: 'WORKER_ERROR',
           message: error.message,
           stack: error.stack
         }
-      });
+      );
     });
 
     this.worker.on('exit', (code: number) => {
       this.status = WorkerThreadStatus.TERMINATED;
-      this.emit(PoolEvents.WORKER_TERMINATED, {
-        workerId: this.id,
-        exitCode: code
-      });
+      this.broadcast(PoolEvents.WORKER_TERMINATED,
+        this.id,
+        code
+      );
     });
   }
 
@@ -111,24 +157,26 @@ export class GenericWorkerWrapper extends EventEmitter {
     this.clearTimeout();
     this.status = WorkerThreadStatus.IDLE;
     this.processedTasks++;
-    const taskId = this.currentTaskId;
     this.currentTaskId = undefined;
-    
+
     if (message.status === 'SUCCESS') {
-      this.emit(PoolEvents.TASK_COMPLETED, {
-        workerId: this.id,
-        taskId: message.taskId,
-        taskType: message.taskType,
-        result: message.result
-      });
+      this.broadcast(PoolEvents.TASK_COMPLETED,
+        this.id,
+        message.taskId,
+        message.taskType,
+        message.result
+      );
     } else {
       this.errorCount++;
-      this.emit(PoolEvents.TASK_FAILED, {
-        workerId: this.id,
-        taskId: message.taskId,
-        taskType: message.taskType,
-        error: message.error
-      });
+      this.broadcast(PoolEvents.TASK_FAILED,
+        this.id,
+        message.taskId,
+        message.taskType,
+        message.error || {
+          code: 'UNKNOWN_ERROR',
+          message: 'Task failed without error details'
+        }
+      );
     }
   }
 
@@ -136,17 +184,17 @@ export class GenericWorkerWrapper extends EventEmitter {
    * 处理进度更新
    */
   private handleProgress(message: GenericTaskProgress): void {
-    this.emit(PoolEvents.TASK_PROGRESS, {
-      workerId: this.id,
-      taskId: message.taskId,
-      taskType: message.taskType,
-      progress: {
+    this.broadcast(PoolEvents.TASK_PROGRESS,
+      this.id,
+      message.taskId,
+      message.taskType,
+      {
         stage: message.stage,
         percentage: message.percentage,
         message: message.message,
         details: message.details
       }
-    });
+    );
   }
 
   /**
@@ -168,13 +216,13 @@ export class GenericWorkerWrapper extends EventEmitter {
 
     // 发送任务到 Worker Thread
     this.worker.postMessage(request);
-    
+
     // 发出任务开始事件
-    this.emit(PoolEvents.TASK_STARTED, {
-      workerId: this.id,
-      taskId: request.taskId,
-      taskType: request.payload.type
-    });
+    this.broadcast(PoolEvents.TASK_STARTED,
+      this.id,
+      request.taskId,
+      request.payload.type
+    );
   }
 
   /**
@@ -183,14 +231,14 @@ export class GenericWorkerWrapper extends EventEmitter {
   private handleTimeout(): void {
     this.errorCount++;
     this.status = WorkerThreadStatus.ERROR;
-    
+
     const taskId = this.currentTaskId;
     this.currentTaskId = undefined;
-    
-    this.emit(PoolEvents.WORKER_TIMEOUT, {
-      workerId: this.id,
+
+    this.broadcast(PoolEvents.WORKER_TIMEOUT,
+      this.id,
       taskId
-    });
+    );
   }
 
   /**
