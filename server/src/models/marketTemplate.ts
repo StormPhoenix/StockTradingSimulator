@@ -6,7 +6,7 @@
 import mongoose, { Document, Schema, Model } from 'mongoose'
 
 // 类型定义
-export interface IStockHolding {
+export interface IMarketStockHoldingTemplate {
   stockSymbol: string
   stockName: string
   quantity: number
@@ -14,14 +14,14 @@ export interface IStockHolding {
   currentValue: number
 }
 
-export interface IShareHolder {
+export interface IMarketShareHolderTemplate {
   traderId: string
   traderName: string
   quantity: number
   percentage: number
 }
 
-export interface IAITrader {
+export interface IMarketAITraderTemplate {
   id: string
   templateId: mongoose.Types.ObjectId
   name: string
@@ -30,12 +30,12 @@ export interface IAITrader {
   riskProfile: 'conservative' | 'moderate' | 'aggressive'
   tradingStyle?: 'day_trading' | 'swing_trading' | 'position_trading'
   maxPositions: number
-  holdings: IStockHolding[]
+  holdings: IMarketStockHoldingTemplate[]
   parameters: Record<string, any>
   createdAt: Date
 }
 
-export interface IStock {
+export interface IMarketStockTemplate {
   id: string
   templateId: mongoose.Types.ObjectId
   symbol: string
@@ -46,11 +46,11 @@ export interface IStock {
   availableShares: number
   allocatedShares: number
   category?: 'tech' | 'finance' | 'healthcare' | 'energy' | 'consumer'
-  holders: IShareHolder[]
+  holders: IMarketShareHolderTemplate[]
   createdAt: Date
 }
 
-export interface IStatistics {
+export interface IMarketStatisticsTemplate {
   traderCount: number
   stockCount: number
   averageCapitalPerTrader: number
@@ -60,17 +60,17 @@ export interface IStatistics {
   giniCoefficient?: number
 }
 
-export interface IMarketEnvironment {
+export interface IMarketTemplate {
   id: string
   name?: string
   description?: string
-  traders: IAITrader[]
-  stocks: IStock[]
+  traders: IMarketAITraderTemplate[]
+  stocks: IMarketStockTemplate[]
   totalCapital: number
   totalMarketValue: number
   allocationAlgorithm: 'weighted_random' | 'equal_distribution' | 'risk_based'
   allocationSeed?: number
-  statistics: IStatistics
+  statistics: IMarketStatisticsTemplate
   metadata: Record<string, any>
   version: string
   createdAt: Date
@@ -78,7 +78,7 @@ export interface IMarketEnvironment {
 }
 
 // Document 接口
-export interface IMarketEnvironmentDocument extends Omit<IMarketEnvironment, 'id'>, Document {
+export interface IMarketTemplateDocument extends Omit<IMarketTemplate, 'id'>, Document {
   isValid: boolean
   calculateTotalCapital(): number
   calculateTotalMarketValue(): number
@@ -91,13 +91,13 @@ export interface IMarketEnvironmentDocument extends Omit<IMarketEnvironment, 'id
 }
 
 // Model 接口
-export interface IMarketEnvironmentModel extends Model<IMarketEnvironmentDocument> {
-  findByTraderCount(min: number, max: number): Promise<IMarketEnvironmentDocument[]>
-  findByStockCount(min: number, max: number): Promise<IMarketEnvironmentDocument[]>
+export interface IMarketTemplateModel extends Model<IMarketTemplateDocument> {
+  findByTraderCount(min: number, max: number): Promise<IMarketTemplateDocument[]>
+  findByStockCount(min: number, max: number): Promise<IMarketTemplateDocument[]>
 }
 
 // 股票持仓结构
-const StockHoldingSchema = new Schema<IStockHolding>({
+const StockHoldingSchema = new Schema<IMarketStockHoldingTemplate>({
   stockSymbol: {
     type: String,
     required: true,
@@ -132,7 +132,7 @@ const StockHoldingSchema = new Schema<IStockHolding>({
 }, { _id: false })
 
 // 股东结构
-const ShareHolderSchema = new Schema<IShareHolder>({
+const ShareHolderSchema = new Schema<IMarketShareHolderTemplate>({
   traderId: {
     type: String,
     required: true,
@@ -162,7 +162,7 @@ const ShareHolderSchema = new Schema<IShareHolder>({
 }, { _id: false })
 
 // AI交易员运行时对象
-const AITraderSchema = new Schema<IAITrader>({
+const AITraderSchema = new Schema<IMarketAITraderTemplate>({
   id: {
     type: String,
     required: true,
@@ -224,7 +224,7 @@ const AITraderSchema = new Schema<IAITrader>({
 }, { _id: false })
 
 // 股票运行时对象
-const StockSchema = new Schema<IStock>({
+const StockSchema = new Schema<IMarketStockTemplate>({
   id: {
     type: String,
     required: true,
@@ -302,7 +302,7 @@ const StockSchema = new Schema<IStock>({
 }, { _id: false })
 
 // 统计信息结构
-const StatisticsSchema = new Schema<IStatistics>({
+const StatisticsSchema = new Schema<IMarketStatisticsTemplate>({
   traderCount: {
     type: Number,
     required: true,
@@ -350,7 +350,7 @@ const StatisticsSchema = new Schema<IStatistics>({
 }, { _id: false })
 
 // 市场环境主模型
-const MarketEnvironmentSchema = new Schema<IMarketEnvironmentDocument, IMarketEnvironmentModel>({
+const MarketEnvironmentSchema = new Schema<IMarketTemplateDocument, IMarketTemplateModel>({
   id: {
     type: String,
     required: true,
@@ -361,7 +361,7 @@ const MarketEnvironmentSchema = new Schema<IMarketEnvironmentDocument, IMarketEn
     type: String,
     trim: true,
     maxlength: 200,
-    default: function(this: IMarketEnvironmentDocument) {
+    default: function(this: IMarketTemplateDocument) {
       const now = new Date()
       const timestamp = now.toISOString().replace(/[:.]/g, '').slice(0, 15)
       return `Market_${timestamp}`
@@ -420,20 +420,20 @@ MarketEnvironmentSchema.index({ 'statistics.traderCount': 1, 'statistics.stockCo
 MarketEnvironmentSchema.index({ name: 'text', description: 'text' })
 
 // 虚拟字段
-MarketEnvironmentSchema.virtual('isValid').get(function(this: IMarketEnvironmentDocument) {
+MarketEnvironmentSchema.virtual('isValid').get(function(this: IMarketTemplateDocument) {
   return this.traders.length > 0 && this.stocks.length > 0
 })
 
 // 实例方法
-MarketEnvironmentSchema.methods.calculateTotalCapital = function(this: IMarketEnvironmentDocument): number {
+MarketEnvironmentSchema.methods.calculateTotalCapital = function(this: IMarketTemplateDocument): number {
   return this.traders.reduce((total, trader) => total + trader.initialCapital, 0)
 }
 
-MarketEnvironmentSchema.methods.calculateTotalMarketValue = function(this: IMarketEnvironmentDocument): number {
+MarketEnvironmentSchema.methods.calculateTotalMarketValue = function(this: IMarketTemplateDocument): number {
   return this.stocks.reduce((total, stock) => total + (stock.currentPrice * stock.totalShares), 0)
 }
 
-MarketEnvironmentSchema.methods.updateStatistics = function(this: IMarketEnvironmentDocument): void {
+MarketEnvironmentSchema.methods.updateStatistics = function(this: IMarketTemplateDocument): void {
   const traderCount = this.traders.length
   const stockCount = this.stocks.length
   const totalCapital = this.calculateTotalCapital()
@@ -452,7 +452,7 @@ MarketEnvironmentSchema.methods.updateStatistics = function(this: IMarketEnviron
   this.totalMarketValue = this.calculateTotalMarketValue()
 }
 
-MarketEnvironmentSchema.methods.calculateCapitalDistribution = function(this: IMarketEnvironmentDocument): Record<string, number> {
+MarketEnvironmentSchema.methods.calculateCapitalDistribution = function(this: IMarketTemplateDocument): Record<string, number> {
   const distribution: Record<string, number> = {}
   this.traders.forEach(trader => {
     const range = this.getCapitalRange(trader.initialCapital)
@@ -461,7 +461,7 @@ MarketEnvironmentSchema.methods.calculateCapitalDistribution = function(this: IM
   return distribution
 }
 
-MarketEnvironmentSchema.methods.calculateStockDistribution = function(this: IMarketEnvironmentDocument): Record<string, number> {
+MarketEnvironmentSchema.methods.calculateStockDistribution = function(this: IMarketTemplateDocument): Record<string, number> {
   const distribution: Record<string, number> = {}
   this.stocks.forEach(stock => {
     const category = stock.category || 'other'
@@ -470,7 +470,7 @@ MarketEnvironmentSchema.methods.calculateStockDistribution = function(this: IMar
   return distribution
 }
 
-MarketEnvironmentSchema.methods.calculateAllocationFairness = function(this: IMarketEnvironmentDocument): number {
+MarketEnvironmentSchema.methods.calculateAllocationFairness = function(this: IMarketTemplateDocument): number {
   // 使用 Jain's Fairness Index 计算分配公平性
   if (this.traders.length === 0) return 1
   
@@ -481,7 +481,7 @@ MarketEnvironmentSchema.methods.calculateAllocationFairness = function(this: IMa
   return (sum * sum) / (this.traders.length * sumSquares)
 }
 
-MarketEnvironmentSchema.methods.calculateGiniCoefficient = function(this: IMarketEnvironmentDocument): number {
+MarketEnvironmentSchema.methods.calculateGiniCoefficient = function(this: IMarketTemplateDocument): number {
   // 计算基尼系数
   if (this.traders.length === 0) return 0
   
@@ -499,7 +499,7 @@ MarketEnvironmentSchema.methods.calculateGiniCoefficient = function(this: IMarke
   return index / (n * sum)
 }
 
-MarketEnvironmentSchema.methods.getCapitalRange = function(this: IMarketEnvironmentDocument, capital: number): string {
+MarketEnvironmentSchema.methods.getCapitalRange = function(this: IMarketTemplateDocument, capital: number): string {
   if (capital < 10000) return '< 1万'
   if (capital < 100000) return '1-10万'
   if (capital < 1000000) return '10-100万'
@@ -509,27 +509,27 @@ MarketEnvironmentSchema.methods.getCapitalRange = function(this: IMarketEnvironm
 
 // 静态方法
 MarketEnvironmentSchema.statics.findByTraderCount = function(
-  this: IMarketEnvironmentModel,
+  this: IMarketTemplateModel,
   min: number,
   max: number
-): Promise<IMarketEnvironmentDocument[]> {
+): Promise<IMarketTemplateDocument[]> {
   return this.find({
     'statistics.traderCount': { $gte: min, $lte: max }
   })
 }
 
 MarketEnvironmentSchema.statics.findByStockCount = function(
-  this: IMarketEnvironmentModel,
+  this: IMarketTemplateModel,
   min: number,
   max: number
-): Promise<IMarketEnvironmentDocument[]> {
+): Promise<IMarketTemplateDocument[]> {
   return this.find({
     'statistics.stockCount': { $gte: min, $lte: max }
   })
 }
 
 // 中间件
-MarketEnvironmentSchema.pre('save', function(this: IMarketEnvironmentDocument, next) {
+MarketEnvironmentSchema.pre('save', function(this: IMarketTemplateDocument, next) {
   // 更新统计信息
   this.updateStatistics()
   
@@ -553,7 +553,7 @@ MarketEnvironmentSchema.pre('save', function(this: IMarketEnvironmentDocument, n
   next()
 })
 
-MarketEnvironmentSchema.pre('validate', function(this: IMarketEnvironmentDocument, next) {
+MarketEnvironmentSchema.pre('validate', function(this: IMarketTemplateDocument, next) {
   // 生成唯一ID
   if (!this.id) {
     this.id = `market_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -563,6 +563,6 @@ MarketEnvironmentSchema.pre('validate', function(this: IMarketEnvironmentDocumen
 })
 
 // 导出模型
-const MarketEnvironment = mongoose.model<IMarketEnvironmentDocument, IMarketEnvironmentModel>('MarketEnvironment', MarketEnvironmentSchema)
+const MarketEnvironment = mongoose.model<IMarketTemplateDocument, IMarketTemplateModel>('MarketEnvironment', MarketEnvironmentSchema)
 
 export default MarketEnvironment

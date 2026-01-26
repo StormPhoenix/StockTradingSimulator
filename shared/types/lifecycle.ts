@@ -41,14 +41,6 @@ export interface GameObjectStatsResponse {
   
   /** 按类型分组的对象计数 */
   byType: Record<string, number>;
-  
-  /** 错误统计 */
-  errorStats: {
-    /** 有错误的对象数量 */
-    objectsWithErrors: number;
-    /** 总错误次数 */
-    totalErrors: number;
-  };
 }
 
 /**

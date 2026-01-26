@@ -265,7 +265,79 @@ export const API_ENDPOINTS = {
     STOCKS: '/api/market/stocks',
     STOCK: (symbol: string) => `/api/market/stocks/${symbol}`,
     MARKET_DATA: '/api/market/data',
-    ENVIRONMENTS: '/api/market/environments',
-    CREATE_ENVIRONMENT: '/api/market/environments'
+    ENVIRONMENTS: '/api/market/market-instances',
+    CREATE_ENVIRONMENT: '/api/market/market-instances'
+  },
+  
+  // 运行时市场实例
+  MARKET_INSTANCES: {
+    LIST: '/api/v1/market-instances',
+    CREATE: '/api/v1/market-instances',
+    GET: (id: ID) => `/api/v1/market-instances/${id}`,
+    DELETE: (id: ID) => `/api/v1/market-instances/${id}`,
+    PROGRESS: (requestId: string) => `/api/v1/market-instances/progress/${requestId}`,
+    EXPORT: (id: ID) => `/api/v1/market-instances/${id}/export`,
+    LOGS: (id: ID) => `/api/v1/market-instances/${id}/logs`
   }
 } as const
+
+// ========== 运行时市场实例 API ==========
+export namespace MarketInstanceAPI {
+  export interface ListMarketInstancesRequest extends QueryParams {}
+  export interface ListMarketInstancesResponse extends ApiResponse<{
+    marketInstances: import('./marketInstance').MarketInstancePreview[]
+    meta: {
+      total: number
+      active: number
+      creating: number
+    }
+  }> {}
+
+  export interface CreateMarketInstanceRequest {
+    templateId: string
+    name?: string
+  }
+  export interface CreateMarketInstanceResponse extends ApiResponse<{
+    requestId: string
+    message: string
+    progressUrl: string
+  }> {}
+
+  export interface GetMarketInstanceRequest {
+    marketInstanceId: ID
+  }
+  export interface GetMarketInstanceResponse extends ApiResponse<import('./marketInstance').MarketInstanceDetails> {}
+
+  export interface DeleteMarketInstanceRequest {
+    marketInstanceId: ID
+  }
+  export interface DeleteMarketInstanceResponse extends ApiResponse<{
+    message: string
+    destroyedAt: string
+  }> {}
+
+  export interface GetProgressRequest {
+    requestId: string
+  }
+  export interface GetProgressResponse extends ApiResponse<import('./progress').CreationProgress> {}
+
+  export interface ExportMarketInstanceRequest {
+    marketInstanceId: ID
+    format?: 'json'
+  }
+  export interface ExportMarketInstanceResponse extends ApiResponse<import('./marketInstance').MarketInstanceExport> {}
+
+  export interface GetLogsRequest {
+    marketInstanceId: ID
+    limit?: number
+    traderId?: string
+  }
+  export interface GetLogsResponse extends ApiResponse<{
+    logs: import('./marketInstance').TradingLog[]
+    meta: {
+      total: number
+      limit: number
+      environmentId: string
+    }
+  }> {}
+}

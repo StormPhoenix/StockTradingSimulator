@@ -66,10 +66,6 @@ export class LifecycleController {
             destroyed: objectsByState.DESTROYED || 0,
           },
           byType,
-          errorStats: {
-            objectsWithErrors,
-            totalErrors,
-          },
         },
         message: `Retrieved stats for ${allObjects.length} objects`,
       }

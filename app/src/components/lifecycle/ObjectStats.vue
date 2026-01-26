@@ -107,27 +107,6 @@
           </div>
         </div>
       </div>
-
-      <!-- 错误统计 -->
-      <div class="stats-section">
-        <h4>错误统计</h4>
-        <div class="error-stats">
-          <div class="error-stat-item">
-            <span class="error-icon">⚠️</span>
-            <span class="error-label">有错误的对象:</span>
-            <span class="error-value" :class="{ 'has-errors': stats.errorStats.objectsWithErrors > 0 }">
-              {{ stats.errorStats.objectsWithErrors }}
-            </span>
-          </div>
-          <div class="error-stat-item">
-            <span class="error-icon">❌</span>
-            <span class="error-label">总错误次数:</span>
-            <span class="error-value" :class="{ 'has-errors': stats.errorStats.totalErrors > 0 }">
-              {{ stats.errorStats.totalErrors }}
-            </span>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- 最后更新时间 -->
@@ -441,12 +420,6 @@ defineExpose({
 
 .type-progress {
   background: #007bff;
-}
-
-.error-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 .error-stat-item {

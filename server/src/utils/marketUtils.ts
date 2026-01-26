@@ -133,16 +133,6 @@ interface MarketSummary {
  */
 class MarketUtils {
   /**
-   * 生成唯一的市场环境ID
-   * @returns 唯一ID
-   */
-  static generateMarketId(): string {
-    const timestamp = Date.now()
-    const random = Math.random().toString(36).substring(2, 11)
-    return `market_${timestamp}_${random}`
-  }
-
-  /**
    * 生成唯一的交易员ID
    * @returns 唯一ID
    */

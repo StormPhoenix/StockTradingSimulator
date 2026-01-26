@@ -61,6 +61,30 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/market-instances',
+    name: 'MarketInstances',
+    children: [
+      {
+        path: '',
+        name: 'MarketInstanceList',
+        component: () => import('@/components/runtime/MarketInstanceList.vue'),
+        meta: {
+          title: '市场实例管理',
+          icon: 'Grid',
+        } as RouteMeta,
+      },
+      {
+        path: ':id',
+        name: 'MarketInstanceDetails',
+        component: () => import('@/components/runtime/MarketInstanceDetails.vue'),
+        meta: {
+          title: '市场实例详情',
+          icon: 'View',
+        } as RouteMeta,
+      },
+    ],
+  },
+  {
     path: '/debug/lifecycle',
     name: 'LifecycleDebug',
     component: () => import('@/components/lifecycle/LifecycleDebug.vue'),

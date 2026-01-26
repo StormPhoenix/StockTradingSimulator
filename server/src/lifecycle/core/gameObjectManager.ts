@@ -4,14 +4,18 @@ import { AutoIncrementIdGenerator } from './autoIncrementIdGenerator';
 import { ErrorIsolationManager } from './errorIsolationManager';
 
 /**
- * 游戏对象管理器 - 简化版本
+ * 游戏对象管理器 - 简化版本 (单例模式)
  * 
  * 采用单一容器设计：
  * 1. 使用一个 Map 存储所有对象，对象状态存储在 GameObject 内部
  * 2. 使用 PendingRequests 队列延迟处理对象的创建和销毁
  * 3. gameLoop Tick 分阶段处理：先处理队列，再执行对象逻辑
+ * 4. 实现为单例模式，确保全局只有一个实例
  */
 export class GameObjectManager {
+  // 单例实例
+  private static instance: GameObjectManager | null = null;
+  
   // 简化的单一容器设计
   private objects = new Map<number, GameObject>();
   private pendingRequests: PendingRequest[] = [];
@@ -23,17 +27,37 @@ export class GameObjectManager {
   private errorManager: ErrorIsolationManager;
 
   /**
-   * 构造函数
+   * 私有构造函数
    * 
    * @param idGenerator ID生成器，可选，默认使用autoIncrementIdGenerator
    * @param maxErrorsPerObject 每个对象的最大错误次数，默认为3
    */
-  constructor(idGenerator?: IIdGenerator, maxErrorsPerObject: number = 3) {
+  private constructor(idGenerator?: IIdGenerator, maxErrorsPerObject: number = 3) {
     this.idGenerator = idGenerator || new AutoIncrementIdGenerator();
     this.errorManager = new ErrorIsolationManager(maxErrorsPerObject);
     
     // 创建简化的gameLoop，传入this作为管理器
     this.gameLoop = new GameLoop(this);
+  }
+
+  /**
+   * 获取单例实例
+   */
+  public static getInstance(idGenerator?: IIdGenerator, maxErrorsPerObject: number = 3): GameObjectManager {
+    if (!GameObjectManager.instance) {
+      GameObjectManager.instance = new GameObjectManager(idGenerator, maxErrorsPerObject);
+    }
+    return GameObjectManager.instance;
+  }
+
+  /**
+   * 重置单例实例（主要用于测试）
+   */
+  public static resetInstance(): void {
+    if (GameObjectManager.instance) {
+      GameObjectManager.instance.stop();
+      GameObjectManager.instance = null;
+    }
   }
 
   /**
@@ -545,12 +569,6 @@ export class GameObjectManager {
     totalObjects: number;
     objectsByState: Record<GameObjectState, number>;
     pendingRequests: number;
-    errorStatistics: {
-      totalObjects: number;
-      objectsWithErrors: number;
-      totalErrors: number;
-      objectsNearLimit: number;
-    };
     performance: {
       actualFPS: number;
       tickDuration: number;
@@ -561,15 +579,13 @@ export class GameObjectManager {
   } {
     const loopStatus = this.gameLoop.getLoopStatus();
     const perfStats = this.gameLoop.getPerformanceStats();
-    const errorStats = this.errorManager.getErrorStatistics();
-
+    
     return {
       isRunning: loopStatus.isRunning,
       fps: loopStatus.fps,
       totalObjects: this.getTotalObjectCount(),
       objectsByState: this.getObjectCount(),
       pendingRequests: this.getPendingRequestCount(),
-      errorStatistics: errorStats,
       performance: {
         actualFPS: perfStats.fps,
         tickDuration: perfStats.tickDuration,
