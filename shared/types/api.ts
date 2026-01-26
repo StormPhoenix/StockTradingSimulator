@@ -265,27 +265,27 @@ export const API_ENDPOINTS = {
     STOCKS: '/api/market/stocks',
     STOCK: (symbol: string) => `/api/market/stocks/${symbol}`,
     MARKET_DATA: '/api/market/data',
-    ENVIRONMENTS: '/api/market/environments',
-    CREATE_ENVIRONMENT: '/api/market/environments'
+    ENVIRONMENTS: '/api/market/market-instances',
+    CREATE_ENVIRONMENT: '/api/market/market-instances'
   },
   
-  // 运行时环境实例
-  ENVIRONMENTS: {
-    LIST: '/api/v1/environments',
-    CREATE: '/api/v1/environments',
-    GET: (id: ID) => `/api/v1/environments/${id}`,
-    DELETE: (id: ID) => `/api/v1/environments/${id}`,
-    PROGRESS: (requestId: string) => `/api/v1/environments/progress/${requestId}`,
-    EXPORT: (id: ID) => `/api/v1/environments/${id}/export`,
-    LOGS: (id: ID) => `/api/v1/environments/${id}/logs`
+  // 运行时市场实例
+  MARKET_INSTANCES: {
+    LIST: '/api/v1/market-instances',
+    CREATE: '/api/v1/market-instances',
+    GET: (id: ID) => `/api/v1/market-instances/${id}`,
+    DELETE: (id: ID) => `/api/v1/market-instances/${id}`,
+    PROGRESS: (requestId: string) => `/api/v1/market-instances/progress/${requestId}`,
+    EXPORT: (id: ID) => `/api/v1/market-instances/${id}/export`,
+    LOGS: (id: ID) => `/api/v1/market-instances/${id}/logs`
   }
 } as const
 
-// ========== 运行时环境实例 API ==========
-export namespace EnvironmentAPI {
-  export interface ListEnvironmentsRequest extends QueryParams {}
-  export interface ListEnvironmentsResponse extends ApiResponse<{
-    environments: import('./environment').EnvironmentPreview[]
+// ========== 运行时市场实例 API ==========
+export namespace MarketInstanceAPI {
+  export interface ListMarketInstancesRequest extends QueryParams {}
+  export interface ListMarketInstancesResponse extends ApiResponse<{
+    marketInstances: import('./marketInstance').MarketInstancePreview[]
     meta: {
       total: number
       active: number
@@ -293,25 +293,25 @@ export namespace EnvironmentAPI {
     }
   }> {}
 
-  export interface CreateEnvironmentRequest {
+  export interface CreateMarketInstanceRequest {
     templateId: string
     name?: string
   }
-  export interface CreateEnvironmentResponse extends ApiResponse<{
+  export interface CreateMarketInstanceResponse extends ApiResponse<{
     requestId: string
     message: string
     progressUrl: string
   }> {}
 
-  export interface GetEnvironmentRequest {
-    environmentId: ID
+  export interface GetMarketInstanceRequest {
+    marketInstanceId: ID
   }
-  export interface GetEnvironmentResponse extends ApiResponse<import('./environment').EnvironmentDetails> {}
+  export interface GetMarketInstanceResponse extends ApiResponse<import('./marketInstance').MarketInstanceDetails> {}
 
-  export interface DeleteEnvironmentRequest {
-    environmentId: ID
+  export interface DeleteMarketInstanceRequest {
+    marketInstanceId: ID
   }
-  export interface DeleteEnvironmentResponse extends ApiResponse<{
+  export interface DeleteMarketInstanceResponse extends ApiResponse<{
     message: string
     destroyedAt: string
   }> {}
@@ -321,19 +321,19 @@ export namespace EnvironmentAPI {
   }
   export interface GetProgressResponse extends ApiResponse<import('./progress').CreationProgress> {}
 
-  export interface ExportEnvironmentRequest {
-    environmentId: ID
+  export interface ExportMarketInstanceRequest {
+    marketInstanceId: ID
     format?: 'json'
   }
-  export interface ExportEnvironmentResponse extends ApiResponse<import('./environment').EnvironmentExport> {}
+  export interface ExportMarketInstanceResponse extends ApiResponse<import('./marketInstance').MarketInstanceExport> {}
 
   export interface GetLogsRequest {
-    environmentId: ID
+    marketInstanceId: ID
     limit?: number
     traderId?: string
   }
   export interface GetLogsResponse extends ApiResponse<{
-    logs: import('./environment').TradingLog[]
+    logs: import('./marketInstance').TradingLog[]
     meta: {
       total: number
       limit: number

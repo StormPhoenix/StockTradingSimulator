@@ -14,7 +14,7 @@ export function createRoutes(lifecycleService: LifecycleManagerService) {
 
   // 注册业务路由
   router.use('/templates', templateRoutes)
-  router.use('/environments', gameInstanceRoutes)
+  router.use('/market-instances', gameInstanceRoutes)
   
   // 注册调试路由（从生命周期服务获取管理器实例）
   router.use('/debug', createDebugRoutes(lifecycleService.getManager()))
@@ -30,7 +30,7 @@ export function createRoutes(lifecycleService: LifecycleManagerService) {
         endpoints: {
           health: '/health',
           templates: '/templates',
-          environments: '/environments',
+          'market-instances': '/market-instances',
           debug: '/debug',
         },
         documentation: 'https://api-docs.stocksimulator.com',

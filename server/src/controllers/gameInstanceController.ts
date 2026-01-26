@@ -6,7 +6,7 @@
 
 import { WorkerThreadPoolService } from '../services/workerThreadPoolService';
 import { CreationProgress, CreationStage } from '../../../shared/types/progress';
-import { EnvironmentPreview, EnvironmentDetails, EnvironmentStatus } from '../../../shared/types/environment';
+import { MarketInstancePreview, MarketInstanceDetails, MarketInstanceStatus } from '../../../shared/types/marketInstance';
 import { EnvironmentManagerEvents } from '../types/eventTypes';
 import { MarketTemplateRequest, MarketTemplateResponse } from '../workers/types/business/marketTemplate';
 import { TaskType, TaskCallback, TaskError } from '../workers/types/worker/genericTask';
@@ -24,12 +24,12 @@ export interface MarketInstanceCreationRequest {
 }
 
 /**
- * 环境实例引用
+ * 市场实例引用
  */
-export interface EnvironmentInstance {
+export interface MarketInstanceReference {
   id: string;
   exchangeInstance: ExchangeInstance;
-  status: EnvironmentStatus;
+  status: MarketInstanceStatus;
   createdAt: Date;
   lastActiveAt: Date;
   templateId: string;
@@ -46,7 +46,7 @@ export interface GameInstanceControllerEventData extends Record<EnvironmentManag
   [EnvironmentManagerEvents.ENVIRONMENT_CREATED]: [event: {
     requestId: string;
     environmentId: string;
-    environment: EnvironmentInstance;
+    environment: MarketInstanceReference;
   }];
 
   [EnvironmentManagerEvents.ENVIRONMENT_CREATION_FAILED]: [event: {
@@ -73,7 +73,7 @@ export interface GameInstanceControllerEventData extends Record<EnvironmentManag
  */
 export class GameInstanceController extends TypedEventEmitter<GameInstanceControllerEventData> implements TaskCallback<MarketTemplateResponse> {
   private workerPoolService: WorkerThreadPoolService;
-  private activeEnvironments: Map<string, EnvironmentInstance> = new Map();
+  private activeMarketInstances: Map<string, MarketInstanceReference> = new Map();
   private creationRequests: Map<string, MarketInstanceCreationRequest> = new Map();
   private progressTracking: Map<string, CreationProgress> = new Map();
   private taskToRequestMapping: Map<string, string> = new Map(); // taskId -> requestId
@@ -175,10 +175,10 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
       this.updateProgress(requestId, CreationStage.CREATING_OBJECTS, 70, 'Creating runtime instances...');
 
       // 创建 GameObject 实例
-      const environmentInstance = await this.createGameObjects(request, data);
+      const marketInstanceRef = await this.createGameObjects(request, data);
 
-      // 注册环境实例
-      this.activeEnvironments.set(environmentInstance.id, environmentInstance);
+      // 注册市场实例
+      this.activeMarketInstances.set(marketInstanceRef.id, marketInstanceRef);
 
       // 完成创建
       this.updateProgress(requestId, CreationStage.COMPLETE, 100, 'Environment created successfully');
@@ -189,8 +189,8 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
       // 发出环境创建完成事件
       this.broadcast(EnvironmentManagerEvents.ENVIRONMENT_CREATED, {
         requestId,
-        environmentId: environmentInstance.id,
-        environment: environmentInstance
+        environmentId: marketInstanceRef.id,
+        environment: marketInstanceRef
       });
 
     } catch (error) {
@@ -204,7 +204,7 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
   private async createGameObjects(
     request: MarketInstanceCreationRequest,
     templateData: MarketTemplateResponse
-  ): Promise<EnvironmentInstance> {
+  ): Promise<MarketInstanceReference> {
 
     // 导入运行时实例类
     const { ExchangeInstance } = await import('../models/runtime/exchangeInstance');
@@ -264,11 +264,11 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
         gameObjectManager.start();
       }
 
-      // 创建环境实例记录
-      const environmentInstance: EnvironmentInstance = {
+      // 创建市场实例记录
+      const marketInstanceRef: MarketInstanceReference = {
         id: `env_${exchangeInstance.id}`,
         exchangeInstance,
-        status: EnvironmentStatus.ACTIVE,
+        status: MarketInstanceStatus.ACTIVE,
         createdAt: new Date(),
         lastActiveAt: new Date(),
         templateId: request.templateId,
@@ -276,7 +276,7 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
         name: request.customName || templateData.exchange.name
       };
 
-      return environmentInstance;
+      return marketInstanceRef;
 
     } catch (error) {
       // 如果创建失败，清理已创建的对象
@@ -350,22 +350,22 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
       }
 
       // 查找可能已创建的环境实例
-      const environmentInstance = Array.from(this.activeEnvironments.values())
+      const marketInstanceRef = Array.from(this.activeMarketInstances.values())
         .find(env => env.templateId === request.templateId && env.userId === request.userId);
 
-      if (environmentInstance && environmentInstance.exchangeInstance) {
+      if (marketInstanceRef && marketInstanceRef.exchangeInstance) {
         // 销毁 GameObject 实例
         const { GameObjectManager } = await import('../lifecycle/core/gameObjectManager');
         const gameObjectManager = GameObjectManager.getInstance();
 
         try {
           // 销毁交易所实例（会自动销毁关联的交易员和股票）
-          gameObjectManager.destroyObject(environmentInstance.exchangeInstance.id);
+          gameObjectManager.destroyObject(marketInstanceRef.exchangeInstance.id);
 
           // 从活跃环境中移除
-          this.activeEnvironments.delete(environmentInstance.id);
+          this.activeMarketInstances.delete(marketInstanceRef.id);
 
-          console.log(`Rollback: Destroyed environment ${environmentInstance.id} and all associated objects`);
+          console.log(`Rollback: Destroyed market instance ${marketInstanceRef.id} and all associated objects`);
         } catch (destroyError) {
           console.error(`Rollback: Failed to destroy GameObject instances:`, destroyError);
         }
@@ -408,11 +408,11 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
   /**
    * 获取环境列表
    */
-  public getEnvironments(userId: string): EnvironmentPreview[] {
-    const userEnvironments = Array.from(this.activeEnvironments.values())
+  public getMarketInstances(userId: string): MarketInstancePreview[] {
+    const userMarketInstances = Array.from(this.activeMarketInstances.values())
       .filter(env => env.userId === userId);
 
-    return userEnvironments.map(env => {
+    return userMarketInstances.map(env => {
       // 从实际 GameObject 实例获取统计信息
       let statistics = {
         traderCount: 0,
@@ -422,7 +422,7 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
       };
 
       if (env.exchangeInstance) {
-        const summary = env.exchangeInstance.getEnvironmentSummary();
+        const summary = env.exchangeInstance.getMarketInstanceSummary();
         statistics = summary.statistics;
       }
 
@@ -445,30 +445,30 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
   /**
    * 获取环境详情
    */
-  public getEnvironmentDetails(environmentId: string, userId: string): EnvironmentDetails | null {
-    const environment = this.activeEnvironments.get(environmentId);
+  public getMarketInstanceDetails(marketInstanceId: string, userId: string): MarketInstanceDetails | null {
+    const marketInstance = this.activeMarketInstances.get(marketInstanceId);
 
-    if (!environment || environment.userId !== userId) {
+    if (!marketInstance || marketInstance.userId !== userId) {
       return null;
     }
 
     // 从实际 GameObject 实例获取详细信息
-    if (environment.exchangeInstance) {
-      const summary = environment.exchangeInstance.getEnvironmentSummary();
-      const traderDetails = environment.exchangeInstance.getTraderDetails();
-      const stockDetails = environment.exchangeInstance.getStockDetails();
+    if (marketInstance.exchangeInstance) {
+      const summary = marketInstance.exchangeInstance.getMarketInstanceSummary();
+      const traderDetails = marketInstance.exchangeInstance.getTraderDetails();
+      const stockDetails = marketInstance.exchangeInstance.getStockDetails();
 
       return {
-        exchangeId: environment.id,
-        name: environment.name,
+        exchangeId: marketInstance.id,
+        name: marketInstance.name,
         description: summary.description,
-        status: environment.status,
-        createdAt: environment.createdAt,
-        lastActiveAt: environment.lastActiveAt,
+        status: marketInstance.status,
+        createdAt: marketInstance.createdAt,
+        lastActiveAt: marketInstance.lastActiveAt,
         statistics: summary.statistics,
         templateInfo: {
-          templateId: environment.templateId,
-          templateName: `Template ${environment.templateId}`
+          templateId: marketInstance.templateId,
+          templateName: `Template ${marketInstance.templateId}`
         },
         traders: traderDetails.map(trader => ({
           id: trader.id,
@@ -501,12 +501,12 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
 
     // 如果没有实际实例，返回基础信息
     return {
-      exchangeId: environment.id,
-      name: environment.name,
-      description: `Environment created from template ${environment.templateId}`,
-      status: environment.status,
-      createdAt: environment.createdAt,
-      lastActiveAt: environment.lastActiveAt,
+      exchangeId: marketInstance.id,
+      name: marketInstance.name,
+      description: `Market instance created from template ${marketInstance.templateId}`,
+      status: marketInstance.status,
+      createdAt: marketInstance.createdAt,
+      lastActiveAt: marketInstance.lastActiveAt,
       statistics: {
         traderCount: 0,
         stockCount: 0,
@@ -514,8 +514,8 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
         averageCapitalPerTrader: 0
       },
       templateInfo: {
-        templateId: environment.templateId,
-        templateName: `Template ${environment.templateId}`
+        templateId: marketInstance.templateId,
+        templateName: `Template ${marketInstance.templateId}`
       },
       traders: [],
       stocks: []
@@ -523,33 +523,33 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
   }
 
   /**
-   * 销毁环境
+   * 销毁市场实例
    */
-  public async destroyEnvironment(environmentId: string, userId: string): Promise<void> {
-    const environment = this.activeEnvironments.get(environmentId);
+  public async destroyMarketInstance(marketInstanceId: string, userId: string): Promise<void> {
+    const marketInstance = this.activeMarketInstances.get(marketInstanceId);
 
-    if (!environment || environment.userId !== userId) {
-      throw new Error('Environment not found or access denied');
+    if (!marketInstance || marketInstance.userId !== userId) {
+      throw new Error('Market instance not found or access denied');
     }
 
     try {
       // 实现实际的 GameObject 清理逻辑
-      if (environment.exchangeInstance) {
+      if (marketInstance.exchangeInstance) {
         const { GameObjectManager } = await import('../lifecycle/core/gameObjectManager');
         const gameObjectManager = GameObjectManager.getInstance();
 
         // 调用 GameObject.onDestroy() 并从 GameObjectManager 中移除
-        gameObjectManager.destroyObject(environment.exchangeInstance.id);
+        gameObjectManager.destroyObject(marketInstance.exchangeInstance.id);
 
-        console.log(`Destroyed GameObject instance for environment ${environmentId}`);
+        console.log(`Destroyed GameObject instance for market instance ${marketInstanceId}`);
       }
 
-      // 从活跃环境中移除
-      this.activeEnvironments.delete(environmentId);
+      // 从活跃市场实例中移除
+      this.activeMarketInstances.delete(marketInstanceId);
 
-      // 发出环境销毁事件
+      // 发出市场实例销毁事件
       this.broadcast(EnvironmentManagerEvents.ENVIRONMENT_DESTROYED, {
-        environmentId,
+        environmentId: marketInstanceId,
         userId,
         destroyedAt: new Date()
       });
@@ -567,46 +567,46 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
   }
 
   /**
-   * 导出环境状态
+   * 导出市场实例状态
    */
-  public async exportEnvironmentState(environmentId: string, userId: string): Promise<any> {
-    const environment = this.activeEnvironments.get(environmentId);
+  public async exportMarketInstanceState(marketInstanceId: string, userId: string): Promise<any> {
+    const marketInstance = this.activeMarketInstances.get(marketInstanceId);
 
-    if (!environment || environment.userId !== userId) {
-      throw new Error('Environment not found or access denied');
+    if (!marketInstance || marketInstance.userId !== userId) {
+      throw new Error('Market instance not found or access denied');
     }
 
     try {
       const exportData = {
         exportedAt: new Date().toISOString(),
-        environment: {
-          id: environmentId,
-          name: environment.name,
-          description: (environment as any).description || 'No description',
-          status: environment.status,
-          createdAt: environment.createdAt,
+        marketInstance: {
+          id: marketInstanceId,
+          name: marketInstance.name,
+          description: (marketInstance as any).description || 'No description',
+          status: marketInstance.status,
+          createdAt: marketInstance.createdAt,
           templateInfo: {
-            templateId: environment.templateId,
-            templateName: (environment as any).templateName || 'Unknown Template'
+            templateId: marketInstance.templateId,
+            templateName: (marketInstance as any).templateName || 'Unknown Template'
           }
         },
         templateData: {
           // Include original template data used for creation
-          exchange: (environment as any).originalTemplateData?.exchange || null,
-          traders: (environment as any).originalTemplateData?.traders || [],
-          stocks: (environment as any).originalTemplateData?.stocks || []
+          exchange: (marketInstance as any).originalTemplateData?.exchange || null,
+          traders: (marketInstance as any).originalTemplateData?.traders || [],
+          stocks: (marketInstance as any).originalTemplateData?.stocks || []
         },
         runtimeState: {
           // Export current runtime state
-          traders: this.serializeTraders(environment.exchangeInstance),
-          stocks: this.serializeStocks(environment.exchangeInstance),
-          tradingLogs: this.getTradingLogs(environment.exchangeInstance),
-          performanceMetrics: this.calculatePerformanceMetrics(environment.exchangeInstance),
+          traders: this.serializeTraders(marketInstance.exchangeInstance),
+          stocks: this.serializeStocks(marketInstance.exchangeInstance),
+          tradingLogs: this.getTradingLogs(marketInstance.exchangeInstance),
+          performanceMetrics: this.calculatePerformanceMetrics(marketInstance.exchangeInstance),
           statistics: {
-            traderCount: (environment as any).statistics?.traderCount || 0,
-            stockCount: (environment as any).statistics?.stockCount || 0,
-            totalCapital: (environment as any).statistics?.totalCapital || 0,
-            averageCapitalPerTrader: (environment as any).statistics?.averageCapitalPerTrader || 0
+            traderCount: (marketInstance as any).statistics?.traderCount || 0,
+            stockCount: (marketInstance as any).statistics?.stockCount || 0,
+            totalCapital: (marketInstance as any).statistics?.totalCapital || 0,
+            averageCapitalPerTrader: (marketInstance as any).statistics?.averageCapitalPerTrader || 0
           }
         }
       };
@@ -763,12 +763,12 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
    * 获取管理器状态
    */
   public getManagerStatus(): {
-    activeEnvironments: number;
+    activeMarketInstances: number;
     pendingCreations: number;
     workerPoolStatus: any;
   } {
     return {
-      activeEnvironments: this.activeEnvironments.size,
+      activeMarketInstances: this.activeMarketInstances.size,
       pendingCreations: this.creationRequests.size,
       workerPoolStatus: this.workerPoolService.getPoolStatus(),
     };

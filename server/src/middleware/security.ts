@@ -66,65 +66,65 @@ export const setupSecurity = (app: Application): void => {
         frameSrc: ["'none'"],
       },
     },
-    
+
     // Cross-Origin Embedder Policy
     crossOriginEmbedderPolicy: false,
-    
+
     // Cross-Origin Resource Policy
     crossOriginResourcePolicy: {
       policy: "cross-origin"
     },
-    
+
     // DNS Prefetch Control
     dnsPrefetchControl: {
       allow: false
     },
-    
+
     // Frame Options
     frameguard: {
       action: 'deny'
     },
-    
+
     // Hide Powered-By header
     hidePoweredBy: true,
-    
+
     // HSTS (HTTP Strict Transport Security)
     hsts: {
       maxAge: 31536000, // 1 year
       includeSubDomains: true,
       preload: true
     },
-    
+
     // IE No Open
     ieNoOpen: true,
-    
+
     // No Sniff
     noSniff: true,
-    
+
     // Origin Agent Cluster
     originAgentCluster: true,
-    
+
     // Permitted Cross-Domain Policies
     permittedCrossDomainPolicies: false,
-    
+
     // Referrer Policy
     referrerPolicy: {
       policy: "no-referrer"
     },
-    
+
     // X-XSS-Protection
     xssFilter: true
   }))
-  
+
   // Additional security headers
   app.use((req: Request, res: Response, next: NextFunction) => {
     // Remove server information
     res.removeHeader('X-Powered-By')
-    
+
     // Add custom security headers
     res.setHeader('X-API-Version', '1.0.0')
     res.setHeader('X-Response-Time', Date.now().toString())
-    
+
     // Prevent caching of sensitive endpoints
     if (req.path.includes('/api/')) {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
@@ -132,7 +132,7 @@ export const setupSecurity = (app: Application): void => {
       res.setHeader('Expires', '0')
       res.setHeader('Surrogate-Control', 'no-store')
     }
-    
+
     next()
   })
 }
@@ -146,7 +146,7 @@ export const setupSecurity = (app: Application): void => {
 export const createRateLimiter = (options: RateLimiterOptions = {}): RateLimitRequestHandler => {
   const defaultOptions: RateLimiterOptions = {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    max: 2000, // limit each IP to 2000 requests per windowMs
     message: {
       success: false,
       message: 'Too many requests from this IP, please try again later.',
@@ -163,7 +163,7 @@ export const createRateLimiter = (options: RateLimiterOptions = {}): RateLimitRe
       })
     }
   }
-  
+
   return rateLimit({ ...defaultOptions, ...options })
 }
 
@@ -205,17 +205,17 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction): 
   if (req.body && typeof req.body === 'object') {
     req.body = sanitizeObject(req.body)
   }
-  
+
   // Sanitize query parameters
   if (req.query && typeof req.query === 'object') {
     req.query = sanitizeObject(req.query)
   }
-  
+
   // Sanitize URL parameters
   if (req.params && typeof req.params === 'object') {
     req.params = sanitizeObject(req.params)
   }
-  
+
   next()
 }
 
@@ -229,17 +229,17 @@ const sanitizeObject = (obj: any): any => {
   if (obj === null || typeof obj !== 'object') {
     return sanitizeValue(obj)
   }
-  
+
   if (Array.isArray(obj)) {
     return obj.map(item => sanitizeObject(item))
   }
-  
+
   const sanitized: Record<string, any> = {}
   for (const [key, value] of Object.entries(obj)) {
     const sanitizedKey = sanitizeValue(key)
     sanitized[sanitizedKey] = sanitizeObject(value)
   }
-  
+
   return sanitized
 }
 
@@ -253,7 +253,7 @@ const sanitizeValue = (value: any): any => {
   if (typeof value !== 'string') {
     return value
   }
-  
+
   // Remove potentially dangerous characters
   return value
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
@@ -272,7 +272,7 @@ const sanitizeValue = (value: any): any => {
  */
 export const securityLogger = (req: Request, res: Response, next: NextFunction): void => {
   const startTime = Date.now()
-  
+
   // Log request details
   const requestInfo: RequestInfo = {
     method: req.method,
@@ -287,7 +287,7 @@ export const securityLogger = (req: Request, res: Response, next: NextFunction):
       'referer': req.get('Referer')
     }
   }
-  
+
   // Log suspicious patterns
   const suspiciousPatterns = [
     /\.\.\//g, // Directory traversal
@@ -297,16 +297,16 @@ export const securityLogger = (req: Request, res: Response, next: NextFunction):
     /eval\(/gi, // Code injection
     /exec\(/gi // Command injection
   ]
-  
+
   const requestString = JSON.stringify(requestInfo)
-  const hasSuspiciousContent = suspiciousPatterns.some(pattern => 
+  const hasSuspiciousContent = suspiciousPatterns.some(pattern =>
     pattern.test(requestString)
   )
-  
+
   if (hasSuspiciousContent) {
     console.warn('🚨 Suspicious request detected:', requestInfo)
   }
-  
+
   // Log response when finished
   res.on('finish', () => {
     const duration = Date.now() - startTime
@@ -315,14 +315,14 @@ export const securityLogger = (req: Request, res: Response, next: NextFunction):
       statusCode: res.statusCode,
       duration: `${duration}ms`
     }
-    
+
     if (res.statusCode >= 400) {
       console.warn('⚠️ Error response:', responseInfo)
     } else if (process.env.NODE_ENV === 'development') {
       console.log('📝 Request completed:', responseInfo)
     }
   })
-  
+
   next()
 }
 

@@ -1,31 +1,31 @@
 /**
- * 前端环境相关类型定义
+ * 前端市场实例相关类型定义
  * 
- * 前端特定的环境管理和UI状态类型
+ * 前端特定的市场实例管理和UI状态类型
  */
 
 // 重新导出共享类型
 export type {
-  EnvironmentStatus,
-  EnvironmentPreview,
-  EnvironmentDetails,
+  MarketInstanceStatus,
+  MarketInstancePreview,
+  MarketInstanceDetails,
   TraderInfo,
   StockInfo,
   TraderPerformance,
   TradingLog,
-  CreateEnvironmentRequest,
-  CreateEnvironmentResponse,
-  EnvironmentExport,
-  EnvironmentSummary
-} from '../../../shared/types/environment';
+  CreateMarketInstanceRequest,
+  CreateMarketInstanceResponse,
+  MarketInstanceExport,
+  MarketInstanceSummary
+} from '../../../shared/types/marketInstance';
 
 // 导入类型用于本地使用
 import type {
-  EnvironmentStatus,
-  EnvironmentPreview,
-  EnvironmentDetails,
+  MarketInstanceStatus,
+  MarketInstancePreview,
+  MarketInstanceDetails,
   TradingLog
-} from '../../../shared/types/environment';
+} from '../../../shared/types/marketInstance';
 
 /**
  * 模板选项 (用于下拉选择)
@@ -72,12 +72,12 @@ export interface CreationProgress {
  * 市场实例列表UI状态
  */
 export interface MarketInstanceListState {
-  environments: EnvironmentPreview[];
+  marketInstances: MarketInstancePreview[];
   isLoading: boolean;
-  selectedEnvironment: string | null;
+  selectedMarketInstance: string | null;
   sortBy: 'name' | 'createdAt' | 'status' | 'traderCount';
   sortOrder: 'asc' | 'desc';
-  filterStatus: EnvironmentStatus | 'all';
+  filterStatus: MarketInstanceStatus | 'all';
   searchQuery: string;
 }
 
@@ -85,7 +85,7 @@ export interface MarketInstanceListState {
  * 市场实例详情UI状态
  */
 export interface MarketInstanceDetailsState {
-  environment: EnvironmentDetails | null;
+  marketInstance: MarketInstanceDetails | null;
   isLoading: boolean;
   activeTab: 'overview' | 'traders' | 'stocks' | 'logs';
   tradingLogs: TradingLog[];
@@ -101,18 +101,18 @@ export type EnvironmentListState = MarketInstanceListState;
 export type EnvironmentDetailsState = MarketInstanceDetailsState;
 
 /**
- * 环境管理操作
+ * 市场实例管理操作
  */
-export interface EnvironmentAction {
+export interface MarketInstanceAction {
   type: 'view' | 'export' | 'destroy' | 'pause' | 'resume';
-  environmentId: string;
+  marketInstanceId: string;
   isProcessing: boolean;
 }
 
 /**
- * 环境导出UI状态
+ * 市场实例导出UI状态
  */
-export interface EnvironmentExportState {
+export interface MarketInstanceExportState {
   isExporting: boolean;
   format: 'json';
   includeOptions: {
@@ -125,13 +125,13 @@ export interface EnvironmentExportState {
 }
 
 /**
- * 环境统计信息 (用于仪表板)
+ * 市场实例统计信息 (用于仪表板)
  */
-export interface EnvironmentStats {
-  totalEnvironments: number;
-  activeEnvironments: number;
-  creatingEnvironments: number;
-  errorEnvironments: number;
+export interface MarketInstanceStats {
+  totalMarketInstances: number;
+  activeMarketInstances: number;
+  creatingMarketInstances: number;
+  errorMarketInstances: number;
   totalTraders: number;
   totalStocks: number;
   totalCapital: number;
@@ -142,9 +142,9 @@ export interface EnvironmentStats {
 /**
  * 实时更新事件类型
  */
-export interface EnvironmentUpdateEvent {
-  type: 'status_change' | 'new_log' | 'trader_update' | 'environment_created' | 'environment_destroyed';
-  environmentId: string;
+export interface MarketInstanceUpdateEvent {
+  type: 'status_change' | 'new_log' | 'trader_update' | 'market_instance_created' | 'market_instance_destroyed';
+  marketInstanceId: string;
   data: any;
   timestamp: Date;
 }
@@ -152,7 +152,7 @@ export interface EnvironmentUpdateEvent {
 /**
  * 错误状态类型
  */
-export interface EnvironmentError {
+export interface MarketInstanceError {
   code: string;
   message: string;
   details?: any;
@@ -162,26 +162,26 @@ export interface EnvironmentError {
 }
 
 /**
- * 环境操作结果
+ * 市场实例操作结果
  */
-export interface EnvironmentOperationResult {
+export interface MarketInstanceOperationResult {
   success: boolean;
   message: string;
   data?: any;
-  error?: EnvironmentError;
+  error?: MarketInstanceError;
 }
 
 /**
  * 前端配置选项
  */
-export interface EnvironmentUIConfig {
+export interface MarketInstanceUIConfig {
   polling: {
     progressInterval: number;
     listRefreshInterval: number;
     logsRefreshInterval: number;
   };
   limits: {
-    maxEnvironments: number;
+    maxMarketInstances: number;
     maxLogsPerPage: number;
     maxExportSize: number;
   };
@@ -191,3 +191,12 @@ export interface EnvironmentUIConfig {
     enableExportFeature: boolean;
   };
 }
+
+// 保持向后兼容性的别名
+export type EnvironmentAction = MarketInstanceAction;
+export type EnvironmentExportState = MarketInstanceExportState;
+export type EnvironmentStats = MarketInstanceStats;
+export type EnvironmentUpdateEvent = MarketInstanceUpdateEvent;
+export type EnvironmentError = MarketInstanceError;
+export type EnvironmentOperationResult = MarketInstanceOperationResult;
+export type EnvironmentUIConfig = MarketInstanceUIConfig;

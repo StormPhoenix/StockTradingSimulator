@@ -13,24 +13,24 @@ import { CreationProgress } from '../../../shared/types/progress';
 const router = Router();
 
 /**
- * 获取环境列表
- * GET /api/v1/environments
+ * 获取市场实例列表
+ * GET /api/v1/market-instances
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
     // TODO: 从认证中间件获取用户ID
     const userId = req.user?.id || 'default-user';
     
-    const environments = gameInstanceController.getEnvironments(userId);
+    const marketInstances = gameInstanceController.getMarketInstances(userId);
     
     const response = {
       success: true,
       data: {
-        environments: environments,
+        marketInstances: marketInstances,
         meta: {
-          total: environments.length,
-          active: environments.filter(env => env.status === 'ACTIVE').length,
-          creating: environments.filter(env => env.status === 'CREATING').length
+          total: marketInstances.length,
+          active: marketInstances.filter(env => env.status === 'ACTIVE').length,
+          creating: marketInstances.filter(env => env.status === 'CREATING').length
         }
       }
     };
@@ -38,20 +38,20 @@ router.get('/', async (req: Request, res: Response) => {
     res.json(response);
     
   } catch (error) {
-    console.error('Failed to get environments:', error);
+    console.error('Failed to get market instances:', error);
     res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
-        message: 'Failed to retrieve environments'
+        message: 'Failed to retrieve market instances'
       }
     });
   }
 });
 
 /**
- * 创建新环境
- * POST /api/v1/environments
+ * 创建新市场实例
+ * POST /api/v1/market-instances
  */
 router.post('/', async (req: Request, res: Response) => {
   try {
@@ -79,7 +79,7 @@ router.post('/', async (req: Request, res: Response) => {
       data: {
         requestId,
         message: 'Environment creation initiated',
-        progressUrl: `/api/v1/environments/progress/${requestId}`
+        progressUrl: `/api/v1/market-instances/progress/${requestId}`
       }
     };
     
@@ -109,8 +109,8 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 /**
- * 获取环境详情
- * GET /api/v1/environments/:environmentId
+ * 获取市场实例详情
+ * GET /api/v1/market-instances/:environmentId
  */
 router.get('/:environmentId', async (req: Request, res: Response) => {
   try {
@@ -119,38 +119,38 @@ router.get('/:environmentId', async (req: Request, res: Response) => {
     // TODO: 从认证中间件获取用户ID
     const userId = req.user?.id || 'default-user';
     
-    const environment = gameInstanceController.getEnvironmentDetails(environmentId, userId);
+    const marketInstance = gameInstanceController.getMarketInstanceDetails(environmentId, userId);
     
-    if (!environment) {
+    if (!marketInstance) {
       return res.status(404).json({
         success: false,
         error: {
-          code: 'ENVIRONMENT_NOT_FOUND',
-          message: 'Environment not found'
+          code: 'MARKET_INSTANCE_NOT_FOUND',
+          message: 'Market instance not found'
         }
       });
     }
     
     res.json({
       success: true,
-      data: environment
+      data: marketInstance
     });
     
   } catch (error) {
-    console.error('Failed to get environment details:', error);
+    console.error('Failed to get market instance details:', error);
     res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
-        message: 'Failed to retrieve environment details'
+        message: 'Failed to retrieve market instance details'
       }
     });
   }
 });
 
 /**
- * 销毁环境
- * DELETE /api/v1/environments/:environmentId
+ * 销毁市场实例
+ * DELETE /api/v1/market-instances/:environmentId
  */
 router.delete('/:environmentId', async (req: Request, res: Response) => {
   try {
@@ -159,7 +159,7 @@ router.delete('/:environmentId', async (req: Request, res: Response) => {
     // TODO: 从认证中间件获取用户ID
     const userId = req.user?.id || 'default-user';
     
-    await gameInstanceController.destroyEnvironment(environmentId, userId);
+    await gameInstanceController.destroyMarketInstance(environmentId, userId);
     
     res.json({
       success: true,
@@ -170,22 +170,22 @@ router.delete('/:environmentId', async (req: Request, res: Response) => {
     });
     
   } catch (error) {
-    console.error('Failed to destroy environment:', error);
+    console.error('Failed to destroy market instance:', error);
     
     if (error instanceof Error && error.message.includes('not found')) {
       res.status(404).json({
         success: false,
         error: {
-          code: 'ENVIRONMENT_NOT_FOUND',
-          message: 'Environment not found'
+          code: 'MARKET_INSTANCE_NOT_FOUND',
+          message: 'Market instance not found'
         }
       });
     } else if (error instanceof Error && error.message.includes('busy')) {
       res.status(409).json({
         success: false,
         error: {
-          code: 'ENVIRONMENT_BUSY',
-          message: 'Cannot destroy environment while creation is in progress'
+          code: 'MARKET_INSTANCE_BUSY',
+          message: 'Cannot destroy market instance while creation is in progress'
         }
       });
     } else {
@@ -193,7 +193,7 @@ router.delete('/:environmentId', async (req: Request, res: Response) => {
         success: false,
         error: {
           code: 'INTERNAL_ERROR',
-          message: 'Failed to destroy environment'
+          message: 'Failed to destroy market instance'
         }
       });
     }
@@ -202,7 +202,7 @@ router.delete('/:environmentId', async (req: Request, res: Response) => {
 
 /**
  * 获取创建进度
- * GET /api/v1/environments/progress/:requestId
+ * GET /api/v1/market-instances/progress/:requestId
  */
 router.get('/progress/:requestId', async (req: Request, res: Response) => {
   try {
@@ -238,8 +238,8 @@ router.get('/progress/:requestId', async (req: Request, res: Response) => {
 });
 
 /**
- * 导出环境状态
- * GET /api/v1/environments/:environmentId/export
+ * 导出市场实例状态
+ * GET /api/v1/market-instances/:environmentId/export
  */
 router.get('/:environmentId/export', async (req: Request, res: Response) => {
   try {
@@ -249,8 +249,8 @@ router.get('/:environmentId/export', async (req: Request, res: Response) => {
     // TODO: 从认证中间件获取用户ID
     const userId = req.user?.id || 'default-user';
     
-    // 导出环境状态
-    const exportData = await gameInstanceController.exportEnvironmentState(environmentId, userId);
+    // 导出市场实例状态
+    const exportData = await gameInstanceController.exportMarketInstanceState(environmentId, userId);
     
     if (format === 'json') {
       res.json({
@@ -259,7 +259,7 @@ router.get('/:environmentId/export', async (req: Request, res: Response) => {
       });
     } else {
       // 支持文件下载
-      const filename = `environment-${environmentId}-${new Date().toISOString().split('T')[0]}.json`;
+      const filename = `market-instance-${environmentId}-${new Date().toISOString().split('T')[0]}.json`;
       
       res.setHeader('Content-Type', 'application/json');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -267,14 +267,14 @@ router.get('/:environmentId/export', async (req: Request, res: Response) => {
     }
     
   } catch (error) {
-    console.error('Failed to export environment:', error);
+    console.error('Failed to export market instance:', error);
     
     if (error instanceof Error && error.message.includes('not found')) {
       res.status(404).json({
         success: false,
         error: {
-          code: 'ENVIRONMENT_NOT_FOUND',
-          message: 'Environment not found'
+          code: 'MARKET_INSTANCE_NOT_FOUND',
+          message: 'Market instance not found'
         }
       });
     } else {
@@ -282,7 +282,7 @@ router.get('/:environmentId/export', async (req: Request, res: Response) => {
         success: false,
         error: {
           code: 'EXPORT_ERROR',
-          message: 'Failed to export environment state'
+          message: 'Failed to export market instance state'
         }
       });
     }
@@ -291,7 +291,7 @@ router.get('/:environmentId/export', async (req: Request, res: Response) => {
 
 /**
  * 获取交易日志
- * GET /api/v1/environments/:environmentId/logs
+ * GET /api/v1/market-instances/:environmentId/logs
  */
 router.get('/:environmentId/logs', async (req: Request, res: Response) => {
   try {
@@ -301,10 +301,10 @@ router.get('/:environmentId/logs', async (req: Request, res: Response) => {
     // TODO: 从认证中间件获取用户ID
     const userId = req.user?.id || 'default-user';
     
-    // 验证环境存在
-    const environment = gameInstanceController.getEnvironmentDetails(environmentId, userId);
+    // 验证市场实例存在
+    const marketInstance = gameInstanceController.getMarketInstanceDetails(environmentId, userId);
     
-    if (!environment) {
+    if (!marketInstance) {
       return res.status(404).json({
         success: false,
         error: {
@@ -341,7 +341,7 @@ router.get('/:environmentId/logs', async (req: Request, res: Response) => {
 
 /**
  * 获取管理器状态 (调试端点)
- * GET /api/v1/environments/_status
+ * GET /api/v1/market-instances/_status
  */
 router.get('/_status', async (req: Request, res: Response) => {
   try {

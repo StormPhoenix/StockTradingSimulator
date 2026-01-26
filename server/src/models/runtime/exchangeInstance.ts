@@ -210,9 +210,9 @@ export class ExchangeInstance implements GameObject {
   }
 
   /**
-   * 获取环境摘要信息
+   * 获取市场实例摘要信息
    */
-  public getEnvironmentSummary(): {
+  public getMarketInstanceSummary(): {
     exchangeId: string;
     name: string;
     description: string;
@@ -329,7 +329,7 @@ export class ExchangeInstance implements GameObject {
       traders: this.getTraderDetails(),
       stocks: this.getStockDetails(),
       tradingLogs: this.getTradingLogs(1000), // 导出更多日志
-      statistics: this.getEnvironmentSummary().statistics
+      statistics: this.getMarketInstanceSummary().statistics
     };
   }
 

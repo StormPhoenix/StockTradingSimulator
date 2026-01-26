@@ -140,7 +140,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import ProgressTracker from './ProgressTracker.vue';
-import { environmentApi } from '../../services/environmentApi';
+import { marketInstanceApi } from '../../services/marketInstanceApi';
 import type { MarketTemplate, CreationProgress } from '../../types/environment';
 
 // Router
@@ -172,7 +172,7 @@ const loadTemplates = async (): Promise<void> => {
   error.value = '';
 
   try {
-    const response = await environmentApi.getTemplates();
+    const response = await marketInstanceApi.getTemplates();
     templates.value = response;
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load templates';
@@ -190,7 +190,7 @@ const handleCreateMarketInstance = async (): Promise<void> => {
   currentProgress.value = null;
 
   try {
-    const response = await environmentApi.createEnvironment({
+    const response = await marketInstanceApi.createMarketInstance({
       templateId: selectedTemplateId.value,
       name: marketInstanceName.value || undefined
     });
@@ -221,7 +221,7 @@ const checkProgress = async (): Promise<void> => {
   if (!currentRequestId.value) return;
 
   try {
-    const response = await environmentApi.getCreationProgress(currentRequestId.value);
+    const response = await marketInstanceApi.getCreationProgress(currentRequestId.value);
     currentProgress.value = response;
 
     // Stop polling if completed or error
@@ -287,7 +287,7 @@ const createAnother = (): void => {
 const viewMarketInstance = (): void => {
   if (currentProgress.value?.requestId) {
     // Navigate to market instance details (assuming we have the market instance ID)
-    router.push(`/environments`);
+    router.push(`/market-instances`);
   }
 };
 

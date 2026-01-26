@@ -61,12 +61,12 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
-    path: '/environments',
-    name: 'Environments',
+    path: '/market-instances',
+    name: 'MarketInstances',
     children: [
       {
         path: '',
-        name: 'EnvironmentList',
+        name: 'MarketInstanceList',
         component: () => import('@/components/runtime/MarketInstanceList.vue'),
         meta: {
           title: '市场实例管理',
@@ -75,7 +75,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: ':id',
-        name: 'EnvironmentDetails',
+        name: 'MarketInstanceDetails',
         component: () => import('@/components/runtime/MarketInstanceDetails.vue'),
         meta: {
           title: '市场实例详情',

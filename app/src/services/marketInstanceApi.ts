@@ -1,17 +1,17 @@
 /**
- * 环境管理 API 客户端服务
+ * 市场实例管理 API 客户端服务
  * 
- * 前端与后端环境管理 API 的通信接口
+ * 前端与后端市场实例管理 API 的通信接口
  */
 
 import axios from 'axios';
 import type { AxiosInstance, AxiosResponse } from 'axios';
 import type {
-  EnvironmentPreview,
-  EnvironmentDetails,
-  CreateEnvironmentRequest,
-  CreateEnvironmentResponse,
-  EnvironmentExport,
+  MarketInstancePreview,
+  MarketInstanceDetails,
+  CreateMarketInstanceRequest,
+  CreateMarketInstanceResponse,
+  MarketInstanceExport,
   TradingLog,
   MarketTemplate,
   CreationProgress
@@ -31,9 +31,9 @@ interface ApiResponse<T> {
 }
 
 /**
- * 环境 API 客户端
+ * 市场实例 API 客户端
  */
-export class EnvironmentApiClient {
+export class MarketInstanceApiClient {
   private api: AxiosInstance;
   private baseURL: string;
 
@@ -101,10 +101,10 @@ export class EnvironmentApiClient {
   }
 
   /**
-   * 获取环境列表
+   * 获取市场实例列表
    */
-  public async getEnvironments(): Promise<{
-    environments: EnvironmentPreview[];
+  public async getMarketInstances(): Promise<{
+    marketInstances: MarketInstancePreview[];
     meta: {
       total: number;
       active: number;
@@ -113,70 +113,70 @@ export class EnvironmentApiClient {
   }> {
     try {
       const response: AxiosResponse<ApiResponse<{
-        environments: EnvironmentPreview[];
+        marketInstances: MarketInstancePreview[];
         meta: {
           total: number;
           active: number;
           creating: number;
         };
-      }>> = await this.api.get('/environments');
+      }>> = await this.api.get('/market-instances');
 
       if (!response.data.success) {
-        throw new Error(response.data.error?.message || 'Failed to get environments');
+        throw new Error(response.data.error?.message || 'Failed to get market instances');
       }
 
       return response.data.data;
     } catch (error) {
-      console.error('Failed to get environments:', error);
+      console.error('Failed to get market instances:', error);
       throw this.handleApiError(error);
     }
   }
 
   /**
-   * 创建新环境
+   * 创建新市场实例
    */
-  public async createEnvironment(request: CreateEnvironmentRequest): Promise<CreateEnvironmentResponse> {
+  public async createMarketInstance(request: CreateMarketInstanceRequest): Promise<CreateMarketInstanceResponse> {
     try {
-      const response: AxiosResponse<ApiResponse<CreateEnvironmentResponse>> = await this.api.post(
-        '/environments',
+      const response: AxiosResponse<ApiResponse<CreateMarketInstanceResponse>> = await this.api.post(
+        '/market-instances',
         request
       );
 
       if (!response.data.success) {
-        throw new Error(response.data.error?.message || 'Failed to create environment');
+        throw new Error(response.data.error?.message || 'Failed to create market instance');
       }
 
       return response.data.data;
     } catch (error) {
-      console.error('Failed to create environment:', error);
+      console.error('Failed to create market instance:', error);
       throw this.handleApiError(error);
     }
   }
 
   /**
-   * 获取环境详情
+   * 获取市场实例详情
    */
-  public async getEnvironmentDetails(environmentId: string): Promise<EnvironmentDetails> {
+  public async getMarketInstanceDetails(marketInstanceId: string): Promise<MarketInstanceDetails> {
     try {
-      const response: AxiosResponse<ApiResponse<EnvironmentDetails>> = await this.api.get(
-        `/environments/${environmentId}`
+      const response: AxiosResponse<ApiResponse<MarketInstanceDetails>> = await this.api.get(
+        `/market-instances/${marketInstanceId}`
       );
 
       if (!response.data.success) {
-        throw new Error(response.data.error?.message || 'Failed to get environment details');
+        throw new Error(response.data.error?.message || 'Failed to get market instance details');
       }
 
       return response.data.data;
     } catch (error) {
-      console.error('Failed to get environment details:', error);
+      console.error('Failed to get market instance details:', error);
       throw this.handleApiError(error);
     }
   }
 
   /**
-   * 销毁环境
+   * 销毁市场实例
    */
-  public async destroyEnvironment(environmentId: string): Promise<{
+  public async destroyMarketInstance(marketInstanceId: string): Promise<{
     message: string;
     destroyedAt: string;
   }> {
@@ -184,15 +184,15 @@ export class EnvironmentApiClient {
       const response: AxiosResponse<ApiResponse<{
         message: string;
         destroyedAt: string;
-      }>> = await this.api.delete(`/environments/${environmentId}`);
+      }>> = await this.api.delete(`/market-instances/${marketInstanceId}`);
 
       if (!response.data.success) {
-        throw new Error(response.data.error?.message || 'Failed to destroy environment');
+        throw new Error(response.data.error?.message || 'Failed to destroy market instance');
       }
 
       return response.data.data;
     } catch (error) {
-      console.error('Failed to destroy environment:', error);
+      console.error('Failed to destroy market instance:', error);
       throw this.handleApiError(error);
     }
   }
@@ -203,7 +203,7 @@ export class EnvironmentApiClient {
   public async getCreationProgress(requestId: string): Promise<CreationProgress> {
     try {
       const response: AxiosResponse<ApiResponse<CreationProgress>> = await this.api.get(
-        `/environments/progress/${requestId}`
+        `/market-instances/progress/${requestId}`
       );
 
       if (!response.data.success) {
@@ -277,24 +277,24 @@ export class EnvironmentApiClient {
   }
 
   /**
-   * 导出环境状态
+   * 导出市场实例状态
    */
-  public async exportEnvironment(environmentId: string, format: 'json' = 'json'): Promise<EnvironmentExport> {
+  public async exportMarketInstance(marketInstanceId: string, format: 'json' = 'json'): Promise<MarketInstanceExport> {
     try {
-      const response: AxiosResponse<ApiResponse<EnvironmentExport>> = await this.api.get(
-        `/environments/${environmentId}/export`,
+      const response: AxiosResponse<ApiResponse<MarketInstanceExport>> = await this.api.get(
+        `/market-instances/${marketInstanceId}/export`,
         {
           params: { format }
         }
       );
 
       if (!response.data.success) {
-        throw new Error(response.data.error?.message || 'Failed to export environment');
+        throw new Error(response.data.error?.message || 'Failed to export market instance');
       }
 
       return response.data.data;
     } catch (error) {
-      console.error('Failed to export environment:', error);
+      console.error('Failed to export market instance:', error);
       throw this.handleApiError(error);
     }
   }
@@ -303,7 +303,7 @@ export class EnvironmentApiClient {
    * 获取交易日志
    */
   public async getTradingLogs(
-    environmentId: string,
+    marketInstanceId: string,
     options?: {
       limit?: number;
       traderId?: string;
@@ -324,7 +324,7 @@ export class EnvironmentApiClient {
           limit: number;
           environmentId: string;
         };
-      }>> = await this.api.get(`/environments/${environmentId}/logs`, {
+      }>> = await this.api.get(`/market-instances/${marketInstanceId}/logs`, {
         params: options
       });
 
@@ -369,7 +369,7 @@ export class EnvironmentApiClient {
 
           // 检查是否出错
           if (progress.stage === 'ERROR') {
-            reject(new Error(progress.error?.message || 'Environment creation failed'));
+            reject(new Error(progress.error?.message || 'Market instance creation failed'));
             return;
           }
 
@@ -392,11 +392,11 @@ export class EnvironmentApiClient {
   }
 
   /**
-   * 下载环境导出文件
+   * 下载市场实例导出文件
    */
-  public async downloadEnvironmentExport(environmentId: string): Promise<void> {
+  public async downloadMarketInstanceExport(marketInstanceId: string): Promise<void> {
     try {
-      const response = await this.api.get(`/environments/${environmentId}/export`, {
+      const response = await this.api.get(`/market-instances/${marketInstanceId}/export`, {
         responseType: 'blob'
       });
 
@@ -405,7 +405,7 @@ export class EnvironmentApiClient {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `environment-${environmentId}-${new Date().toISOString().split('T')[0]}.json`;
+      link.download = `market-instance-${marketInstanceId}-${new Date().toISOString().split('T')[0]}.json`;
       
       // 触发下载
       document.body.appendChild(link);
@@ -416,7 +416,7 @@ export class EnvironmentApiClient {
       window.URL.revokeObjectURL(url);
 
     } catch (error) {
-      console.error('Failed to download environment export:', error);
+      console.error('Failed to download market instance export:', error);
       throw this.handleApiError(error);
     }
   }
@@ -462,81 +462,81 @@ export class EnvironmentApiClient {
 }
 
 /**
- * 创建默认的环境 API 客户端实例
+ * 创建默认的市场实例 API 客户端实例
  */
-export const environmentApi = new EnvironmentApiClient();
+export const marketInstanceApi = new MarketInstanceApiClient();
 
 /**
- * 环境 API 服务的便捷方法
+ * 市场实例 API 服务的便捷方法
  */
-export const EnvironmentService = {
+export const MarketInstanceService = {
   /**
    * 获取可用模板
    */
   async getTemplates() {
-    return environmentApi.getTemplates();
+    return marketInstanceApi.getTemplates();
   },
 
   /**
-   * 获取所有环境
+   * 获取所有市场实例
    */
   async getAll() {
-    return environmentApi.getEnvironments();
+    return marketInstanceApi.getMarketInstances();
   },
 
   /**
-   * 创建环境
+   * 创建市场实例
    */
   async create(templateId: string, name?: string) {
-    return environmentApi.createEnvironment({ templateId, name });
+    return marketInstanceApi.createMarketInstance({ templateId, name });
   },
 
   /**
-   * 获取环境详情
+   * 获取市场实例详情
    */
-  async getDetails(environmentId: string) {
-    return environmentApi.getEnvironmentDetails(environmentId);
+  async getDetails(marketInstanceId: string) {
+    return marketInstanceApi.getMarketInstanceDetails(marketInstanceId);
   },
 
   /**
-   * 销毁环境
+   * 销毁市场实例
    */
-  async destroy(environmentId: string) {
-    return environmentApi.destroyEnvironment(environmentId);
+  async destroy(marketInstanceId: string) {
+    return marketInstanceApi.destroyMarketInstance(marketInstanceId);
   },
 
   /**
    * 监控创建进度
    */
   async monitorCreation(requestId: string, onProgress: (progress: CreationProgress) => void) {
-    return environmentApi.pollCreationProgress(requestId, onProgress);
+    return marketInstanceApi.pollCreationProgress(requestId, onProgress);
   },
 
   /**
    * 获取创建进度
    */
   async getProgress(requestId: string) {
-    return environmentApi.getCreationProgress(requestId);
+    return marketInstanceApi.getCreationProgress(requestId);
   },
 
   /**
-   * 导出环境
+   * 导出市场实例
    */
-  async export(environmentId: string) {
-    return environmentApi.exportEnvironment(environmentId);
+  async export(marketInstanceId: string) {
+    return marketInstanceApi.exportMarketInstance(marketInstanceId);
   },
 
   /**
    * 下载导出文件
    */
-  async download(environmentId: string) {
-    return environmentApi.downloadEnvironmentExport(environmentId);
+  async download(marketInstanceId: string) {
+    return marketInstanceApi.downloadMarketInstanceExport(marketInstanceId);
   },
 
   /**
    * 获取交易日志
    */
-  async getLogs(environmentId: string, options?: { limit?: number; traderId?: string }) {
-    return environmentApi.getTradingLogs(environmentId, options);
+  async getLogs(marketInstanceId: string, options?: { limit?: number; traderId?: string }) {
+    return marketInstanceApi.getTradingLogs(marketInstanceId, options);
   }
 };

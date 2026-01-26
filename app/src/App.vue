@@ -10,7 +10,7 @@
         </div>
         <div class="nav-links">
           <router-link to="/" class="nav-link">首页</router-link>
-          <router-link to="/environments" class="nav-link">环境管理</router-link>
+          <router-link to="/market-instances" class="nav-link">市场实例</router-link>
           <router-link to="/admin" class="nav-link">管理后台</router-link>
         </div>
       </div>

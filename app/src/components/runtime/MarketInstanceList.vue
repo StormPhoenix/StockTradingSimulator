@@ -276,21 +276,20 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
 import type { 
-  EnvironmentPreview, 
-  EnvironmentStatus,
+  MarketInstanceStatus,
   MarketInstanceListState 
 } from '@/types/environment';
-import { EnvironmentService } from '@/services/environmentApi';
-import { environmentApi } from '@/services/environmentApi';
+import { MarketInstanceService } from '@/services/marketInstanceApi';
+import { marketInstanceApi } from '@/services/marketInstanceApi';
 import templateService from '@/services/templateService';
 
 const router = useRouter();
 
 // 响应式状态
 const state = reactive<MarketInstanceListState>({
-  environments: [],
+  marketInstances: [],
   isLoading: false,
-  selectedEnvironment: null,
+  selectedMarketInstance: null,
   sortBy: 'createdAt',
   sortOrder: 'desc',
   filterStatus: 'all',
@@ -328,7 +327,7 @@ const createFormRules = {
 // 计算属性
 const filteredMarketInstances = computed(() => {
   // 确保 environments 是一个数组
-  const marketInstances = Array.isArray(state.environments) ? state.environments : [];
+  const marketInstances = Array.isArray(state.marketInstances) ? state.marketInstances : [];
   let filtered = [...marketInstances];
 
   // 状态筛选
@@ -380,14 +379,14 @@ const canCreateMarketInstance = computed(() => {
 const loadMarketInstances = async () => {
   try {
     state.isLoading = true;
-    const response = await EnvironmentService.getAll();
+    const response = await MarketInstanceService.getAll();
     // 确保 environments 是一个数组
-    state.environments = Array.isArray(response.environments) ? response.environments : [];
+    state.marketInstances = Array.isArray(response.marketInstances) ? response.marketInstances : [];
   } catch (error) {
     console.error('Failed to load market instances:', error);
     ElMessage.error('加载市场实例列表失败');
     // 发生错误时确保 environments 是空数组
-    state.environments = [];
+    state.marketInstances = [];
   } finally {
     state.isLoading = false;
   }
@@ -446,8 +445,8 @@ const handleCreateMarketInstance = async () => {
     isCreating.value = true;
     creationProgress.value = null;
     
-    // 直接调用 environmentApi 来获取 requestId 并支持进度跟踪
-    const response = await environmentApi.createEnvironment({
+    // 直接调用 marketInstanceApi 来获取 requestId 并支持进度跟踪
+    const response = await marketInstanceApi.createMarketInstance({
       templateId: createForm.templateId,
       name: createForm.customName || undefined
     });
@@ -457,7 +456,7 @@ const handleCreateMarketInstance = async () => {
       // 开始轮询进度
       progressInterval.value = setInterval(async () => {
         try {
-          const progress = await environmentApi.getCreationProgress(response.requestId);
+          const progress = await marketInstanceApi.getCreationProgress(response.requestId);
           creationProgress.value = progress;
           
           if (progress.stage === 'COMPLETE') {
@@ -553,7 +552,7 @@ const resetCreateForm = () => {
 };
 
 const handleViewMarketInstance = (marketInstanceId: string) => {
-  router.push(`/environments/${marketInstanceId}`);
+  router.push(`/market-instances/${marketInstanceId}`);
 };
 
 const handleDeleteMarketInstance = async (marketInstanceId: string) => {
@@ -568,7 +567,7 @@ const handleDeleteMarketInstance = async (marketInstanceId: string) => {
       }
     );
 
-    await EnvironmentService.destroy(marketInstanceId);
+    await MarketInstanceService.destroy(marketInstanceId);
     ElMessage.success('市场实例删除成功');
     await loadMarketInstances();
   } catch (error) {
@@ -589,7 +588,7 @@ const handleCurrentChange = (newPage: number) => {
 };
 
 // 工具函数
-const getStatusType = (status: EnvironmentStatus) => {
+const getStatusType = (status: MarketInstanceStatus) => {
   const statusMap: Record<string, string> = {
     active: 'success',
     creating: 'warning',
@@ -599,7 +598,7 @@ const getStatusType = (status: EnvironmentStatus) => {
   return statusMap[status] || 'info';
 };
 
-const getStatusText = (status: EnvironmentStatus) => {
+const getStatusText = (status: MarketInstanceStatus) => {
   const statusMap: Record<string, string> = {
     active: '活跃',
     creating: '创建中',

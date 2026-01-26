@@ -1,13 +1,13 @@
 /**
- * 环境相关共享类型定义
+ * 市场实例相关共享类型定义
  * 
- * 前后端共享的环境数据结构
+ * 前后端共享的市场实例数据结构
  */
 
 /**
- * 环境状态枚举
+ * 市场实例状态枚举
  */
-export enum EnvironmentStatus {
+export enum MarketInstanceStatus {
   CREATING = 'CREATING',
   ACTIVE = 'ACTIVE', 
   PAUSED = 'PAUSED',
@@ -15,20 +15,20 @@ export enum EnvironmentStatus {
 }
 
 /**
- * 环境预览信息 (用于列表显示)
+ * 市场实例预览信息 (用于列表显示)
  */
-export interface EnvironmentPreview {
-  /** 环境唯一标识符 */
+export interface MarketInstancePreview {
+  /** 市场实例唯一标识符 */
   exchangeId: string;
   
-  /** 环境名称 */
+  /** 市场实例名称 */
   name: string;
   
-  /** 环境描述 */
+  /** 市场实例描述 */
   description: string;
   
   /** 当前状态 */
-  status: EnvironmentStatus;
+  status: MarketInstanceStatus;
   
   /** 创建时间 */
   createdAt: Date;
@@ -52,9 +52,9 @@ export interface EnvironmentPreview {
 }
 
 /**
- * 环境详细信息
+ * 市场实例详细信息
  */
-export interface EnvironmentDetails extends EnvironmentPreview {
+export interface MarketInstanceDetails extends MarketInstancePreview {
   /** AI交易员列表 */
   traders: TraderInfo[];
   
@@ -122,28 +122,28 @@ export interface TradingLog {
 }
 
 /**
- * 环境创建请求
+ * 市场实例创建请求
  */
-export interface CreateEnvironmentRequest {
+export interface CreateMarketInstanceRequest {
   templateId: string;
   name?: string;
 }
 
 /**
- * 环境创建响应
+ * 市场实例创建响应
  */
-export interface CreateEnvironmentResponse {
+export interface CreateMarketInstanceResponse {
   requestId: string;
   message: string;
   progressUrl: string;
 }
 
 /**
- * 环境导出数据
+ * 市场实例导出数据
  */
-export interface EnvironmentExport {
+export interface MarketInstanceExport {
   exportedAt: Date;
-  environment: EnvironmentDetails;
+  marketInstance: MarketInstanceDetails;
   templateData: {
     exchange: any;
     traders: any[];
@@ -156,13 +156,13 @@ export interface EnvironmentExport {
 }
 
 /**
- * 环境摘要信息
+ * 市场实例摘要信息
  */
-export interface EnvironmentSummary {
-  totalEnvironments: number;
-  activeEnvironments: number;
-  creatingEnvironments: number;
-  errorEnvironments: number;
+export interface MarketInstanceSummary {
+  totalMarketInstances: number;
+  activeMarketInstances: number;
+  creatingMarketInstances: number;
+  errorMarketInstances: number;
   totalTraders: number;
   totalStocks: number;
   totalCapital: number;

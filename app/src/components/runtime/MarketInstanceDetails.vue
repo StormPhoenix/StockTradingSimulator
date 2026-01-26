@@ -310,19 +310,19 @@ import { reactive, onMounted, onUnmounted, ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { 
-  EnvironmentDetails,
+  MarketInstanceDetails,
   MarketInstanceDetailsState,
-  EnvironmentStatus,
+  MarketInstanceStatus,
   TradingLog
 } from '@/types/environment';
-import { EnvironmentService } from '@/services/environmentApi';
+import { MarketInstanceService } from '@/services/marketInstanceApi';
 
 const route = useRoute();
 const router = useRouter();
 
 // 响应式状态
 const state = reactive<MarketInstanceDetailsState>({
-  environment: null,
+  marketInstance: null,
   isLoading: false,
   activeTab: 'overview',
   tradingLogs: [],
@@ -337,7 +337,7 @@ const isDeleting = ref(false);
 const isExporting = ref(false);
 const isRefreshing = ref(false);
 const autoRefreshInterval = ref<NodeJS.Timeout | null>(null);
-const marketInstance = computed(() => state.environment);
+const marketInstance = computed(() => state.marketInstance);
 
 // 方法
 const loadMarketInstanceDetails = async (showLoading = true) => {
@@ -346,8 +346,8 @@ const loadMarketInstanceDetails = async (showLoading = true) => {
       state.isLoading = true;
     }
     const marketInstanceId = route.params.id as string;
-    const response = await EnvironmentService.getDetails(marketInstanceId);
-    state.environment = response;
+    const response = await MarketInstanceService.getDetails(marketInstanceId);
+    state.marketInstance = response;
   } catch (error) {
     console.error('Failed to load market instance details:', error);
     ElMessage.error('加载市场实例详情失败');
@@ -393,12 +393,12 @@ const stopAutoRefresh = () => {
 };
 
 const loadTradingLogs = async () => {
-  if (!state.environment) return;
+  if (!state.marketInstance) return;
   
   try {
     state.isLoadingLogs = true;
-    const response = await EnvironmentService.getLogs(
-      state.environment.exchangeId,
+    const response = await MarketInstanceService.getLogs(
+      state.marketInstance.exchangeId,
       state.logsFilter
     );
     state.tradingLogs = response.logs;
@@ -411,11 +411,11 @@ const loadTradingLogs = async () => {
 };
 
 const handleGoBack = () => {
-  router.push('/environments');
+  router.push('/market-instances');
 };
 
 const handleDeleteMarketInstance = async () => {
-  if (!state.environment) return;
+  if (!state.marketInstance) return;
 
   try {
     await ElMessageBox.confirm(
@@ -429,9 +429,9 @@ const handleDeleteMarketInstance = async () => {
     );
 
     isDeleting.value = true;
-    await EnvironmentService.destroy(state.environment.exchangeId);
+    await MarketInstanceService.destroy(state.marketInstance.exchangeId);
     ElMessage.success('市场实例删除成功');
-    router.push('/environments');
+    router.push('/market-instances');
   } catch (error) {
     if (error !== 'cancel') {
       console.error('Failed to delete market instance:', error);
@@ -443,13 +443,13 @@ const handleDeleteMarketInstance = async () => {
 };
 
 const handleExportMarketInstance = async () => {
-  if (!state.environment) return;
+  if (!state.marketInstance) return;
 
   try {
     isExporting.value = true;
     
-    // 使用 environmentApi 的下载功能
-    await EnvironmentService.download(state.environment.exchangeId);
+    // 使用 marketInstanceApi 的下载功能
+    await MarketInstanceService.download(state.marketInstance.exchangeId);
     
     ElMessage.success('市场实例导出成功');
   } catch (error) {
@@ -461,7 +461,7 @@ const handleExportMarketInstance = async () => {
 };
 
 // 工具函数
-const getStatusType = (status: EnvironmentStatus) => {
+const getStatusType = (status: MarketInstanceStatus) => {
   const statusMap: Record<string, string> = {
     active: 'success',
     creating: 'warning',
@@ -471,7 +471,7 @@ const getStatusType = (status: EnvironmentStatus) => {
   return statusMap[status] || 'info';
 };
 
-const getStatusText = (status: EnvironmentStatus) => {
+const getStatusText = (status: MarketInstanceStatus) => {
   const statusMap: Record<string, string> = {
     active: '活跃',
     creating: '创建中',
