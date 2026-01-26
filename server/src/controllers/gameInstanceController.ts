@@ -11,6 +11,7 @@ import { EnvironmentManagerEvents } from '../types/eventTypes';
 import { MarketTemplateRequest, MarketTemplateResponse } from '../workers/types/business/marketTemplate';
 import { TaskType, TaskCallback, TaskError } from '../workers/types/worker/genericTask';
 import { TypedEventEmitter } from '../types/typedEventEmitter';
+import { ExchangeInstance } from '../models/runtime/exchangeInstance';
 
 /**
  * 环境创建请求
@@ -27,7 +28,7 @@ export interface MarketInstanceCreationRequest {
  */
 export interface EnvironmentInstance {
   id: string;
-  exchangeInstance: import('../models/runtime/exchangeInstance').ExchangeInstance;
+  exchangeInstance: ExchangeInstance;
   status: EnvironmentStatus;
   createdAt: Date;
   lastActiveAt: Date;

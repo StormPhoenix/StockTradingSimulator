@@ -25,6 +25,14 @@
         </el-tag>
         <div class="action-buttons">
           <el-button
+            icon="Refresh"
+            @click="handleRefresh"
+            :loading="isRefreshing"
+            title="刷新数据"
+          >
+            刷新
+          </el-button>
+          <el-button
             type="success"
             icon="Download"
             @click="handleExportMarketInstance"
@@ -115,6 +123,20 @@
 
         <!-- 详细信息标签页 -->
         <el-card class="details-card">
+          <template #header>
+            <div class="card-header">
+              <span class="card-title">详细信息</span>
+              <div class="header-actions">
+                <el-tag size="small" type="success" v-if="autoRefreshInterval">
+                  <el-icon><Timer /></el-icon>
+                  自动刷新中
+                </el-tag>
+                <span class="last-update" v-if="marketInstance">
+                  最后更新: {{ formatTime(new Date()) }}
+                </span>
+              </div>
+            </div>
+          </template>
           <el-tabs v-model="state.activeTab" class="details-tabs">
             <!-- 交易员标签页 -->
             <el-tab-pane label="交易员" name="traders">
@@ -284,7 +306,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, onMounted, ref, computed, watch } from 'vue';
+import { reactive, onMounted, onUnmounted, ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { 
@@ -313,12 +335,16 @@ const state = reactive<MarketInstanceDetailsState>({
 
 const isDeleting = ref(false);
 const isExporting = ref(false);
+const isRefreshing = ref(false);
+const autoRefreshInterval = ref<NodeJS.Timeout | null>(null);
 const marketInstance = computed(() => state.environment);
 
 // 方法
-const loadMarketInstanceDetails = async () => {
+const loadMarketInstanceDetails = async (showLoading = true) => {
   try {
-    state.isLoading = true;
+    if (showLoading) {
+      state.isLoading = true;
+    }
     const marketInstanceId = route.params.id as string;
     const response = await EnvironmentService.getDetails(marketInstanceId);
     state.environment = response;
@@ -326,7 +352,43 @@ const loadMarketInstanceDetails = async () => {
     console.error('Failed to load market instance details:', error);
     ElMessage.error('加载市场实例详情失败');
   } finally {
-    state.isLoading = false;
+    if (showLoading) {
+      state.isLoading = false;
+    }
+  }
+};
+
+// 手动刷新
+const handleRefresh = async () => {
+  try {
+    isRefreshing.value = true;
+    await loadMarketInstanceDetails(false);
+    ElMessage.success('数据已刷新');
+  } catch (error) {
+    ElMessage.error('刷新失败');
+  } finally {
+    isRefreshing.value = false;
+  }
+};
+
+// 启动自动刷新
+const startAutoRefresh = () => {
+  // 清除现有定时器
+  if (autoRefreshInterval.value) {
+    clearInterval(autoRefreshInterval.value);
+  }
+  
+  // 每30秒自动刷新一次
+  autoRefreshInterval.value = setInterval(() => {
+    loadMarketInstanceDetails(false);
+  }, 30000);
+};
+
+// 停止自动刷新
+const stopAutoRefresh = () => {
+  if (autoRefreshInterval.value) {
+    clearInterval(autoRefreshInterval.value);
+    autoRefreshInterval.value = null;
   }
 };
 
@@ -462,6 +524,18 @@ const formatTime = (date: Date | string) => {
 // 生命周期
 onMounted(() => {
   loadMarketInstanceDetails();
+  startAutoRefresh();
+});
+
+onUnmounted(() => {
+  stopAutoRefresh();
+});
+
+// 监听路由参数变化
+watch(() => route.params.id, (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    loadMarketInstanceDetails();
+  }
 });
 
 // 监听标签页切换
@@ -554,6 +628,23 @@ watch(() => state.activeTab, (newTab) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.last-update {
+  font-size: 12px;
+  color: #7f8c8d;
 }
 
 .card-header h3 {

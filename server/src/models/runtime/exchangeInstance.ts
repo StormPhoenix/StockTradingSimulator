@@ -101,14 +101,25 @@ export class ExchangeInstance implements GameObject {
     
     console.log(`[ExchangeInstance] Exchange "${this.name}" (ID: ${this.id}) is being destroyed`);
     
-    // 销毁所有交易员
+    // 通过 GameObjectManager 销毁所有交易员
+    const { GameObjectManager } = require('../../lifecycle/core/gameObjectManager');
+    const gameObjectManager = GameObjectManager.getInstance();
+    
     for (const trader of this.traders.values()) {
-      trader.onDestroy();
+      try {
+        gameObjectManager.destroyObject(trader.id);
+      } catch (error) {
+        console.error(`[ExchangeInstance] Failed to destroy trader ${trader.id}:`, error);
+      }
     }
     
-    // 销毁所有股票
+    // 通过 GameObjectManager 销毁所有股票
     for (const stock of this.stocks.values()) {
-      stock.onDestroy();
+      try {
+        gameObjectManager.destroyObject(stock.id);
+      } catch (error) {
+        console.error(`[ExchangeInstance] Failed to destroy stock ${stock.id}:`, error);
+      }
     }
     
     // 清理容器
@@ -130,9 +141,17 @@ export class ExchangeInstance implements GameObject {
   public removeTrader(traderId: string): void {
     const trader = this.traders.get(traderId);
     if (trader) {
-      trader.onDestroy();
-      this.traders.delete(traderId);
-      console.log(`[ExchangeInstance] Removed trader ${traderId} from exchange "${this.name}"`);
+      // 通过 GameObjectManager 销毁交易员
+      const { GameObjectManager } = require('../../lifecycle/core/gameObjectManager');
+      const gameObjectManager = GameObjectManager.getInstance();
+      
+      try {
+        gameObjectManager.destroyObject(trader.id);
+        this.traders.delete(traderId);
+        console.log(`[ExchangeInstance] Removed trader ${traderId} from exchange "${this.name}"`);
+      } catch (error) {
+        console.error(`[ExchangeInstance] Failed to remove trader ${traderId}:`, error);
+      }
     }
   }
 
@@ -150,9 +169,17 @@ export class ExchangeInstance implements GameObject {
   public removeStock(stockSymbol: string): void {
     const stock = this.stocks.get(stockSymbol);
     if (stock) {
-      stock.onDestroy();
-      this.stocks.delete(stockSymbol);
-      console.log(`[ExchangeInstance] Removed stock ${stockSymbol} from exchange "${this.name}"`);
+      // 通过 GameObjectManager 销毁股票
+      const { GameObjectManager } = require('../../lifecycle/core/gameObjectManager');
+      const gameObjectManager = GameObjectManager.getInstance();
+      
+      try {
+        gameObjectManager.destroyObject(stock.id);
+        this.stocks.delete(stockSymbol);
+        console.log(`[ExchangeInstance] Removed stock ${stockSymbol} from exchange "${this.name}"`);
+      } catch (error) {
+        console.error(`[ExchangeInstance] Failed to remove stock ${stockSymbol}:`, error);
+      }
     }
   }
 
