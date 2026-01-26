@@ -155,71 +155,101 @@
       @close="handleCloseCreateDialog"
     >
       <div class="create-market-instance-form">
-        <el-form
-          ref="createFormRef"
-          :model="createForm"
-          :rules="createFormRules"
-          label-width="120px"
-          label-position="left"
-        >
-          <el-form-item label="选择模板" prop="templateId">
-            <el-select
-              v-model="createForm.templateId"
-              placeholder="请选择市场实例模板"
-              style="width: 100%"
-              :loading="isLoadingTemplates"
-              @change="handleTemplateChange"
-            >
-              <el-option
-                v-for="template in availableTemplates"
-                :key="template.id"
-                :label="`${template.name} (${template.traderCount}个交易员, ${template.stockCount}只股票)`"
-                :value="template.id"
+        <!-- 表单区域 -->
+        <div v-if="!isCreating">
+          <el-form
+            ref="createFormRef"
+            :model="createForm"
+            :rules="createFormRules"
+            label-width="120px"
+            label-position="left"
+          >
+            <el-form-item label="选择模板" prop="templateId">
+              <el-select
+                v-model="createForm.templateId"
+                placeholder="请选择市场实例模板"
+                style="width: 100%"
+                :loading="isLoadingTemplates"
+                @change="handleTemplateChange"
+              >
+                <el-option
+                  v-for="template in availableTemplates"
+                  :key="template.id"
+                  :label="`${template.name} (${template.traderCount}个交易员, ${template.stockCount}只股票)`"
+                  :value="template.id"
+                />
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="自定义名称" prop="customName">
+              <el-input
+                v-model="createForm.customName"
+                placeholder="输入市场实例名称（可选）"
+                clearable
               />
-            </el-select>
-          </el-form-item>
+            </el-form-item>
 
-          <el-form-item label="自定义名称" prop="customName">
-            <el-input
-              v-model="createForm.customName"
-              placeholder="输入市场实例名称（可选）"
-              clearable
+            <!-- 模板预览 -->
+            <div v-if="selectedTemplate" class="template-preview">
+              <el-divider content-position="left">模板预览</el-divider>
+              <div class="preview-grid">
+                <div class="preview-item">
+                  <span class="label">模板名称:</span>
+                  <span class="value">{{ selectedTemplate.name }}</span>
+                </div>
+                <div class="preview-item">
+                  <span class="label">描述:</span>
+                  <span class="value">{{ selectedTemplate.description }}</span>
+                </div>
+                <div class="preview-item">
+                  <span class="label">AI交易员:</span>
+                  <span class="value">{{ selectedTemplate.traderCount }}个</span>
+                </div>
+                <div class="preview-item">
+                  <span class="label">股票数量:</span>
+                  <span class="value">{{ selectedTemplate.stockCount }}只</span>
+                </div>
+                <div class="preview-item">
+                  <span class="label">难度:</span>
+                  <el-tag :type="getDifficultyTagType(selectedTemplate.difficulty)">
+                    {{ getDifficultyText(selectedTemplate.difficulty) }}
+                  </el-tag>
+                </div>
+                <div class="preview-item">
+                  <span class="label">预计创建时间:</span>
+                  <span class="value">{{ selectedTemplate.estimatedCreationTime }}秒</span>
+                </div>
+              </div>
+            </div>
+          </el-form>
+        </div>
+
+        <!-- 进度显示区域 -->
+        <div v-if="isCreating" class="creation-progress">
+          <div class="progress-header">
+            <h3>正在创建市场实例...</h3>
+            <p v-if="creationProgress">{{ creationProgress.message }}</p>
+          </div>
+          
+          <div class="progress-content">
+            <el-progress 
+              :percentage="creationProgress?.percentage || 0" 
+              :status="creationProgress?.error ? 'exception' : 'success'"
+              :stroke-width="8"
             />
-          </el-form-item>
-
-          <!-- 模板预览 -->
-          <div v-if="selectedTemplate" class="template-preview">
-            <el-divider content-position="left">模板预览</el-divider>
-            <div class="preview-grid">
-              <div class="preview-item">
-                <span class="label">模板名称:</span>
-                <span class="value">{{ selectedTemplate.name }}</span>
+            
+            <div v-if="creationProgress?.details" class="progress-details">
+              <div class="detail-item">
+                <span>交易员进度:</span>
+                <span>{{ creationProgress.details.createdTraders || 0 }} / {{ creationProgress.details.totalTraders || 0 }}</span>
               </div>
-              <div class="preview-item">
-                <span class="label">描述:</span>
-                <span class="value">{{ selectedTemplate.description }}</span>
-              </div>
-              <div class="preview-item">
-                <span class="label">AI交易员:</span>
-                <span class="value">{{ selectedTemplate.traderCount }}个</span>
-              </div>
-              <div class="preview-item">
-                <span class="label">股票数量:</span>
-                <span class="value">{{ selectedTemplate.stockCount }}只</span>
-              </div>
-              <div class="preview-item">
-                <span class="label">难度:</span>
-                <el-tag :type="getDifficultyTagType(selectedTemplate.difficulty)">
-                  {{ getDifficultyText(selectedTemplate.difficulty) }}
-                </el-tag>
-              </div>
-              <div class="preview-item">
-                <span class="label">预计创建时间:</span>
-                <span class="value">{{ selectedTemplate.estimatedCreationTime }}秒</span>
+              <div class="detail-item">
+                <span>股票进度:</span>
+                <span>{{ creationProgress.details.createdStocks || 0 }} / {{ creationProgress.details.totalStocks || 0 }}</span>
               </div>
             </div>
           </div>
-        </el-form>
+        </div>
       </div>
 
       <template #footer>
@@ -251,6 +281,7 @@ import type {
   MarketInstanceListState 
 } from '@/types/environment';
 import { EnvironmentService } from '@/services/environmentApi';
+import { environmentApi } from '@/services/environmentApi';
 import templateService from '@/services/templateService';
 
 const router = useRouter();
@@ -276,6 +307,10 @@ const createFormRef = ref<FormInstance>();
 const isLoadingTemplates = ref(false);
 const isCreating = ref(false);
 const availableTemplates = ref<any[]>([]);
+
+// 进度跟踪状态
+const creationProgress = ref<any>(null);
+const progressInterval = ref<NodeJS.Timeout | null>(null);
 
 // 创建市场实例表单
 const createForm = reactive({
@@ -409,19 +444,77 @@ const handleCreateMarketInstance = async () => {
     if (!valid) return;
 
     isCreating.value = true;
+    creationProgress.value = null;
     
-    await EnvironmentService.create(createForm.templateId, createForm.customName || undefined);
-    ElMessage.success('市场实例创建成功');
-    
-    // 关闭弹窗并重新加载列表
-    createDialogVisible.value = false;
-    resetCreateForm();
-    await loadMarketInstances();
+    // 直接调用 environmentApi 来获取 requestId 并支持进度跟踪
+    const response = await environmentApi.createEnvironment({
+      templateId: createForm.templateId,
+      name: createForm.customName || undefined
+    });
+
+    // 如果返回了 requestId，说明是异步创建，需要跟踪进度
+    if (response.requestId) {
+      // 开始轮询进度
+      progressInterval.value = setInterval(async () => {
+        try {
+          const progress = await environmentApi.getCreationProgress(response.requestId);
+          creationProgress.value = progress;
+          
+          if (progress.stage === 'COMPLETE') {
+            if (progressInterval.value) {
+              clearInterval(progressInterval.value);
+              progressInterval.value = null;
+            }
+            
+            ElMessage.success('市场实例创建成功');
+            
+            // 关闭弹窗并重新加载列表
+            setTimeout(() => {
+              createDialogVisible.value = false;
+              resetCreateForm();
+              loadMarketInstances();
+              isCreating.value = false;
+              creationProgress.value = null;
+            }, 1500); // 显示完成状态1.5秒后关闭
+            
+          } else if (progress.error) {
+            if (progressInterval.value) {
+              clearInterval(progressInterval.value);
+              progressInterval.value = null;
+            }
+            
+            ElMessage.error(`创建失败: ${progress.error.message}`);
+            isCreating.value = false;
+            creationProgress.value = null;
+          }
+        } catch (progressError) {
+          console.error('Failed to get progress:', progressError);
+          
+          if (progressInterval.value) {
+            clearInterval(progressInterval.value);
+            progressInterval.value = null;
+          }
+          
+          ElMessage.error('无法获取创建进度');
+          isCreating.value = false;
+          creationProgress.value = null;
+        }
+      }, 1000);
+    } else {
+      // 如果没有 requestId，说明是同步创建已完成
+      ElMessage.success('市场实例创建成功');
+      
+      // 关闭弹窗并重新加载列表
+      createDialogVisible.value = false;
+      resetCreateForm();
+      await loadMarketInstances();
+      isCreating.value = false;
+    }
   } catch (error) {
     console.error('Failed to create market instance:', error);
     ElMessage.error('创建市场实例失败');
-  } finally {
     isCreating.value = false;
+    creationProgress.value = null;
   }
 };
 
@@ -435,8 +528,16 @@ const handleCloseCreateDialog = () => {
     ElMessage.warning('市场实例创建中，请稍候...');
     return;
   }
+  
+  // 清理进度轮询
+  if (progressInterval.value) {
+    clearInterval(progressInterval.value);
+    progressInterval.value = null;
+  }
+  
   createDialogVisible.value = false;
   resetCreateForm();
+  creationProgress.value = null;
 };
 
 const handleTemplateChange = () => {
@@ -808,5 +909,53 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+/* 进度显示样式 */
+.creation-progress {
+  padding: 24px;
+  text-align: center;
+}
+
+.progress-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.progress-header p {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: #7f8c8d;
+}
+
+.progress-content {
+  margin-top: 16px;
+}
+
+.progress-details {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-around;
+  gap: 24px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.detail-item span:first-child {
+  font-size: 12px;
+  color: #7f8c8d;
+}
+
+.detail-item span:last-child {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
 }
 </style>
