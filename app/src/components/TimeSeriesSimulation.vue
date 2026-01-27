@@ -377,10 +377,13 @@ const granularityOptions = [
   { label: '5 分钟', value: 'MIN_5' },
   { label: '15 分钟', value: 'MIN_15' },
   { label: '30 分钟', value: 'MIN_30' },
-  { label: '1 小时', value: 'HOUR_1' },
-  { label: '4 小时', value: 'HOUR_4' },
+  { label: '60 分钟（1 小时）', value: 'MIN_60' },
+  { label: '120 分钟（2 小时）', value: 'MIN_120' },
   { label: '1 天', value: 'DAY_1' },
-  { label: '1 周', value: 'WEEK_1' },
+  { label: '5 天', value: 'DAY_5' },
+  { label: '20 天', value: 'DAY_20' },
+  { label: '120 天', value: 'DAY_120' },
+  { label: '250 天', value: 'DAY_250' },
 ];
 
 // 状态
@@ -489,7 +492,6 @@ const handleGenerateAndAdd = async () => {
       seriesId: config.value.seriesId,
       name: `模拟股票 ${config.value.seriesId}`,
       dataType: 'CONTINUOUS',
-      granularityLevels: [config.value.granularityLevel],
       metrics: ['OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME', 'VWAP'],
     });
 

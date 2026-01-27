@@ -20,15 +20,16 @@ const simulationService = new TimeSeriesSimulationService(
 
 /**
  * 创建时间序列
+ * 创建时默认支持所有粒度
  */
 router.post('/series', (req: Request, res: Response) => {
   try {
-    const { seriesId, name, dataType, granularityLevels, metrics } = req.body;
+    const { seriesId, name, dataType, metrics } = req.body;
 
-    if (!seriesId || !name || !dataType || !granularityLevels || !metrics) {
+    if (!seriesId || !name || !dataType || !metrics) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: seriesId, name, dataType, granularityLevels, metrics',
+        error: 'Missing required fields: seriesId, name, dataType, metrics',
       });
     }
 
@@ -36,14 +37,13 @@ router.post('/series', (req: Request, res: Response) => {
       seriesId,
       name,
       dataType: dataType as DataType,
-      granularityLevels: granularityLevels as Granularity[],
       metrics: metrics as Metric[],
     });
 
     res.json({
       success: true,
-      message: 'Series created successfully',
-      data: { seriesId, name, dataType, granularityLevels, metrics },
+      message: 'Series created successfully (all granularities supported)',
+      data: { seriesId, name, dataType, metrics },
     });
   } catch (error) {
     console.error('Error creating series:', error);

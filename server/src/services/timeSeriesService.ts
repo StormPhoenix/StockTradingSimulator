@@ -26,19 +26,18 @@ class TimeSeriesService {
 
   /**
    * 创建时间序列
+   * 创建时默认支持所有粒度
    */
   createSeries(config: {
     seriesId: string;
     name: string;
     dataType: DataType;
-    granularityLevels: Granularity[];
     metrics: Metric[];
   }): void {
     const seriesDefinition: SeriesDefinition = {
       seriesId: config.seriesId,
       name: config.name,
       dataType: config.dataType,
-      granularityLevels: config.granularityLevels,
       metrics: config.metrics,
       missingDataStrategy:
         config.dataType === DataType.CONTINUOUS

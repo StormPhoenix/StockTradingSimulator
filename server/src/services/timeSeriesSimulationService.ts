@@ -7,7 +7,7 @@
  */
 
 import { TimeSeriesManager } from '../types/timeSeries';
-import type { DataPoint, Granularity } from '../types/timeSeries';
+import type { DataPoint } from '../types/timeSeries';
 
 export class TimeSeriesSimulationService {
   constructor(private timeSeriesManager: TimeSeriesManager) {}

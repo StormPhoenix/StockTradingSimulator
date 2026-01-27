@@ -100,14 +100,12 @@ class TimeSeriesTestSuite {
         console.log('\n--- Phase 1: 基础功能测试 ---\n');
 
         const seriesId = 'TEST-BASIC';
-        const granularityLevels = [Granularity.MIN_1];
 
         // 创建序列
         this.manager.createSeries({
             seriesId,
             name: 'Basic Test Series',
             dataType: DataType.CONTINUOUS,
-            granularityLevels,
             metrics: [Metric.OPEN, Metric.HIGH, Metric.LOW, Metric.CLOSE],
             missingDataStrategy: MissingDataStrategy.USE_PREVIOUS,
         });
@@ -166,18 +164,11 @@ class TimeSeriesTestSuite {
         console.log('\n--- Phase 2: 多粒度窗口测试 ---\n');
 
         const seriesId = 'TEST-MULTI-GRANULARITY';
-        const granularityLevels = [
-            Granularity.MIN_1,
-            Granularity.MIN_5,
-            Granularity.MIN_15,
-            Granularity.MIN_30,
-        ];
 
         this.manager.createSeries({
             seriesId,
             name: 'Multi Granularity Test',
             dataType: DataType.CONTINUOUS,
-            granularityLevels,
             metrics: [Metric.OPEN, Metric.HIGH, Metric.LOW, Metric.CLOSE, Metric.VOLUME, Metric.VWAP],
             missingDataStrategy: MissingDataStrategy.USE_PREVIOUS,
         });
@@ -216,7 +207,6 @@ class TimeSeriesTestSuite {
             seriesId: seriesId1,
             name: 'Series 1',
             dataType: DataType.CONTINUOUS,
-            granularityLevels: [Granularity.MIN_1, Granularity.MIN_5],
             metrics: [Metric.OPEN, Metric.HIGH, Metric.LOW, Metric.CLOSE],
             missingDataStrategy: MissingDataStrategy.USE_PREVIOUS,
         });
@@ -226,7 +216,6 @@ class TimeSeriesTestSuite {
             seriesId: seriesId2,
             name: 'Series 2',
             dataType: DataType.DISCRETE,
-            granularityLevels: [Granularity.MIN_5, Granularity.MIN_15],
             metrics: [Metric.VOLUME],
             missingDataStrategy: MissingDataStrategy.USE_ZERO,
         });
@@ -273,13 +262,11 @@ class TimeSeriesTestSuite {
         console.log('\n--- Phase 4: 数据点添加和验证 ---\n');
 
         const seriesId = 'TEST-DATAPOINT';
-        const granularityLevels = [Granularity.MIN_1];
 
         this.manager.createSeries({
             seriesId,
             name: 'Data Point Test',
             dataType: DataType.CONTINUOUS,
-            granularityLevels,
             metrics: [Metric.OPEN, Metric.HIGH, Metric.LOW, Metric.CLOSE, Metric.VOLUME, Metric.VWAP],
             missingDataStrategy: MissingDataStrategy.USE_PREVIOUS,
         });
@@ -363,13 +350,11 @@ class TimeSeriesTestSuite {
         console.log('\n--- Phase 5: 查询功能测试 ---\n');
 
         const seriesId = 'TEST-QUERY';
-        const granularityLevels = [Granularity.MIN_1, Granularity.MIN_5];
 
         this.manager.createSeries({
             seriesId,
             name: 'Query Test',
             dataType: DataType.CONTINUOUS,
-            granularityLevels,
             metrics: [Metric.OPEN, Metric.HIGH, Metric.LOW, Metric.CLOSE],
             missingDataStrategy: MissingDataStrategy.USE_PREVIOUS,
         });
@@ -471,7 +456,6 @@ class TimeSeriesTestSuite {
             seriesId,
             name: 'Error Test',
             dataType: DataType.CONTINUOUS,
-            granularityLevels: [Granularity.MIN_1],
             metrics: [Metric.OPEN, Metric.HIGH, Metric.LOW, Metric.CLOSE],
             missingDataStrategy: MissingDataStrategy.USE_PREVIOUS,
         });
