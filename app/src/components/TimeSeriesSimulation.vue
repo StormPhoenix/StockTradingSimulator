@@ -43,6 +43,21 @@
 
         <el-row :gutter="20">
           <el-col :span="8">
+            <el-form-item label="聚合周期">
+              <el-select v-model="config.granularityLevel" placeholder="选择聚合周期">
+                <el-option
+                  v-for="option in granularityOptions"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="8">
             <el-form-item label="时间间隔(秒)">
               <el-input-number
                 v-model="config.intervalSeconds"
@@ -136,15 +151,7 @@
     <!-- 图表区域 -->
     <div class="chart-panel" v-if="aggregatedData.length > 0">
       <div class="chart-header">
-        <h2>数据可视化</h2>
-        <div class="chart-controls">
-          <el-select v-model="selectedGranularity" placeholder="选择粒度" @change="handleGranularityChange">
-            <el-option label="1 分钟" value="MIN_1" />
-            <el-option label="5 分钟" value="MIN_5" />
-            <el-option label="15 分钟" value="MIN_15" />
-            <el-option label="30 分钟" value="MIN_30" />
-          </el-select>
-        </div>
+        <h2>数据可视化 ({{ getGranularityLabel(config.granularityLevel) }})</h2>
       </div>
 
       <!-- 简单的 SVG 图表 -->
@@ -361,11 +368,23 @@ const config = ref({
   baseVolume: 1000,
   priceVolatility: 0.01,
   volumeVolatility: 0.5,
+  granularityLevel: 'MIN_5',
 });
+
+// 粒度选项
+const granularityOptions = [
+  { label: '1 分钟', value: 'MIN_1' },
+  { label: '5 分钟', value: 'MIN_5' },
+  { label: '15 分钟', value: 'MIN_15' },
+  { label: '30 分钟', value: 'MIN_30' },
+  { label: '1 小时', value: 'HOUR_1' },
+  { label: '4 小时', value: 'HOUR_4' },
+  { label: '1 天', value: 'DAY_1' },
+  { label: '1 周', value: 'WEEK_1' },
+];
 
 // 状态
 const loading = ref(false);
-const selectedGranularity = ref('MIN_1');
 const aggregatedData = ref<AggregatedPoint[]>([]);
 const statusMessage = ref<StatusMessage | null>(null);
 
@@ -445,19 +464,24 @@ const isUp = (point: AggregatedPoint): boolean => {
   return point.close >= point.open;
 };
 
+const getGranularityLabel = (value: string): string => {
+  const option = granularityOptions.find(opt => opt.value === value);
+  return option ? option.label : value;
+};
+
 // API 方法
 const handleGenerateAndAdd = async () => {
   try {
     loading.value = true;
     statusMessage.value = null;
 
-    // 先清除旧数据，避免时间顺序冲突
+    // 先删除序列（如果存在），确保完全清除所有数据和状态
     try {
-      await api.delete(`/time-series/aggregated/${config.value.seriesId}`);
-      console.log('已清除旧数据');
-    } catch (clearError) {
-      // 如果序列不存在，忽略清除错误
-      console.log('清除旧数据时出错（可能序列不存在）:', clearError);
+      await api.delete(`/time-series/series/${config.value.seriesId}`);
+      console.log('已删除旧序列');
+    } catch (deleteError) {
+      // 如果序列不存在，忽略删除错误
+      console.log('删除序列时出错（可能序列不存在）:', deleteError);
     }
 
     // 创建序列
@@ -465,7 +489,7 @@ const handleGenerateAndAdd = async () => {
       seriesId: config.value.seriesId,
       name: `模拟股票 ${config.value.seriesId}`,
       dataType: 'CONTINUOUS',
-      granularityLevels: ['MIN_1', 'MIN_5', 'MIN_15', 'MIN_30'],
+      granularityLevels: [config.value.granularityLevel],
       metrics: ['OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME', 'VWAP'],
     });
 
@@ -483,7 +507,7 @@ const handleGenerateAndAdd = async () => {
 
     statusMessage.value = {
       title: '成功',
-      content: `已清除旧数据并生成 ${config.value.pointCount} 个新数据点`,
+      content: `已重置序列并生成 ${config.value.pointCount} 个新数据点（${getGranularityLabel(config.value.granularityLevel)}）`,
       type: 'success',
     };
 
@@ -556,7 +580,7 @@ const handleQuery = async () => {
       {
         params: {
           seriesId: config.value.seriesId,
-          granularity: selectedGranularity.value,
+          granularity: config.value.granularityLevel,
           startTime: config.value.baseTime,
           endTime: new Date(
             config.value.baseTime.getTime() +
@@ -571,7 +595,7 @@ const handleQuery = async () => {
 
     statusMessage.value = {
       title: '成功',
-      content: `查询到 ${aggregatedData.value.length} 条聚合数据`,
+      content: `查询到 ${aggregatedData.value.length} 条聚合数据（${getGranularityLabel(config.value.granularityLevel)}）`,
       type: 'success',
     };
   } catch (error) {
@@ -609,12 +633,6 @@ const handleClear = async () => {
     };
   } finally {
     loading.value = false;
-  }
-};
-
-const handleGranularityChange = async () => {
-  if (aggregatedData.value.length > 0) {
-    await handleQuery();
   }
 };
 
@@ -679,12 +697,6 @@ onMounted(() => {
   font-size: 20px;
   color: #2c3e50;
   margin: 0;
-}
-
-.chart-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .chart-container {

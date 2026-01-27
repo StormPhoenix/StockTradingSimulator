@@ -282,6 +282,7 @@ export class TimeSeriesManager {
    */
   clearAggregatedData(seriesId: string): void {
     this.aggregatedData.delete(seriesId);
+    this.lastDataPointTimestamps.delete(seriesId);
   }
 
   /**
