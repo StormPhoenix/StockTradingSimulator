@@ -14,7 +14,8 @@
     "test:lifecycle:watch": "jest tests/lifecycle/lifecycle.test.ts --watch",
     "test:lifecycle:legacy": "ts-node tests/lifecycle/lifecycle-test-suite.ts",
     "test:lifecycle:basic": "ts-node tests/lifecycle/lifecycle-test-suite.ts --test basic",
-    "test:lifecycle:performance": "ts-node tests/lifecycle/lifecycle-test-suite.ts --test performance"
+    "test:lifecycle:performance": "ts-node tests/lifecycle/lifecycle-test-suite.ts --test performance",
+    "test:time-series": "ts-node scripts/test-time-series.ts"
   },
   "dependencies": {
     "@types/mongoose": "^5.11.97",
