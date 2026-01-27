@@ -107,8 +107,9 @@ export class TimeSeriesManager {
       this.activeWindows.set(seriesId, granularityWindows);
     }
 
-    // 为每个粒度创建或更新窗口
-    for (const granularity of seriesDef.granularityLevels) {
+    // 为每个粒度创建或更新窗口（默认支持所有粒度）
+    const allGranularities = Object.values(Granularity);
+    for (const granularity of allGranularities) {
       const windowKey = generateWindowKey(seriesId, granularity, dataPoint.timestamp);
 
       // 获取该粒度的窗口 Map
@@ -214,11 +215,6 @@ export class TimeSeriesManager {
     const seriesDef = this.seriesDefinitions.get(options.seriesId);
     if (!seriesDef) {
       throw new Error(`Series ${options.seriesId} does not exist`);
-    }
-
-    // 验证粒度
-    if (!seriesDef.granularityLevels.includes(options.granularity)) {
-      throw new Error(`Granularity ${options.granularity} is not supported for series ${options.seriesId}`);
     }
 
     // 验证时间范围

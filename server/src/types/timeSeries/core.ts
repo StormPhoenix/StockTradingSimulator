@@ -99,6 +99,7 @@ export enum GenerationStrategy {
 /**
  * 序列定义接口
  * 定义一个时间序列的配置，包括数据类型、指标计算规则等
+ * 所有时间序列默认支持所有粒度
  */
 export interface SeriesDefinition {
   /** 序列唯一标识，格式：{type}:{identifier}:{metric} */
@@ -111,8 +112,6 @@ export interface SeriesDefinition {
   metrics: Metric[];
   /** 缺失数据策略 */
   missingDataStrategy: MissingDataStrategy;
-  /** 支持的时间粒度列表 */
-  granularityLevels: Granularity[];
 }
 
 /**
