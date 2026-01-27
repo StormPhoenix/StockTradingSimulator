@@ -22,6 +22,15 @@ const routes: RouteRecordRaw[] = [
     } as RouteMeta,
   },
   {
+    path: '/time-series',
+    name: 'TimeSeriesSimulation',
+    component: () => import('@/components/TimeSeriesSimulation.vue'),
+    meta: {
+      title: '时间序列模拟',
+      icon: 'TrendCharts',
+    } as RouteMeta,
+  },
+  {
     path: '/admin',
     name: 'Admin',
     component: () => import('@/layouts/AdminLayout.vue'),

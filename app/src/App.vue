@@ -10,6 +10,7 @@
         </div>
         <div class="nav-links">
           <router-link to="/" class="nav-link">首页</router-link>
+          <router-link to="/time-series" class="nav-link">时间序列模拟</router-link>
           <router-link to="/market-instances" class="nav-link">市场实例</router-link>
           <router-link to="/admin" class="nav-link">管理后台</router-link>
         </div>
