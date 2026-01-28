@@ -298,28 +298,12 @@ export class ExchangeInstance implements GameObject {
   }
 
   /**
-   * 获取交易日志（简化版本）
-   */
-  public getTradingLogs(limit: number = 50, traderId?: string): Array<{
-    traderId: string;
-    traderName: string;
-    capital: number;
-    decisionType: string;
-    targetStock: string;
-    timestamp: Date;
-  }> {
-    // 简化版本：返回空数组，因为我们不再记录交易日志
-    return [];
-  }
-
-  /**
    * 导出环境状态
    */
   public exportState(): {
     exchange: any;
     traders: any[];
     stocks: any[];
-    tradingLogs: any[];
     statistics: any;
   } {
     return {
@@ -334,7 +318,6 @@ export class ExchangeInstance implements GameObject {
       },
       traders: this.getTraderDetails(),
       stocks: this.getStockDetails(),
-      tradingLogs: this.getTradingLogs(1000), // 导出更多日志
       statistics: this.getMarketInstanceSummary().statistics
     };
   }

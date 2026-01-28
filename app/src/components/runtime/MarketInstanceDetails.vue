@@ -129,7 +129,7 @@
               <div class="header-actions">
                 <el-tag size="small" type="success" v-if="autoRefreshInterval">
                   <el-icon><Timer /></el-icon>
-                  自动刷新中
+                  自动刷新
                 </el-tag>
                 <span class="last-update" v-if="marketInstance">
                   最后更新: {{ formatTime(new Date()) }}
@@ -229,60 +229,6 @@
                 </el-table>
               </div>
             </el-tab-pane>
-
-            <!-- 交易日志标签页 -->
-            <el-tab-pane label="交易日志" name="logs">
-              <div class="logs-section">
-                <div class="section-header">
-                  <h4>交易日志</h4>
-                  <el-button
-                    icon="Refresh"
-                    @click="loadTradingLogs"
-                    :loading="state.isLoadingLogs"
-                  >
-                    刷新
-                  </el-button>
-                </div>
-                <div class="logs-filters">
-                  <el-select
-                    v-model="state.logsFilter.traderId"
-                    placeholder="选择交易员"
-                    clearable
-                    @change="loadTradingLogs"
-                  >
-                    <el-option
-                      v-for="trader in marketInstance.traders"
-                      :key="trader.id"
-                      :label="trader.name"
-                      :value="trader.id"
-                    />
-                  </el-select>
-                </div>
-                <div v-loading="state.isLoadingLogs" class="logs-container">
-                  <div
-                    v-for="log in state.tradingLogs"
-                    :key="log.id"
-                    class="log-item"
-                  >
-                    <div class="log-header">
-                      <span class="log-time">{{ formatTime(log.timestamp) }}</span>
-                      <el-tag :type="getLogTypeColor(log.type)" size="small">
-                        {{ getLogTypeText(log.type) }}
-                      </el-tag>
-                    </div>
-                    <div class="log-content">
-                      <p class="log-message">{{ log.message }}</p>
-                      <div v-if="log.details" class="log-details">
-                        <pre>{{ JSON.stringify(log.details, null, 2) }}</pre>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-if="state.tradingLogs.length === 0 && !state.isLoadingLogs" class="empty-logs">
-                    <el-empty description="暂无交易日志" />
-                  </div>
-                </div>
-              </div>
-            </el-tab-pane>
           </el-tabs>
         </el-card>
       </div>
@@ -312,8 +258,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import type { 
   MarketInstanceDetails,
   MarketInstanceDetailsState,
-  MarketInstanceStatus,
-  TradingLog
+  MarketInstanceStatus
 } from '@/types/environment';
 import { MarketInstanceService } from '@/services/marketInstanceApi';
 
@@ -324,13 +269,7 @@ const router = useRouter();
 const state = reactive<MarketInstanceDetailsState>({
   marketInstance: null,
   isLoading: false,
-  activeTab: 'overview',
-  tradingLogs: [],
-  isLoadingLogs: false,
-  logsFilter: {
-    traderId: undefined as string | undefined,
-    limit: 100
-  }
+  activeTab: 'traders'
 });
 
 const isDeleting = ref(false);
@@ -389,24 +328,6 @@ const stopAutoRefresh = () => {
   if (autoRefreshInterval.value) {
     clearInterval(autoRefreshInterval.value);
     autoRefreshInterval.value = null;
-  }
-};
-
-const loadTradingLogs = async () => {
-  if (!state.marketInstance) return;
-  
-  try {
-    state.isLoadingLogs = true;
-    const response = await MarketInstanceService.getLogs(
-      state.marketInstance.exchangeId,
-      state.logsFilter
-    );
-    state.tradingLogs = response.logs;
-  } catch (error) {
-    console.error('Failed to load trading logs:', error);
-    ElMessage.error('加载交易日志失败');
-  } finally {
-    state.isLoadingLogs = false;
   }
 };
 
@@ -490,28 +411,6 @@ const getRiskProfileText = (profile: string) => {
   return profileMap[profile] || profile;
 };
 
-const getLogTypeColor = (type: string) => {
-  const colorMap: Record<string, string> = {
-    buy: 'success',
-    sell: 'warning',
-    hold: 'info',
-    error: 'danger',
-    info: 'info'
-  };
-  return colorMap[type] || 'info';
-};
-
-const getLogTypeText = (type: string) => {
-  const textMap: Record<string, string> = {
-    buy: '买入',
-    sell: '卖出',
-    hold: '持有',
-    error: '错误',
-    info: '信息'
-  };
-  return textMap[type] || type;
-};
-
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('zh-CN').format(amount);
 };
@@ -539,10 +438,8 @@ watch(() => route.params.id, (newId, oldId) => {
 });
 
 // 监听标签页切换
-watch(() => state.activeTab, (newTab) => {
-  if (newTab === 'logs' && state.tradingLogs.length === 0) {
-    loadTradingLogs();
-  }
+watch(() => state.activeTab, () => {
+  // 标签页切换逻辑，如有需要可在此添加
 });
 </script>
 
@@ -808,64 +705,6 @@ watch(() => state.activeTab, (newTab) => {
 
 .stocks-table {
   width: 100%;
-}
-
-.logs-filters {
-  margin-bottom: 16px;
-}
-
-.logs-container {
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-.log-item {
-  background: white;
-  border: 1px solid #e1e8ed;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 12px;
-}
-
-.log-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.log-time {
-  font-size: 14px;
-  color: #7f8c8d;
-}
-
-.log-content {
-  color: #2c3e50;
-}
-
-.log-message {
-  margin: 0 0 8px 0;
-  line-height: 1.5;
-}
-
-.log-details {
-  background: #f8f9fa;
-  border-radius: 4px;
-  padding: 12px;
-  font-size: 12px;
-}
-
-.log-details pre {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.empty-logs {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
 }
 
 .error-state {
