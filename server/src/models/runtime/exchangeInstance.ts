@@ -12,6 +12,7 @@ import {
   TradingIntervalConfig,
   TimeStateInfo,
 } from '../../types/tradingTime';
+import { TimeSeriesManager } from '../../types/timeSeries';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
@@ -41,6 +42,9 @@ export class ExchangeInstance implements GameObject {
   private timeAcceleration: number = 1.0;         // 时间加速倍数
   private tradingIntervalConfig: TradingIntervalConfig;
 
+  // 时间序列管理器
+  private readonly timeSeriesManager: TimeSeriesManager;
+
   constructor(
     id: number,
     templateData: {
@@ -63,6 +67,9 @@ export class ExchangeInstance implements GameObject {
 
     // 加载交易区间配置
     this.loadTradingIntervalConfig();
+
+    // 初始化时间序列管理器
+    this.timeSeriesManager = new TimeSeriesManager();
   }
 
   /**
@@ -702,11 +709,18 @@ export class ExchangeInstance implements GameObject {
     const targetDate = date || this.simulatedTime;
     const prevDay = new Date(targetDate);
     prevDay.setDate(prevDay.getDate() - 1);
-
+    
     while (!this.isTradingDayInternal(prevDay)) {
       prevDay.setDate(prevDay.getDate() - 1);
     }
-
+    
     return prevDay;
+  }
+
+  /**
+   * 获取时间序列管理器
+   */
+  public getTimeSeriesManager(): TimeSeriesManager {
+    return this.timeSeriesManager;
   }
 }
