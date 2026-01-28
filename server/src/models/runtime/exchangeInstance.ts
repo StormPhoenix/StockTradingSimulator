@@ -15,7 +15,7 @@ import {
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
-import { GameObjectManager } from '@/lifecycle/core/gameObjectManager';
+import { GameObjectManager } from '../../lifecycle/core/gameObjectManager';
 
 /**
  * 交易所实例类
@@ -54,13 +54,13 @@ export class ExchangeInstance implements GameObject {
     this.name = templateData.name;
     this.description = templateData.description;
     this.createdAt = new Date();
-    
+
     // 初始化游戏时间（临时值，将在 onBeginPlay 中正确初始化）
     this.simulatedTime = new Date();
-    
+
     // 初始化交易区间配置（使用默认值，将在 loadTradingIntervalConfig 中覆盖）
     this.tradingIntervalConfig = this.getDefaultTradingIntervalConfig();
-    
+
     // 加载交易区间配置
     this.loadTradingIntervalConfig();
   }
@@ -71,10 +71,10 @@ export class ExchangeInstance implements GameObject {
   onBeginPlay(): void {
     this.isActive = true;
     this.lastActiveAt = new Date();
-    
+
     // 初始化游戏时间
     this.initializeSimulatedTime();
-    
+
     console.log(`[ExchangeInstance] Exchange "${this.name}" (ID: ${this.id}) started with ${this.traders.size} traders and ${this.stocks.size} stocks`);
     console.log(`[ExchangeInstance] Simulated time initialized: ${this.simulatedTime.toISOString()}, acceleration: ${this.timeAcceleration}x`);
   }
@@ -98,12 +98,12 @@ export class ExchangeInstance implements GameObject {
    */
   onDestroy(): void {
     this.isActive = false;
-    
+
     console.log(`[ExchangeInstance] Exchange "${this.name}" (ID: ${this.id}) is being destroyed`);
-    
+
     // 通过 GameObjectManager 销毁所有交易员
     const gameObjectManager = GameObjectManager.getInstance();
-    
+
     for (const trader of this.traders.values()) {
       try {
         gameObjectManager.destroyObject(trader.id);
@@ -111,7 +111,7 @@ export class ExchangeInstance implements GameObject {
         console.error(`[ExchangeInstance] Failed to destroy trader ${trader.id}:`, error);
       }
     }
-    
+
     // 通过 GameObjectManager 销毁所有股票
     for (const stock of this.stocks.values()) {
       try {
@@ -120,7 +120,7 @@ export class ExchangeInstance implements GameObject {
         console.error(`[ExchangeInstance] Failed to destroy stock ${stock.id}:`, error);
       }
     }
-    
+
     // 清理容器
     this.traders.clear();
     this.stocks.clear();
@@ -143,7 +143,7 @@ export class ExchangeInstance implements GameObject {
       // 通过 GameObjectManager 销毁交易员
       const { GameObjectManager } = require('../../lifecycle/core/gameObjectManager');
       const gameObjectManager = GameObjectManager.getInstance();
-      
+
       try {
         gameObjectManager.destroyObject(trader.id);
         this.traders.delete(traderId);
@@ -171,7 +171,7 @@ export class ExchangeInstance implements GameObject {
       // 通过 GameObjectManager 销毁股票
       const { GameObjectManager } = require('../../lifecycle/core/gameObjectManager');
       const gameObjectManager = GameObjectManager.getInstance();
-      
+
       try {
         gameObjectManager.destroyObject(stock.id);
         this.stocks.delete(stockSymbol);
@@ -227,7 +227,7 @@ export class ExchangeInstance implements GameObject {
   } {
     const activeTraders = this.getActiveTraders();
     const totalCapital = this.getTotalCapital();
-    
+
     return {
       exchangeId: this.id.toString(),
       name: this.name,
@@ -350,11 +350,11 @@ export class ExchangeInstance implements GameObject {
    * 检查环境是否健康
    */
   public isHealthy(): boolean {
-    return this.isActive && 
-           this.traders.size > 0 && 
-           this.stocks.size > 0 &&
-           this.getActiveTraders().length > 0 &&
-           this.getAvailableStocks().length > 0;
+    return this.isActive &&
+      this.traders.size > 0 &&
+      this.stocks.size > 0 &&
+      this.getActiveTraders().length > 0 &&
+      this.getAvailableStocks().length > 0;
   }
 
   // ============================================================================
@@ -412,7 +412,7 @@ export class ExchangeInstance implements GameObject {
         // 源码路径：src/models/runtime/ -> ../../trading-intervals.yml
         configPath = path.join(__dirname, '../../trading-intervals.yml');
       }
-      
+
       if (fs.existsSync(configPath)) {
         const configContent = fs.readFileSync(configPath, 'utf-8');
         this.tradingIntervalConfig = yaml.load(configContent) as TradingIntervalConfig;
@@ -433,19 +433,19 @@ export class ExchangeInstance implements GameObject {
   private initializeSimulatedTime(): void {
     const initialTimeStr = process.env.EXCHANGE_INITIAL_TIME || '09:15';
     let [hours, minutes] = initialTimeStr.split(':').map(Number);
-    
+
     // 验证时间格式
     if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
       console.warn(`[ExchangeInstance] Invalid EXCHANGE_INITIAL_TIME format: ${initialTimeStr}, using default 09:15`);
       hours = 9;
       minutes = 15;
     }
-    
+
     // 获取当前系统日期
     const today = new Date();
     const initialDate = new Date(today);
     initialDate.setHours(hours, minutes, 0, 0);
-    
+
     // 如果当前时间已过初始时间，则使用下一个交易日
     if (today > initialDate) {
       initialDate.setDate(initialDate.getDate() + 1);
@@ -459,10 +459,10 @@ export class ExchangeInstance implements GameObject {
         initialDate.setDate(initialDate.getDate() + 1);
       }
     }
-    
+
     this.simulatedTime = initialDate;
     this.timeAcceleration = parseFloat(process.env.EXCHANGE_TIME_ACCELERATION || '1.0');
-    
+
     // 验证加速倍数
     if (isNaN(this.timeAcceleration) || this.timeAcceleration < 0.1 || this.timeAcceleration > 1000) {
       console.warn(`[ExchangeInstance] Invalid EXCHANGE_TIME_ACCELERATION: ${process.env.EXCHANGE_TIME_ACCELERATION}, using default 1.0`);
@@ -487,7 +487,7 @@ export class ExchangeInstance implements GameObject {
     if (!this.isTradingDayInternal(this.simulatedTime)) {
       return false;
     }
-    
+
     // 2. 检查是否在交易时间或可配置的交易区间
     return this.isInTradingHoursInternal() || this.isInConfiguredTradingInterval();
   }
@@ -509,19 +509,19 @@ export class ExchangeInstance implements GameObject {
     const hour = this.simulatedTime.getHours();
     const minute = this.simulatedTime.getMinutes();
     const timeValue = hour * 60 + minute;
-    
+
     for (const interval of this.tradingIntervalConfig.nonTradingIntervals) {
       const [startHour, startMinute] = interval.start.split(':').map(Number);
       const [endHour, endMinute] = interval.end.split(':').map(Number);
       const startValue = startHour * 60 + startMinute;
       const endValue = endHour * 60 + endMinute;
-      
+
       // 检查时间是否在区间内（左闭右开）
       if (timeValue >= startValue && timeValue < endValue) {
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -532,19 +532,19 @@ export class ExchangeInstance implements GameObject {
     const hour = this.simulatedTime.getHours();
     const minute = this.simulatedTime.getMinutes();
     const timeValue = hour * 60 + minute;
-    
+
     for (const interval of this.tradingIntervalConfig.tradingIntervals) {
       const [startHour, startMinute] = interval.start.split(':').map(Number);
       const [endHour, endMinute] = interval.end.split(':').map(Number);
       const startValue = startHour * 60 + startMinute;
       const endValue = endHour * 60 + endMinute;
-      
+
       // 检查时间是否在区间内（左闭右开）
       if (timeValue >= startValue && timeValue < endValue) {
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -555,14 +555,14 @@ export class ExchangeInstance implements GameObject {
     const hour = this.simulatedTime.getHours();
     const minute = this.simulatedTime.getMinutes();
     const timeValue = hour * 60 + minute;
-    
+
     const morningStart = 9 * 60 + 30;   // 9:30
     const morningEnd = 11 * 60 + 30;     // 11:30
     const afternoonStart = 13 * 60;      // 13:00
     const afternoonEnd = 15 * 60;        // 15:00
-    
+
     return (timeValue >= morningStart && timeValue <= morningEnd) ||
-           (timeValue >= afternoonStart && timeValue <= afternoonEnd);
+      (timeValue >= afternoonStart && timeValue <= afternoonEnd);
   }
 
   /**
@@ -573,42 +573,42 @@ export class ExchangeInstance implements GameObject {
     if (!this.isTradingDayInternal(this.simulatedTime)) {
       return TradingTimeState.NON_TRADING_DAY;
     }
-    
+
     const hour = this.simulatedTime.getHours();
     const minute = this.simulatedTime.getMinutes();
     const timeValue = hour * 60 + minute;
-    
+
     // 2. 检查可配置的非交易区间
     if (this.isInConfiguredNonTradingInterval()) {
       return TradingTimeState.CONFIGURED_NON_TRADING;
     }
-    
+
     // 3. 检查标准交易时间段
     const morningStart = 9 * 60 + 30;   // 9:30
     const morningEnd = 11 * 60 + 30;     // 11:30
     const afternoonStart = 13 * 60;      // 13:00
     const afternoonEnd = 15 * 60;        // 15:00
-    
+
     if (timeValue >= morningStart && timeValue <= morningEnd) {
       return TradingTimeState.MORNING_SESSION;
     }
-    
+
     if (timeValue >= afternoonStart && timeValue <= afternoonEnd) {
       return TradingTimeState.AFTERNOON_SESSION;
     }
-    
+
     if (timeValue < morningStart) {
       return TradingTimeState.PRE_MARKET;
     }
-    
+
     if (timeValue > morningEnd && timeValue < afternoonStart) {
       return TradingTimeState.LUNCH_BREAK;
     }
-    
+
     if (timeValue > afternoonEnd) {
       return TradingTimeState.POST_MARKET;
     }
-    
+
     // 默认返回收盘后
     return TradingTimeState.POST_MARKET;
   }
@@ -625,8 +625,8 @@ export class ExchangeInstance implements GameObject {
    */
   public isInTradingHours(): boolean {
     const state = this.getTimeState();
-    return state === TradingTimeState.MORNING_SESSION || 
-           state === TradingTimeState.AFTERNOON_SESSION;
+    return state === TradingTimeState.MORNING_SESSION ||
+      state === TradingTimeState.AFTERNOON_SESSION;
   }
 
   /**
@@ -635,8 +635,8 @@ export class ExchangeInstance implements GameObject {
   public isInTradingInterval(): boolean {
     const state = this.getTimeState();
     // 交易时间或可配置的交易区间
-    return this.isInTradingHours() || 
-           state === TradingTimeState.CONFIGURED_NON_TRADING;
+    return this.isInTradingHours() ||
+      state === TradingTimeState.CONFIGURED_NON_TRADING;
   }
 
   /**
@@ -687,11 +687,11 @@ export class ExchangeInstance implements GameObject {
     const targetDate = date || this.simulatedTime;
     const nextDay = new Date(targetDate);
     nextDay.setDate(nextDay.getDate() + 1);
-    
+
     while (!this.isTradingDayInternal(nextDay)) {
       nextDay.setDate(nextDay.getDate() + 1);
     }
-    
+
     return nextDay;
   }
 
@@ -702,11 +702,11 @@ export class ExchangeInstance implements GameObject {
     const targetDate = date || this.simulatedTime;
     const prevDay = new Date(targetDate);
     prevDay.setDate(prevDay.getDate() - 1);
-    
+
     while (!this.isTradingDayInternal(prevDay)) {
       prevDay.setDate(prevDay.getDate() - 1);
     }
-    
+
     return prevDay;
   }
 }

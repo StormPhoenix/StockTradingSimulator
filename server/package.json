@@ -17,7 +17,6 @@
     "test:lifecycle:performance": "ts-node tests/lifecycle/lifecycle-test-suite.ts --test performance"
   },
   "dependencies": {
-    "@types/js-yaml": "^4.0.9",
     "@types/mongoose": "^5.11.97",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
@@ -37,6 +36,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/morgan": "^1.9.10",
     "@types/node": "^25.0.8",
     "@types/supertest": "^6.0.3",
