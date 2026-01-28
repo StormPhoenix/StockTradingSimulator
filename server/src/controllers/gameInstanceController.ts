@@ -227,7 +227,7 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
 
       // 创建股票实例
       const stockInstances = templateData.stocks.map((stockTemplate: any) => {
-        return gameObjectManager.createObject(StockInstance, {
+        return gameObjectManager.createObject(StockInstance, exchangeInstance, {
           templateId: stockTemplate._id,
           symbol: stockTemplate.symbol,
           companyName: stockTemplate.companyName,
