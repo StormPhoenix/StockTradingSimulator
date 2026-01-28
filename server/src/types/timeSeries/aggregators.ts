@@ -43,15 +43,16 @@ export function updateAccumulator(
   acc: Accumulator,
   dataPoint: DataPoint
 ): Accumulator {
+  const volume = dataPoint.volume ?? 0;
   return {
     count: acc.count + 1,
     open: acc.open ?? dataPoint.value,
     high: Math.max(acc.high, dataPoint.value),
     low: Math.min(acc.low, dataPoint.value),
     close: dataPoint.value,
-    volume: acc.volume + (dataPoint.metadata?.volume || 0),
-    priceSum: acc.priceSum + dataPoint.value * (dataPoint.metadata?.volume || 1),
-    volumeSum: acc.volumeSum + (dataPoint.metadata?.volume || 1),
+    volume: acc.volume + volume,
+    priceSum: acc.priceSum + dataPoint.value * (volume || 1),
+    volumeSum: acc.volumeSum + (volume || 1),
   };
 }
 

@@ -85,8 +85,26 @@ export class TimeSeriesManager {
     }
 
     // 验证数据点
-    if (!dataPoint.timestamp || isNaN(dataPoint.value)) {
-      throw new Error('Invalid data point: timestamp must be a valid Date, value must be a number');
+    // 验证 timestamp：必须是 Date 类型且是有效日期
+    if (!(dataPoint.timestamp instanceof Date)) {
+      throw new Error(
+        `Invalid data point: timestamp must be a Date instance, got ${typeof dataPoint.timestamp}`
+      );
+    }
+    if (isNaN(dataPoint.timestamp.getTime())) {
+      throw new Error('Invalid data point: timestamp must be a valid Date (not Invalid Date)');
+    }
+    
+    // 验证 value：必须是有效数字（不能是 NaN、Infinity、-Infinity）
+    if (typeof dataPoint.value !== 'number' || isNaN(dataPoint.value)) {
+      throw new Error(
+        `Invalid data point: value must be a valid number, got ${typeof dataPoint.value} (${dataPoint.value})`
+      );
+    }
+    if (!isFinite(dataPoint.value)) {
+      throw new Error(
+        `Invalid data point: value must be a finite number, got ${dataPoint.value}`
+      );
     }
 
     // 验证时间顺序（不能逆时添加）
