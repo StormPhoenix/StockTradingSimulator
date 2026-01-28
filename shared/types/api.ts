@@ -326,18 +326,4 @@ export namespace MarketInstanceAPI {
     format?: 'json'
   }
   export interface ExportMarketInstanceResponse extends ApiResponse<import('./marketInstance').MarketInstanceExport> {}
-
-  export interface GetLogsRequest {
-    marketInstanceId: ID
-    limit?: number
-    traderId?: string
-  }
-  export interface GetLogsResponse extends ApiResponse<{
-    logs: import('./marketInstance').TradingLog[]
-    meta: {
-      total: number
-      limit: number
-      environmentId: string
-    }
-  }> {}
 }

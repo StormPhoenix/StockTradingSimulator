@@ -227,7 +227,7 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
 
       // 创建股票实例
       const stockInstances = templateData.stocks.map((stockTemplate: any) => {
-        return gameObjectManager.createObject(StockInstance, {
+        return gameObjectManager.createObject(StockInstance, exchangeInstance, {
           templateId: stockTemplate._id,
           symbol: stockTemplate.symbol,
           companyName: stockTemplate.companyName,
@@ -600,7 +600,6 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
           // Export current runtime state
           traders: this.serializeTraders(marketInstance.exchangeInstance),
           stocks: this.serializeStocks(marketInstance.exchangeInstance),
-          tradingLogs: this.getTradingLogs(marketInstance.exchangeInstance),
           performanceMetrics: this.calculatePerformanceMetrics(marketInstance.exchangeInstance),
           statistics: {
             traderCount: (marketInstance as any).statistics?.traderCount || 0,
@@ -671,34 +670,7 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
     }
   }
 
-  /**
-   * 获取交易日志
-   */
-  private getTradingLogs(exchangeInstance: any): any[] {
-    if (!exchangeInstance || !exchangeInstance.getActiveTraders) {
-      return [];
-    }
 
-    try {
-      const traders = exchangeInstance.getActiveTraders();
-      const allLogs: any[] = [];
-
-      traders.forEach((trader: any) => {
-        if (trader.getTradingHistory) {
-          const logs = trader.getTradingHistory();
-          allLogs.push(...logs);
-        }
-      });
-
-      // Sort by timestamp (newest first) and limit to last 1000 logs
-      return allLogs
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        .slice(0, 1000);
-    } catch (error) {
-      console.error('Failed to get trading logs:', error);
-      return [];
-    }
-  }
 
   /**
    * 计算性能指标
