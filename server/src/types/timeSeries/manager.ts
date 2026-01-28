@@ -19,18 +19,16 @@ import type {
   DataPoint,
   TimeWindow,
   AggregatedPoint,
-} from '../core';
-import { WindowStatus, Granularity } from '../core';
+} from './core';
+import { WindowStatus, Granularity } from './core';
 import {
   generateWindowKey,
   alignTimeToGranularity,
   getGranularityMilliseconds,
-} from '../windows';
-import {
   initializeAccumulator,
   updateAccumulator,
   createAggregatedPoint,
-} from '../aggregators';
+} from './utils';
 
 /**
  * 时间序列管理器

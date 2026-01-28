@@ -13,14 +13,8 @@
 // Core types and enums
 export * from './core';
 
-// Time window management
-export * from './windows';
-
-// Aggregators
-export * from './aggregators';
-
-// Metrics
-export * from './metrics';
+// Utility functions (aggregators, metrics, window utilities)
+export * from './utils';
 
 // TimeSeriesManager
-export { TimeSeriesManager } from './windows/impl';
+export { TimeSeriesManager } from './manager';

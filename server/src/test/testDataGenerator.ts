@@ -15,7 +15,7 @@ import type {
   Granularity,
 } from '../types/timeSeries/core';
 import { GenerationStrategy } from '../types/timeSeries/core';
-import type { TimeSeriesManager } from '../types/timeSeries/windows/impl';
+import type { TimeSeriesManager } from '../types/timeSeries/manager';
 import type { TestDataGeneratorConfig } from './config';
 import { RandomWalkStrategy, type RandomWalkConfig } from './strategies/randomWalk';
 
