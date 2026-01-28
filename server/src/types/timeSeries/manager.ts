@@ -19,18 +19,16 @@ import type {
   DataPoint,
   TimeWindow,
   AggregatedPoint,
-} from '../core';
-import { WindowStatus, Granularity } from '../core';
+} from './core';
+import { WindowStatus, Granularity } from './core';
 import {
   generateWindowKey,
   alignTimeToGranularity,
   getGranularityMilliseconds,
-} from '../windows';
-import {
   initializeAccumulator,
   updateAccumulator,
   createAggregatedPoint,
-} from '../aggregators';
+} from './utils';
 
 /**
  * 时间序列管理器
@@ -85,8 +83,26 @@ export class TimeSeriesManager {
     }
 
     // 验证数据点
-    if (!dataPoint.timestamp || isNaN(dataPoint.value)) {
-      throw new Error('Invalid data point: timestamp must be a valid Date, value must be a number');
+    // 验证 timestamp：必须是 Date 类型且是有效日期
+    if (!(dataPoint.timestamp instanceof Date)) {
+      throw new Error(
+        `Invalid data point: timestamp must be a Date instance, got ${typeof dataPoint.timestamp}`
+      );
+    }
+    if (isNaN(dataPoint.timestamp.getTime())) {
+      throw new Error('Invalid data point: timestamp must be a valid Date (not Invalid Date)');
+    }
+    
+    // 验证 value：必须是有效数字（不能是 NaN、Infinity、-Infinity）
+    if (typeof dataPoint.value !== 'number' || isNaN(dataPoint.value)) {
+      throw new Error(
+        `Invalid data point: value must be a valid number, got ${typeof dataPoint.value} (${dataPoint.value})`
+      );
+    }
+    if (!isFinite(dataPoint.value)) {
+      throw new Error(
+        `Invalid data point: value must be a finite number, got ${dataPoint.value}`
+      );
     }
 
     // 验证时间顺序（不能逆时添加）
@@ -156,6 +172,9 @@ export class TimeSeriesManager {
    *
    * 基于数据点时间戳判断窗口是否应该关闭，而非依赖系统时间
    * 当新数据点的时间戳超过了窗口的 endTime 时，该窗口应该关闭
+   * 
+   * 改进：先收集所有需要关闭的窗口，然后统一处理，避免在遍历时修改集合
+   * 这样可以确保即使数据点间隔很大，所有应该关闭的窗口都能被正确处理
    *
    * @param seriesId - 序列 ID
    * @param currentTimestamp - 当前数据点的时间戳
@@ -167,35 +186,64 @@ export class TimeSeriesManager {
     const seriesDef = this.seriesDefinitions.get(seriesId);
     if (!seriesDef) return;
 
+    // 收集所有需要关闭的窗口，避免在遍历时修改集合
+    // 这样可以确保即使数据点间隔很大，所有应该关闭的窗口都能被正确处理
+    const windowsToClose: Array<{
+      granularity: Granularity;
+      windowKey: string;
+      window: TimeWindow;
+      windowsMap: Map<string, TimeWindow>;
+    }> = [];
+
+    // 第一遍遍历：收集所有需要关闭的窗口
     for (const [granularity, windowsMap] of granularityWindows.entries()) {
       for (const [windowKey, window] of windowsMap.entries()) {
-        // 当窗口的 endTime 早于或等于当前数据点时间戳时，关闭该窗口
+        // 当窗口的 endTime 早于或等于当前数据点时间戳时，该窗口应该关闭
         // 这意味着当前数据点的时间戳已经超出了该窗口的时间范围
         if (window.status === WindowStatus.ACTIVE && window.endTime <= currentTimestamp) {
-          // 关闭窗口
-          window.status = WindowStatus.CLOSED;
-
-          // 创建聚合数据点
-          const aggregatedPoint = createAggregatedPoint(
-            window.accumulator,
-            window.startTime,
-            window.endTime,
-            seriesId,
-            granularity
-          );
-
-          // 存储聚合数据
-          let seriesAggregated = this.aggregatedData.get(seriesId);
-          if (!seriesAggregated) {
-            seriesAggregated = [];
-          }
-          seriesAggregated.push(aggregatedPoint);
-          this.aggregatedData.set(seriesId, seriesAggregated);
-
-          // 从活跃窗口中移除
-          windowsMap.delete(windowKey);
+          windowsToClose.push({ granularity, windowKey, window, windowsMap });
         }
       }
+    }
+
+    // 第二遍遍历：统一处理所有需要关闭的窗口
+    // 这样可以确保即使数据点间隔很大，所有应该关闭的窗口都能被正确处理
+    for (const { windowKey, window, windowsMap } of windowsToClose) {
+      // 再次检查窗口状态（防止在收集过程中状态已改变）
+      if (window.status !== WindowStatus.ACTIVE) {
+        continue;
+      }
+
+      // 关闭窗口
+      window.status = WindowStatus.CLOSED;
+
+      // 检查窗口是否有数据点（处理空窗口的边界情况）
+      // 理论上窗口创建时就会添加第一个数据点，但为了健壮性保留此检查
+      if (window.accumulator.count === 0) {
+        // 空窗口：跳过聚合，直接移除
+        windowsMap.delete(windowKey);
+        continue;
+      }
+
+      // 创建聚合数据点
+      const aggregatedPoint = createAggregatedPoint(
+        window.accumulator,
+        window.startTime,
+        window.endTime,
+        seriesId,
+        window.granularity
+      );
+
+      // 存储聚合数据
+      let seriesAggregated = this.aggregatedData.get(seriesId);
+      if (!seriesAggregated) {
+        seriesAggregated = [];
+      }
+      seriesAggregated.push(aggregatedPoint);
+      this.aggregatedData.set(seriesId, seriesAggregated);
+
+      // 从活跃窗口中移除
+      windowsMap.delete(windowKey);
     }
   }
 

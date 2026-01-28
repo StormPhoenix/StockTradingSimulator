@@ -15,7 +15,7 @@ import type {
   Granularity,
 } from '../types/timeSeries/core';
 import { GenerationStrategy } from '../types/timeSeries/core';
-import type { TimeSeriesManager } from '../types/timeSeries/windows/impl';
+import type { TimeSeriesManager } from '../types/timeSeries/manager';
 import type { TestDataGeneratorConfig } from './config';
 import { RandomWalkStrategy, type RandomWalkConfig } from './strategies/randomWalk';
 
@@ -76,10 +76,7 @@ export class TestDataGenerator {
     const dataPoint: DataPoint = {
       timestamp,
       value: this.currentPrice,
-      metadata: {
-        volume,
-        generatedAt: timestamp.getTime(),
-      },
+      volume,
     };
 
     this.generatedCount++;
@@ -169,7 +166,7 @@ export class TestDataGenerator {
   private printDebugLog(dataPoint: DataPoint): void {
     const timestamp = dataPoint.timestamp.toISOString();
     const price = dataPoint.value.toFixed(2);
-    const volume = dataPoint.metadata?.volume ?? 0;
+    const volume = dataPoint.volume ?? 0;
 
     console.log(`[TestDataGenerator] Generated data point #${this.generatedCount}:`);
     console.log(`  - Timestamp: ${timestamp}`);

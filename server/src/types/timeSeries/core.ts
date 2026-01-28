@@ -123,8 +123,8 @@ export interface DataPoint {
   timestamp: Date;
   /** 数据值 */
   value: number;
-  /** 附加元数据（可选） */
-  metadata?: Record<string, any>;
+  /** 成交量（可选） */
+  volume?: number;
 }
 
 /**
