@@ -15,6 +15,7 @@ import {
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
+import { GameObjectManager } from '@/lifecycle/core/gameObjectManager';
 
 /**
  * 交易所实例类
@@ -76,22 +77,6 @@ export class ExchangeInstance implements GameObject {
     
     console.log(`[ExchangeInstance] Exchange "${this.name}" (ID: ${this.id}) started with ${this.traders.size} traders and ${this.stocks.size} stocks`);
     console.log(`[ExchangeInstance] Simulated time initialized: ${this.simulatedTime.toISOString()}, acceleration: ${this.timeAcceleration}x`);
-    
-    // 激活所有交易员
-    for (const trader of this.traders.values()) {
-      if (trader.state === GameObjectState.READY) {
-        trader.onBeginPlay();
-        trader.state = GameObjectState.ACTIVE;
-      }
-    }
-    
-    // 激活所有股票
-    for (const stock of this.stocks.values()) {
-      if (stock.state === GameObjectState.READY) {
-        stock.onBeginPlay();
-        stock.state = GameObjectState.ACTIVE;
-      }
-    }
   }
 
   /**
@@ -117,7 +102,6 @@ export class ExchangeInstance implements GameObject {
     console.log(`[ExchangeInstance] Exchange "${this.name}" (ID: ${this.id}) is being destroyed`);
     
     // 通过 GameObjectManager 销毁所有交易员
-    const { GameObjectManager } = require('../../lifecycle/core/gameObjectManager');
     const gameObjectManager = GameObjectManager.getInstance();
     
     for (const trader of this.traders.values()) {
