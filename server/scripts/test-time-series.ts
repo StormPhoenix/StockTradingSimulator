@@ -124,21 +124,21 @@ class TimeSeriesTestSuite {
         this.manager.addDataPoint(seriesId, {
             timestamp: new Date(baseTime.getTime() + 5000), // 10:00:05
             value: 100,
-            metadata: { volume: 100 },
+            volume: 100,
         });
 
         // 第二个数据点
         this.manager.addDataPoint(seriesId, {
             timestamp: new Date(baseTime.getTime() + 30000), // 10:00:30
             value: 105,
-            metadata: { volume: 200 },
+            volume: 200,
         });
 
         // 第三个数据点
         this.manager.addDataPoint(seriesId, {
             timestamp: new Date(baseTime.getTime() + 65000), // 10:01:05
             value: 110,
-            metadata: { volume: 150 },
+            volume: 150,
         });
 
         this.assert(
@@ -180,7 +180,7 @@ class TimeSeriesTestSuite {
             this.manager.addDataPoint(seriesId, {
                 timestamp: new Date(baseTime.getTime() + i * 60000 + 5000),
                 value: 100 + i * 0.5,
-                metadata: { volume: 100 + i * 5 },
+                volume: 100 + i * 5,
             });
         }
 
@@ -277,7 +277,7 @@ class TimeSeriesTestSuite {
         this.manager.addDataPoint(seriesId, {
             timestamp: new Date(baseTime.getTime() + 5000),
             value: 100,
-            metadata: { volume: 100 },
+            volume: 100,
         });
 
         this.assert(
@@ -285,53 +285,40 @@ class TimeSeriesTestSuite {
             '正常数据点添加成功'
         );
 
-        // 测试 2: 数据点带有额外 metadata
+        // 测试 2: 数据点只包含基础字段
         this.manager.addDataPoint(seriesId, {
             timestamp: new Date(baseTime.getTime() + 30000),
             value: 105,
-            metadata: { volume: 200, tradeId: 'T001', buyerId: 'B001' },
+            volume: 200,
         });
 
         this.assert(
             true,
-            '带有额外 metadata 的数据点添加成功'
+            '基础数据点添加成功'
         );
 
-        // 测试 3: 数据点不带 volume（使用默认值 1）
+        // 测试 3: 数据点不带 volume（使用默认值 0）
         this.manager.addDataPoint(seriesId, {
             timestamp: new Date(baseTime.getTime() + 120000),
             value: 102,
-            // 没有 volume metadata，VWAP 计算时将使用默认值 1
         });
 
         this.assert(
             true,
-            '不带 volume 的数据点添加成功（VWAP 将使用默认值 1）'
+            '不带 volume 的数据点添加成功（VWAP 将使用默认值 0）'
         );
 
-        // 测试 4: 数据点没有 metadata 对象
+        // 测试 4: 零值和负值
         this.manager.addDataPoint(seriesId, {
             timestamp: new Date(baseTime.getTime() + 180000),
-            value: 108,
-            // 完全没有 metadata
+            value: 0,
+            volume: 50,
         });
 
-        this.assert(
-            true,
-            '完全没有 metadata 的数据点添加成功'
-        );
-
-        // 测试 5: 零值和负值
         this.manager.addDataPoint(seriesId, {
             timestamp: new Date(baseTime.getTime() + 240000),
-            value: 0,
-            metadata: { volume: 50 },
-        });
-
-        this.manager.addDataPoint(seriesId, {
-            timestamp: new Date(baseTime.getTime() + 300000),
             value: -10,
-            metadata: { volume: 30 },
+            volume: 30,
         });
 
         this.assert(
@@ -366,7 +353,7 @@ class TimeSeriesTestSuite {
             this.manager.addDataPoint(seriesId, {
                 timestamp: new Date(baseTime.getTime() + i * 30000 + 5000),
                 value: 100 + i,
-                metadata: { volume: 100 },
+                volume: 100,
             });
         }
 
@@ -376,7 +363,7 @@ class TimeSeriesTestSuite {
         this.manager.addDataPoint(seriesId, {
             timestamp: new Date(baseTime.getTime() + 10 * 60000 + 5000), // 10:10:05
             value: 110,
-            metadata: { volume: 100 },
+            volume: 100,
         });
 
         // 测试查询 API

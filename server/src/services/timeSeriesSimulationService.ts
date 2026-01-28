@@ -76,11 +76,7 @@ export class TimeSeriesSimulationService {
       dataPoints.push({
         timestamp,
         value: currentPrice,
-        metadata: {
-          volume,
-          seriesId,
-          pointIndex: i,
-        },
+        volume,
       });
     }
 
