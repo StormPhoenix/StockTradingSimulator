@@ -106,24 +106,6 @@ export class ExchangeInstance implements GameObject {
 
     // 游戏时间更新
     this.updateSimulatedTime(deltaTime);
-
-    // 业务逻辑只在交易区间内执行
-    if (this.isInTradingIntervalForUpdate()) {
-      // 更新所有活跃的交易员
-      for (const trader of this.traders.values()) {
-        if (trader.state === GameObjectState.ACTIVE) {
-          trader.onTick(deltaTime);
-        }
-      }
-
-      // 更新所有活跃的股票
-      for (const stock of this.stocks.values()) {
-        if (stock.state === GameObjectState.ACTIVE) {
-          stock.onTick(deltaTime);
-        }
-      }
-    }
-    // 非交易区间：时间继续推进，但业务逻辑不执行
   }
 
   /**
