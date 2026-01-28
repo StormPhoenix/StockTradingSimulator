@@ -1,0 +1,24 @@
+# 交易区间配置
+# 非交易区间：时间停止推进，业务逻辑不执行
+nonTradingIntervals:
+  - name: 集合竞价
+    start: "09:15"
+    end: "09:25"
+    description: "开盘集合竞价时间，时间停止"
+  
+  - name: 收盘集合竞价
+    start: "14:57"
+    end: "15:00"
+    description: "收盘集合竞价时间，时间停止"
+
+# 交易区间：时间正常推进，业务逻辑执行
+tradingIntervals:
+  - name: 早盘
+    start: "09:30"
+    end: "11:30"
+    description: "上午交易时段，时间推进"
+  
+  - name: 午盘
+    start: "13:00"
+    end: "15:00"
+    description: "下午交易时段，时间推进"
