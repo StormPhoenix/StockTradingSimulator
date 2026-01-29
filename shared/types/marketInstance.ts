@@ -101,25 +101,7 @@ export interface TraderPerformance {
   lastTradeAt?: Date;
 }
 
-/**
- * 交易日志
- */
-export interface TradingLog {
-  id: string;
-  traderId: string;
-  traderName: string;
-  type: 'buy' | 'sell' | 'hold' | 'error' | 'info';
-  message: string;
-  timestamp: Date;
-  details?: {
-    capital?: number;
-    decisionType?: 'BUY' | 'SELL' | 'HOLD';
-    targetStock?: string;
-    riskProfile?: string;
-    tradingStyle?: string;
-    [key: string]: any;
-  };
-}
+
 
 /**
  * 市场实例创建请求
@@ -150,7 +132,6 @@ export interface MarketInstanceExport {
     stocks: any[];
   };
   runtimeState: {
-    tradingLogs: TradingLog[];
     performanceMetrics: Record<string, TraderPerformance>;
   };
 }

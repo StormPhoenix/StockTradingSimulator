@@ -12,7 +12,6 @@ export type {
   TraderInfo,
   StockInfo,
   TraderPerformance,
-  TradingLog,
   CreateMarketInstanceRequest,
   CreateMarketInstanceResponse,
   MarketInstanceExport,
@@ -23,8 +22,7 @@ export type {
 import type {
   MarketInstanceStatus,
   MarketInstancePreview,
-  MarketInstanceDetails,
-  TradingLog
+  MarketInstanceDetails
 } from '../../../shared/types/marketInstance';
 
 /**
@@ -87,13 +85,7 @@ export interface MarketInstanceListState {
 export interface MarketInstanceDetailsState {
   marketInstance: MarketInstanceDetails | null;
   isLoading: boolean;
-  activeTab: 'overview' | 'traders' | 'stocks' | 'logs';
-  tradingLogs: TradingLog[];
-  isLoadingLogs: boolean;
-  logsFilter: {
-    traderId?: string;
-    limit: number;
-  };
+  activeTab: 'traders' | 'stocks';
 }
 
 // 保持向后兼容性的别名
@@ -117,7 +109,6 @@ export interface MarketInstanceExportState {
   format: 'json';
   includeOptions: {
     templateData: boolean;
-    tradingLogs: boolean;
     performanceMetrics: boolean;
   };
   progress: number;

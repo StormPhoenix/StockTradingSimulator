@@ -12,7 +12,6 @@ import type {
   CreateMarketInstanceRequest,
   CreateMarketInstanceResponse,
   MarketInstanceExport,
-  TradingLog,
   MarketTemplate,
   CreationProgress
 } from '../types/environment';
@@ -299,45 +298,7 @@ export class MarketInstanceApiClient {
     }
   }
 
-  /**
-   * 获取交易日志
-   */
-  public async getTradingLogs(
-    marketInstanceId: string,
-    options?: {
-      limit?: number;
-      traderId?: string;
-    }
-  ): Promise<{
-    logs: TradingLog[];
-    meta: {
-      total: number;
-      limit: number;
-      environmentId: string;
-    };
-  }> {
-    try {
-      const response: AxiosResponse<ApiResponse<{
-        logs: TradingLog[];
-        meta: {
-          total: number;
-          limit: number;
-          environmentId: string;
-        };
-      }>> = await this.api.get(`/market-instances/${marketInstanceId}/logs`, {
-        params: options
-      });
 
-      if (!response.data.success) {
-        throw new Error(response.data.error?.message || 'Failed to get trading logs');
-      }
-
-      return response.data.data;
-    } catch (error) {
-      console.error('Failed to get trading logs:', error);
-      throw this.handleApiError(error);
-    }
-  }
 
   /**
    * 轮询创建进度
@@ -531,12 +492,5 @@ export const MarketInstanceService = {
    */
   async download(marketInstanceId: string) {
     return marketInstanceApi.downloadMarketInstanceExport(marketInstanceId);
-  },
-
-  /**
-   * 获取交易日志
-   */
-  async getLogs(marketInstanceId: string, options?: { limit?: number; traderId?: string }) {
-    return marketInstanceApi.getTradingLogs(marketInstanceId, options);
   }
 };
