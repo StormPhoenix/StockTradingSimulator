@@ -131,6 +131,7 @@ speckit.log
 .codebuddy/temp/
 .codebuddy/
 specs/
+*.code-workspace
 
 # Backup archives
 archives/
