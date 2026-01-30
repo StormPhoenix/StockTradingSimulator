@@ -54,78 +54,11 @@
 
     <div v-loading="state.isLoading" class="content-container">
       <div v-if="marketInstance" class="market-instance-content">
-        <!-- 概览信息 -->
-        <div class="overview-section">
-          <el-card class="info-card">
-            <template #header>
-              <div class="card-header">
-                <h3>基本信息</h3>
-              </div>
-            </template>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">市场实例ID</span>
-                <span class="info-value">{{ marketInstance.exchangeId }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">创建时间</span>
-                <span class="info-value">{{ formatTime(marketInstance.createdAt) }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">最后活跃</span>
-                <span class="info-value">{{ formatTime(marketInstance.lastActiveAt) }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">模板</span>
-                <span class="info-value">{{ marketInstance.templateInfo.templateName }}</span>
-              </div>
-            </div>
-          </el-card>
-
-          <el-card class="stats-card">
-            <template #header>
-              <div class="card-header">
-                <h3>统计信息</h3>
-              </div>
-            </template>
-            <div class="stats-grid">
-              <div class="stat-item">
-                <div class="stat-icon">👥</div>
-                <div class="stat-content">
-                  <div class="stat-value">{{ marketInstance.statistics.traderCount }}</div>
-                  <div class="stat-label">交易员</div>
-                </div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-icon">📈</div>
-                <div class="stat-content">
-                  <div class="stat-value">{{ marketInstance.statistics.stockCount }}</div>
-                  <div class="stat-label">股票</div>
-                </div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-icon">💰</div>
-                <div class="stat-content">
-                  <div class="stat-value">¥{{ formatCurrency(marketInstance.statistics.totalCapital) }}</div>
-                  <div class="stat-label">总资金</div>
-                </div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-icon">📊</div>
-                <div class="stat-content">
-                  <div class="stat-value">¥{{ formatCurrency(marketInstance.statistics.averageCapitalPerTrader) }}</div>
-                  <div class="stat-label">平均资金</div>
-                </div>
-              </div>
-            </div>
-          </el-card>
-        </div>
-
-        <!-- 详细信息标签页 -->
+        <!-- Tab：市场总览 | 股票列表 -->
         <el-card class="details-card">
           <template #header>
             <div class="card-header">
-              <span class="card-title">详细信息</span>
+              <span class="card-title">市场详情</span>
               <div class="header-actions">
                 <el-tag size="small" type="success" v-if="autoRefreshInterval">
                   <el-icon><Timer /></el-icon>
@@ -138,96 +71,22 @@
             </div>
           </template>
           <el-tabs v-model="state.activeTab" class="details-tabs">
-            <!-- 交易员标签页 -->
-            <el-tab-pane label="交易员" name="traders">
-              <div class="traders-section">
-                <div class="section-header">
-                  <h4>交易员列表 ({{ marketInstance.traders.length }})</h4>
-                </div>
-                <div class="traders-grid">
-                  <div
-                    v-for="trader in marketInstance.traders"
-                    :key="trader.id"
-                    class="trader-card"
-                  >
-                    <div class="trader-header">
-                      <div class="trader-info">
-                        <h5 class="trader-name">{{ trader.name }}</h5>
-                        <div class="trader-tags">
-                          <el-tag size="small" type="info">{{ getRiskProfileText(trader.riskProfile) }}</el-tag>
-                        </div>
-                      </div>
-                      <div class="trader-status">
-                        <el-tag :type="trader.isActive ? 'success' : 'info'" size="small">
-                          {{ trader.isActive ? '活跃' : '非活跃' }}
-                        </el-tag>
-                      </div>
-                    </div>
-                    <div class="trader-metrics">
-                      <div class="metric-item">
-                        <span class="metric-label">当前资金</span>
-                        <span class="metric-value">¥{{ formatCurrency(trader.currentCapital) }}</span>
-                      </div>
-                      <div class="metric-item">
-                        <span class="metric-label">初始资金</span>
-                        <span class="metric-value">¥{{ formatCurrency(trader.initialCapital) }}</span>
-                      </div>
-                      <div class="metric-item">
-                        <span class="metric-label">盈亏</span>
-                        <span 
-                          class="metric-value"
-                          :class="trader.performanceMetrics.profitLoss >= 0 ? 'profit' : 'loss'"
-                        >
-                          ¥{{ formatCurrency(trader.performanceMetrics.profitLoss) }}
-                        </span>
-                      </div>
-                      <div class="metric-item">
-                        <span class="metric-label">盈亏率</span>
-                        <span 
-                          class="metric-value"
-                          :class="trader.performanceMetrics.profitLossPercentage >= 0 ? 'profit' : 'loss'"
-                        >
-                          {{ trader.performanceMetrics.profitLossPercentage.toFixed(2) }}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <el-tab-pane label="市场总览" name="overview">
+              <OverviewTab
+                :exchange-id="marketInstance.exchangeId"
+                :name="marketInstance.name"
+                :description="marketInstance.description"
+                :created-at="marketInstance.createdAt"
+                :last-active-at="marketInstance.lastActiveAt"
+                :template-name="marketInstance.templateInfo.templateName"
+                :statistics="marketInstance.statistics"
+              />
             </el-tab-pane>
-
-            <!-- 股票标签页 -->
-            <el-tab-pane label="股票" name="stocks">
-              <div class="stocks-section">
-                <div class="section-header">
-                  <h4>股票列表 ({{ marketInstance.stocks.length }})</h4>
-                </div>
-                <el-table :data="marketInstance.stocks" class="stocks-table">
-                  <el-table-column prop="symbol" label="代码" width="100" />
-                  <el-table-column prop="companyName" label="公司名称" />
-                  <el-table-column prop="category" label="行业" width="120" />
-                  <el-table-column prop="currentPrice" label="当前价格" width="120">
-                    <template #default="{ row }">
-                      ¥{{ row.currentPrice.toFixed(2) }}
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="issuePrice" label="发行价" width="120">
-                    <template #default="{ row }">
-                      ¥{{ row.issuePrice.toFixed(2) }}
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="totalShares" label="总股本" width="120">
-                    <template #default="{ row }">
-                      {{ formatCurrency(row.totalShares) }}
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="marketCap" label="市值" width="150">
-                    <template #default="{ row }">
-                      ¥{{ formatCurrency(row.marketCap) }}
-                    </template>
-                  </el-table-column>
-                </el-table>
-              </div>
+            <el-tab-pane label="股票列表" name="stocks">
+              <StocksTab
+                :market-instance-id="marketInstance.exchangeId"
+                :stocks="marketInstance.stocks"
+              />
             </el-tab-pane>
           </el-tabs>
         </el-card>
@@ -256,11 +115,12 @@ import { reactive, onMounted, onUnmounted, ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { 
-  MarketInstanceDetails,
   MarketInstanceDetailsState,
   MarketInstanceStatus
 } from '@/types/environment';
 import { MarketInstanceService } from '@/services/marketInstanceApi';
+import OverviewTab from './OverviewTab.vue';
+import StocksTab from './StocksTab.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -269,7 +129,7 @@ const router = useRouter();
 const state = reactive<MarketInstanceDetailsState>({
   marketInstance: null,
   isLoading: false,
-  activeTab: 'traders'
+  activeTab: 'overview'
 });
 
 const isDeleting = ref(false);
@@ -402,15 +262,6 @@ const getStatusText = (status: MarketInstanceStatus) => {
   return statusMap[status] || status;
 };
 
-const getRiskProfileText = (profile: string) => {
-  const profileMap: Record<string, string> = {
-    conservative: '保守型',
-    moderate: '稳健型',
-    aggressive: '激进型'
-  };
-  return profileMap[profile] || profile;
-};
-
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('zh-CN').format(amount);
 };
@@ -437,10 +288,6 @@ watch(() => route.params.id, (newId, oldId) => {
   }
 });
 
-// 监听标签页切换
-watch(() => state.activeTab, () => {
-  // 标签页切换逻辑，如有需要可在此添加
-});
 </script>
 
 <style scoped>
@@ -509,14 +356,6 @@ watch(() => state.activeTab, () => {
   gap: 24px;
 }
 
-.overview-section {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
-.info-card,
-.stats-card,
 .details-card {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -544,80 +383,6 @@ watch(() => state.activeTab, () => {
   color: #7f8c8d;
 }
 
-.card-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.info-label {
-  font-size: 14px;
-  color: #7f8c8d;
-  font-weight: 500;
-}
-
-.info-value {
-  font-size: 16px;
-  color: #2c3e50;
-  font-weight: 600;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
-
-.stat-icon {
-  font-size: 24px;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-  border-radius: 50%;
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-value {
-  font-size: 20px;
-  font-weight: 600;
-  color: #2c3e50;
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: #7f8c8d;
-  margin-top: 4px;
-}
-
 .details-tabs {
   margin-top: -16px;
 }
@@ -629,100 +394,11 @@ watch(() => state.activeTab, () => {
   margin-bottom: 16px;
 }
 
-.section-header h4 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.traders-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 16px;
-}
-
-.trader-card {
-  background: white;
-  border: 1px solid #e1e8ed;
-  border-radius: 8px;
-  padding: 16px;
-}
-
-.trader-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-}
-
-.trader-info {
-  flex: 1;
-}
-
-.trader-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin: 0 0 8px 0;
-}
-
-.trader-tags {
-  display: flex;
-  gap: 8px;
-}
-
-.trader-metrics {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.metric-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.metric-label {
-  font-size: 12px;
-  color: #7f8c8d;
-}
-
-.metric-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.metric-value.profit {
-  color: #27ae60;
-}
-
-.metric-value.loss {
-  color: #e74c3c;
-}
-
-.stocks-table {
-  width: 100%;
-}
-
 .error-state {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 400px;
-}
-
-/* 响应式设计 */
-@media (max-width: 1200px) {
-  .overview-section {
-    grid-template-columns: 1fr;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 @media (max-width: 768px) {
@@ -744,22 +420,6 @@ watch(() => state.activeTab, () => {
 
   .header-right {
     justify-content: space-between;
-  }
-
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .traders-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .trader-metrics {
-    grid-template-columns: 1fr;
   }
 }
 </style>

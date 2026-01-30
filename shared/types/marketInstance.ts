@@ -87,6 +87,8 @@ export interface StockInfo {
   issuePrice: number;
   totalShares: number;
   marketCap: number;
+  /** 当日涨幅（百分比），由后端计算；前端可据此显示或自行用 (currentPrice - issuePrice) / issuePrice * 100 */
+  dailyChangePercent?: number;
 }
 
 /**

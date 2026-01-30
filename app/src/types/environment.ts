@@ -85,7 +85,8 @@ export interface MarketInstanceListState {
 export interface MarketInstanceDetailsState {
   marketInstance: MarketInstanceDetails | null;
   isLoading: boolean;
-  activeTab: 'traders' | 'stocks';
+  /** 页签：市场总览 | 股票列表 */
+  activeTab: 'overview' | 'stocks';
 }
 
 // 保持向后兼容性的别名
