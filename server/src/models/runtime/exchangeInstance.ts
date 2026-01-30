@@ -274,6 +274,7 @@ export class ExchangeInstance implements GameObject {
 
   /**
    * 获取股票详细信息
+   * dailyChangePercent 由 StockInstance.getDailyChangePercent() 计算。
    */
   public getStockDetails(): Array<{
     id: string;
@@ -284,6 +285,7 @@ export class ExchangeInstance implements GameObject {
     issuePrice: number;
     totalShares: number;
     marketCap: number;
+    dailyChangePercent: number;
   }> {
     return Array.from(this.stocks.values()).map(stock => ({
       id: stock.id.toString(),
@@ -293,7 +295,8 @@ export class ExchangeInstance implements GameObject {
       currentPrice: stock.getCurrentPrice(),
       issuePrice: stock.issuePrice,
       totalShares: stock.totalShares,
-      marketCap: stock.getMarketCap()
+      marketCap: stock.getMarketCap(),
+      dailyChangePercent: stock.getDailyChangePercent()
     }));
   }
 

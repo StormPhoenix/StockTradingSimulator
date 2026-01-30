@@ -72,7 +72,8 @@
           </template>
           <el-tabs v-model="state.activeTab" class="details-tabs">
             <el-tab-pane label="市场总览" name="overview">
-              <OverviewTab
+              <MarketInstanceOverviewTab
+                :market-instance-id="marketInstance.exchangeId"
                 :exchange-id="marketInstance.exchangeId"
                 :name="marketInstance.name"
                 :description="marketInstance.description"
@@ -83,7 +84,7 @@
               />
             </el-tab-pane>
             <el-tab-pane label="股票列表" name="stocks">
-              <StocksTab
+              <MarketInstanceStockListTab
                 :market-instance-id="marketInstance.exchangeId"
                 :stocks="marketInstance.stocks"
               />
@@ -119,8 +120,8 @@ import type {
   MarketInstanceStatus
 } from '@/types/environment';
 import { MarketInstanceService } from '@/services/marketInstanceApi';
-import OverviewTab from './OverviewTab.vue';
-import StocksTab from './StocksTab.vue';
+import MarketInstanceOverviewTab from './MarketInstanceOverviewTab.vue';
+import MarketInstanceStockListTab from './MarketInstanceStockListTab.vue';
 
 const route = useRoute();
 const router = useRouter();

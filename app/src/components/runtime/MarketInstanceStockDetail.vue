@@ -1,5 +1,5 @@
 <template>
-  <div class="stock-detail">
+  <div class="market-instance-stock-detail">
     <div class="page-header">
       <div class="header-left">
         <el-button icon="ArrowLeft" @click="handleGoBack" class="back-button">
@@ -151,7 +151,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.stock-detail {
+.market-instance-stock-detail {
   padding: 24px;
   background-color: #f5f5f5;
   min-height: 100vh;
@@ -255,7 +255,7 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .stock-detail {
+  .market-instance-stock-detail {
     padding: 16px;
   }
 

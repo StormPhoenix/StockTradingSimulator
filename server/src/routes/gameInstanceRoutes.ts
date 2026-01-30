@@ -9,6 +9,7 @@ import { Router, Request, Response } from 'express';
 import gameInstanceController from '../controllers/gameInstanceController';
 import { EnvironmentManagerEvents } from '../types/eventTypes';
 import { CreationProgress } from '../../../shared/types/progress';
+import { isValidKLineGranularity } from '../utils/klineGranularity';
 
 const router = Router();
 
@@ -109,18 +110,219 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 /**
+ * 市场实例 ID 子路由（子路由挂载，避免 :environmentId 吃掉 overview、stocks 等路径）
+ * 挂载在 /:environmentId，路径如 /market-instances/123、/market-instances/123/overview
+ */
+const idRouter = Router({ mergeParams: true });
+
+/**
+ * 获取单只股票 K 线数据
+ * GET /api/v1/market-instances/:environmentId/stocks/:symbol/kline
+ * Query: granularity (必填 1m|5m|15m|30m|60m|1d|1w|1M), startTime?, endTime?, limit?
+ */
+idRouter.get('/stocks/:symbol/kline', async (req: Request, res: Response) => {
+  try {
+    const environmentId = req.params.environmentId as string;
+    const symbol = req.params.symbol as string;
+    const userId = req.user?.id || 'default-user';
+    const granularity = (req.query.granularity as string) || '';
+    const startTime = req.query.startTime as string | undefined;
+    const endTime = req.query.endTime as string | undefined;
+    const limitParam = req.query.limit as string | undefined;
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+
+    if (!granularity || !isValidKLineGranularity(granularity)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'granularity is required and must be one of: 1m, 5m, 15m, 30m, 60m, 1d, 1w, 1M'
+        }
+      });
+    }
+
+    const marketInstance = gameInstanceController.getMarketInstanceDetails(environmentId, userId);
+    if (!marketInstance) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'MARKET_INSTANCE_NOT_FOUND', message: 'Market instance not found' }
+      });
+    }
+
+    const result = gameInstanceController.getKLineData(environmentId, userId, symbol, {
+      granularity,
+      startTime,
+      endTime,
+      limit: limit && !isNaN(limit) ? limit : undefined
+    });
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'STOCK_NOT_FOUND', message: 'Stock not found in this market instance' }
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        ...result,
+        data: result.data.map(p => ({
+          ...p,
+          timestamp: p.timestamp.toISOString()
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Failed to get kline:', error);
+    res.status(500).json({
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to retrieve kline data' }
+    });
+  }
+});
+
+/**
+ * 获取单只股票详情（占位，待实现或复用详情中的股票）
+ * GET /api/v1/market-instances/:environmentId/stocks/:symbol
+ */
+idRouter.get('/stocks/:symbol', async (req: Request, res: Response) => {
+  try {
+    const environmentId = req.params.environmentId as string;
+    const symbol = req.params.symbol as string;
+    const userId = req.user?.id || 'default-user';
+    const marketInstance = gameInstanceController.getMarketInstanceDetails(environmentId, userId);
+    if (!marketInstance) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'MARKET_INSTANCE_NOT_FOUND', message: 'Market instance not found' }
+      });
+    }
+    const stock = marketInstance.stocks.find((s: { symbol: string }) => s.symbol === symbol);
+    if (!stock) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'STOCK_NOT_FOUND', message: 'Stock not found in this market instance' }
+      });
+    }
+    res.json({ success: true, data: stock });
+  } catch (error) {
+    console.error('Failed to get stock:', error);
+    res.status(500).json({
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to retrieve stock' }
+    });
+  }
+});
+
+/**
+ * 获取交易所实例模拟时间（供总览页时间显示与轮询）
+ * GET /api/v1/market-instances/:environmentId/time
+ */
+idRouter.get('/time', async (req: Request, res: Response) => {
+  try {
+    const environmentId = req.params.environmentId as string;
+    const userId = req.user?.id || 'default-user';
+    const exchange = gameInstanceController.getExchangeInstance(environmentId, userId);
+    if (!exchange) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'MARKET_INSTANCE_NOT_FOUND', message: 'Market instance not found' }
+      });
+    }
+    const simulatedTime = exchange.getSimulatedTime();
+    res.json({
+      success: true,
+      data: { simulatedTime: simulatedTime.toISOString() }
+    });
+  } catch (error) {
+    console.error('Failed to get simulated time:', error);
+    res.status(500).json({
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to retrieve simulated time' }
+    });
+  }
+});
+
+/**
+ * 获取市场总览（占位，待实现；时间以游戏时间为准）
+ * GET /api/v1/market-instances/:environmentId/overview
+ */
+idRouter.get('/overview', async (req: Request, res: Response) => {
+  try {
+    const environmentId = req.params.environmentId as string;
+    const userId = req.user?.id || 'default-user';
+    const marketInstance = gameInstanceController.getMarketInstanceDetails(environmentId, userId);
+    if (!marketInstance) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'MARKET_INSTANCE_NOT_FOUND', message: 'Market instance not found' }
+      });
+    }
+    const exchange = gameInstanceController.getExchangeInstance(environmentId, userId);
+    const simulatedTime = exchange ? exchange.getSimulatedTime().toISOString() : undefined;
+    // 占位：todayVolume、volumeTrend 待从交易所游戏时间与 TimeSeriesManager 实现
+    res.json({
+      success: true,
+      data: {
+        statistics: {
+          ...marketInstance.statistics,
+          todayVolume: 0
+        },
+        volumeTrend: [],
+        exchangeId: marketInstance.exchangeId,
+        name: marketInstance.name,
+        description: marketInstance.description,
+        status: marketInstance.status,
+        createdAt: marketInstance.createdAt,
+        lastActiveAt: marketInstance.lastActiveAt,
+        simulatedTime
+      }
+    });
+  } catch (error) {
+    console.error('Failed to get overview:', error);
+    res.status(500).json({
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to retrieve overview' }
+    });
+  }
+});
+
+/**
+ * 获取成交量趋势（占位，待实现；每点 volume 为时间窗口增量，时间字段用窗口 start）
+ * GET /api/v1/market-instances/:environmentId/volume-trend
+ */
+idRouter.get('/volume-trend', async (req: Request, res: Response) => {
+  try {
+    const environmentId = req.params.environmentId as string;
+    const userId = req.user?.id || 'default-user';
+    const marketInstance = gameInstanceController.getMarketInstanceDetails(environmentId, userId);
+    if (!marketInstance) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'MARKET_INSTANCE_NOT_FOUND', message: 'Market instance not found' }
+      });
+    }
+    // 占位：从 TimeSeriesManager 按游戏时间查询，每点 volume 为窗口增量
+    res.json({ success: true, data: [] });
+  } catch (error) {
+    console.error('Failed to get volume-trend:', error);
+    res.status(500).json({
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to retrieve volume trend' }
+    });
+  }
+});
+
+/**
  * 获取市场实例详情
  * GET /api/v1/market-instances/:environmentId
  */
-router.get('/:environmentId', async (req: Request, res: Response) => {
+idRouter.get('/', async (req: Request, res: Response) => {
   try {
     const environmentId = req.params.environmentId as string;
-    
-    // TODO: 从认证中间件获取用户ID
     const userId = req.user?.id || 'default-user';
-    
     const marketInstance = gameInstanceController.getMarketInstanceDetails(environmentId, userId);
-    
     if (!marketInstance) {
       return res.status(404).json({
         success: false,
@@ -130,12 +332,10 @@ router.get('/:environmentId', async (req: Request, res: Response) => {
         }
       });
     }
-    
     res.json({
       success: true,
       data: marketInstance
     });
-    
   } catch (error) {
     console.error('Failed to get market instance details:', error);
     res.status(500).json({
@@ -152,15 +352,11 @@ router.get('/:environmentId', async (req: Request, res: Response) => {
  * 销毁市场实例
  * DELETE /api/v1/market-instances/:environmentId
  */
-router.delete('/:environmentId', async (req: Request, res: Response) => {
+idRouter.delete('/', async (req: Request, res: Response) => {
   try {
     const environmentId = req.params.environmentId as string;
-    
-    // TODO: 从认证中间件获取用户ID
     const userId = req.user?.id || 'default-user';
-    
     await gameInstanceController.destroyMarketInstance(environmentId, userId);
-    
     res.json({
       success: true,
       data: {
@@ -168,37 +364,93 @@ router.delete('/:environmentId', async (req: Request, res: Response) => {
         destroyedAt: new Date().toISOString()
       }
     });
-    
   } catch (error) {
     console.error('Failed to destroy market instance:', error);
-    
     if (error instanceof Error && error.message.includes('not found')) {
       res.status(404).json({
         success: false,
-        error: {
-          code: 'MARKET_INSTANCE_NOT_FOUND',
-          message: 'Market instance not found'
-        }
+        error: { code: 'MARKET_INSTANCE_NOT_FOUND', message: 'Market instance not found' }
       });
     } else if (error instanceof Error && error.message.includes('busy')) {
       res.status(409).json({
         success: false,
-        error: {
-          code: 'MARKET_INSTANCE_BUSY',
-          message: 'Cannot destroy market instance while creation is in progress'
-        }
+        error: { code: 'MARKET_INSTANCE_BUSY', message: 'Cannot destroy market instance while creation is in progress' }
       });
     } else {
       res.status(500).json({
         success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Failed to destroy market instance'
-        }
+        error: { code: 'INTERNAL_ERROR', message: 'Failed to destroy market instance' }
       });
     }
   }
 });
+
+/**
+ * 导出市场实例状态
+ * GET /api/v1/market-instances/:environmentId/export
+ */
+idRouter.get('/export', async (req: Request, res: Response) => {
+  try {
+    const environmentId = req.params.environmentId as string;
+    const { format = 'json' } = req.query;
+    const userId = req.user?.id || 'default-user';
+    const exportData = await gameInstanceController.exportMarketInstanceState(environmentId, userId);
+    if (format === 'json') {
+      res.json({ success: true, data: exportData });
+    } else {
+      const filename = `market-instance-${environmentId}-${new Date().toISOString().split('T')[0]}.json`;
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.json(exportData);
+    }
+  } catch (error) {
+    console.error('Failed to export market instance:', error);
+    if (error instanceof Error && error.message.includes('not found')) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'MARKET_INSTANCE_NOT_FOUND', message: 'Market instance not found' }
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: { code: 'EXPORT_ERROR', message: 'Failed to export market instance state' }
+      });
+    }
+  }
+});
+
+/**
+ * 获取交易日志
+ * GET /api/v1/market-instances/:environmentId/logs
+ */
+idRouter.get('/logs', async (req: Request, res: Response) => {
+  try {
+    const environmentId = req.params.environmentId as string;
+    const { limit = 50, traderId } = req.query;
+    const userId = req.user?.id || 'default-user';
+    const marketInstance = gameInstanceController.getMarketInstanceDetails(environmentId, userId);
+    if (!marketInstance) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'ENVIRONMENT_NOT_FOUND', message: 'Environment not found' }
+      });
+    }
+    const logs: any[] = [];
+    res.json({
+      success: true,
+      data: logs,
+      meta: { total: logs.length, limit: parseInt(limit as string), environmentId }
+    });
+  } catch (error) {
+    console.error('Failed to get trading logs:', error);
+    res.status(500).json({
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to retrieve trading logs' }
+    });
+  }
+});
+
+router.use('/:environmentId', idRouter);
 
 /**
  * 获取创建进度
@@ -232,108 +484,6 @@ router.get('/progress/:requestId', async (req: Request, res: Response) => {
       error: {
         code: 'INTERNAL_ERROR',
         message: 'Failed to retrieve progress information'
-      }
-    });
-  }
-});
-
-/**
- * 导出市场实例状态
- * GET /api/v1/market-instances/:environmentId/export
- */
-router.get('/:environmentId/export', async (req: Request, res: Response) => {
-  try {
-    const environmentId = req.params.environmentId as string;
-    const { format = 'json' } = req.query;
-    
-    // TODO: 从认证中间件获取用户ID
-    const userId = req.user?.id || 'default-user';
-    
-    // 导出市场实例状态
-    const exportData = await gameInstanceController.exportMarketInstanceState(environmentId, userId);
-    
-    if (format === 'json') {
-      res.json({
-        success: true,
-        data: exportData
-      });
-    } else {
-      // 支持文件下载
-      const filename = `market-instance-${environmentId}-${new Date().toISOString().split('T')[0]}.json`;
-      
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.json(exportData);
-    }
-    
-  } catch (error) {
-    console.error('Failed to export market instance:', error);
-    
-    if (error instanceof Error && error.message.includes('not found')) {
-      res.status(404).json({
-        success: false,
-        error: {
-          code: 'MARKET_INSTANCE_NOT_FOUND',
-          message: 'Market instance not found'
-        }
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        error: {
-          code: 'EXPORT_ERROR',
-          message: 'Failed to export market instance state'
-        }
-      });
-    }
-  }
-});
-
-/**
- * 获取交易日志
- * GET /api/v1/market-instances/:environmentId/logs
- */
-router.get('/:environmentId/logs', async (req: Request, res: Response) => {
-  try {
-    const environmentId = req.params.environmentId as string;
-    const { limit = 50, traderId } = req.query;
-    
-    // TODO: 从认证中间件获取用户ID
-    const userId = req.user?.id || 'default-user';
-    
-    // 验证市场实例存在
-    const marketInstance = gameInstanceController.getMarketInstanceDetails(environmentId, userId);
-    
-    if (!marketInstance) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'ENVIRONMENT_NOT_FOUND',
-          message: 'Environment not found'
-        }
-      });
-    }
-    
-    // TODO: 实现实际的日志获取逻辑
-    const logs: any[] = []; // 从实际的 GameObject 实例获取日志
-    
-    res.json({
-      success: true,
-      data: logs,
-      meta: {
-        total: logs.length,
-        limit: parseInt(limit as string),
-        environmentId
-      }
-    });
-    
-  } catch (error) {
-    console.error('Failed to get trading logs:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: 'Failed to retrieve trading logs'
       }
     });
   }

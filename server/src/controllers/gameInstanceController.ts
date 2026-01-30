@@ -12,6 +12,8 @@ import { MarketTemplateRequest, MarketTemplateResponse } from '../workers/types/
 import { TaskType, TaskCallback, TaskError } from '../workers/types/worker/genericTask';
 import { TypedEventEmitter } from '../types/typedEventEmitter';
 import { ExchangeInstance } from '../models/runtime/exchangeInstance';
+import { klineGranularityToTimeSeries } from '../utils/klineGranularity';
+import type { KLineDataResult, KLinePoint, KLineMetadata } from '../types/kline';
 
 /**
  * 环境创建请求
@@ -494,7 +496,8 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
           currentPrice: stock.currentPrice,
           issuePrice: stock.issuePrice,
           totalShares: stock.totalShares,
-          marketCap: stock.marketCap
+          marketCap: stock.marketCap,
+          dailyChangePercent: stock.dailyChangePercent
         }))
       };
     }
@@ -520,6 +523,114 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
       traders: [],
       stocks: []
     };
+  }
+
+  /**
+   * 获取 K 线数据
+   * 数据来源：TimeSeriesManager 聚合结果；timestamp 使用窗口 startTime。
+   * @returns KLineDataResult 或 null（市场/股票不存在或粒度无效）
+   */
+  public getKLineData(
+    marketInstanceId: string,
+    userId: string,
+    symbol: string,
+    options: { granularity: string; startTime?: string; endTime?: string; limit?: number }
+  ): KLineDataResult | null {
+    const ref = this.activeMarketInstances.get(marketInstanceId);
+    if (!ref || ref.userId !== userId) return null;
+
+    const exchange = ref.exchangeInstance;
+    const stock = exchange.getStock(symbol);
+    if (!stock) return null;
+
+    const granularityEnum = klineGranularityToTimeSeries(options.granularity);
+    if (!granularityEnum) return null;
+
+    const ts = exchange.getTimeSeriesManager();
+    const priceSeriesId = `${exchange.id}_${symbol}_price`;
+    const volumeSeriesId = `${exchange.id}_${symbol}_volume`;
+
+    const endTime = options.endTime ? new Date(options.endTime) : exchange.getSimulatedTime();
+    const startTime = options.startTime
+      ? new Date(options.startTime)
+      : new Date(endTime.getTime() - 24 * 60 * 60 * 1000);
+    const limit = Math.min(options.limit ?? 1000, 5000);
+
+    let pricePoints: Array<{ startTime: Date; open: number; high: number; low: number; close: number }> = [];
+    let volumeByStart = new Map<number, number>();
+
+    try {
+      const priceAgg = ts.queryAggregatedData({
+        seriesId: priceSeriesId,
+        granularity: granularityEnum,
+        startTime,
+        endTime
+      });
+      pricePoints = priceAgg.map(p => ({
+        startTime: p.startTime,
+        open: p.open,
+        high: p.high,
+        low: p.low,
+        close: p.close
+      }));
+
+      const volumeAgg = ts.queryAggregatedData({
+        seriesId: volumeSeriesId,
+        granularity: granularityEnum,
+        startTime,
+        endTime
+      });
+      volumeAgg.forEach(p => volumeByStart.set(p.startTime.getTime(), p.volume));
+    } catch (_) {
+      return {
+        metadata: {
+          symbol,
+          name: (stock as any).companyName ?? symbol,
+          decimal: 2,
+          preClose: (stock as any).issuePrice ?? 0,
+          total: 0
+        },
+        data: [],
+        granularity: options.granularity,
+        isFull: true
+      };
+    }
+
+    const data: KLinePoint[] = pricePoints
+      .map(p => ({
+        timestamp: p.startTime,
+        open: p.open,
+        high: p.high,
+        low: p.low,
+        close: p.close,
+        volume: volumeByStart.get(p.startTime.getTime()) ?? 0
+      }))
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+      .slice(-limit);
+
+    const metadata: KLineMetadata = {
+      symbol,
+      name: (stock as any).companyName ?? symbol,
+      decimal: 2,
+      preClose: (stock as any).issuePrice ?? 0,
+      total: data.length
+    };
+
+    return {
+      metadata,
+      data,
+      granularity: options.granularity,
+      isFull: true
+    };
+  }
+
+  /**
+   * 获取市场实例的 ExchangeInstance（供 WebSocket 等使用）
+   */
+  public getExchangeInstance(marketInstanceId: string, userId: string): ExchangeInstance | null {
+    const ref = this.activeMarketInstances.get(marketInstanceId);
+    if (!ref || ref.userId !== userId) return null;
+    return ref.exchangeInstance;
   }
 
   /**
@@ -662,6 +773,7 @@ export class GameInstanceController extends TypedEventEmitter<GameInstanceContro
         issuePrice: stock.issuePrice,
         totalShares: stock.totalShares,
         marketCap: stock.getMarketCap ? stock.getMarketCap() : (stock.currentPrice * stock.totalShares),
+        dailyChangePercent: stock.getDailyChangePercent ? stock.getDailyChangePercent() : (stock.issuePrice === 0 ? 0 : ((stock.currentPrice - stock.issuePrice) / stock.issuePrice) * 100),
         stockInfo: stock.getStockInfo ? stock.getStockInfo() : null
       }));
     } catch (error) {

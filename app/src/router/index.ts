@@ -76,7 +76,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: ':id/stocks/:symbol',
         name: 'StockDetail',
-        component: () => import('@/components/runtime/StockDetail.vue'),
+        component: () => import('@/components/runtime/MarketInstanceStockDetail.vue'),
         meta: {
           title: '股票详情',
           icon: 'TrendCharts',

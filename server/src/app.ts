@@ -1,3 +1,4 @@
+import http from 'http'
 import express, { Request, Response } from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
@@ -12,6 +13,7 @@ import errorHandler from './middleware/errorHandler'
 import { createRoutes } from './routes/index'
 import healthRoutes from './routes/healthRoutes'
 import { LifecycleManagerService } from './services/lifecycleManagerService'
+import { setupMarketInstanceWebSocket, stopMarketInstanceWebSocket } from './websocket/marketInstanceWs'
 
 // 加载环境变量
 dotenv.config()
@@ -94,8 +96,12 @@ async function startServer(): Promise<void> {
 
     // 错误处理中间件
     app.use(errorHandler)
-    
-    app.listen(PORT, () => {
+
+    // 使用 HTTP Server 以便支持 WebSocket upgrade
+    const server = http.createServer(app)
+    setupMarketInstanceWebSocket(server)
+
+    server.listen(PORT, () => {
       console.log('\n🎉 Server started successfully!')
       console.log('━'.repeat(50))
       console.log(`📡 Server running on port: ${PORT}`)
@@ -104,6 +110,7 @@ async function startServer(): Promise<void> {
       console.log(`📊 Detailed health: http://localhost:${PORT}/health/detailed`)
       console.log(`🔗 API base URL: http://localhost:${PORT}/api/v1`)
       console.log(`📚 API info: http://localhost:${PORT}/api/v1`)
+      console.log(`🔌 WebSocket: ws://localhost:${PORT}/api/v1/market-instances/:id/ws`)
       console.log('━'.repeat(50))
       console.log('💡 Press Ctrl+C to stop the server')
     })
@@ -117,7 +124,14 @@ async function startServer(): Promise<void> {
 // 优雅关闭
 async function gracefulShutdown(): Promise<void> {
   console.log('🛑 Shutting down gracefully...')
-  
+
+  try {
+    stopMarketInstanceWebSocket()
+    console.log('✅ WebSocket server stopped')
+  } catch (error: any) {
+    console.error('❌ Error stopping WebSocket:', error.message)
+  }
+
   if (lifecycleService) {
     try {
       await lifecycleService.shutdown()
@@ -126,7 +140,7 @@ async function gracefulShutdown(): Promise<void> {
       console.error('❌ Error during lifecycle shutdown:', error.message)
     }
   }
-  
+
   process.exit(0)
 }
 

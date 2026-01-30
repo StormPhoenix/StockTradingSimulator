@@ -1,5 +1,16 @@
 <template>
-  <div class="overview-tab">
+  <div class="market-instance-overview-tab">
+    <!-- 交易所模拟时间显示 -->
+    <el-card class="time-card" shadow="hover">
+      <div class="time-content">
+        <span class="time-icon">🕐</span>
+        <div class="time-body">
+          <div class="time-label">交易时间（交易所模拟）</div>
+          <div class="time-value">{{ simulatedTimeDisplay }}</div>
+        </div>
+      </div>
+    </el-card>
+
     <!-- 核心指标卡片区 -->
     <div class="stats-row">
       <el-card class="stat-card" shadow="hover">
@@ -68,9 +79,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { MarketInstanceService } from '@/services/marketInstanceApi';
 
 const props = defineProps<{
+  marketInstanceId: string;
   exchangeId: string;
   name: string;
   description?: string;
@@ -85,6 +98,32 @@ const props = defineProps<{
   };
 }>();
 
+const simulatedTime = ref<string | null>(null);
+let timePollTimer: ReturnType<typeof setInterval> | null = null;
+
+const simulatedTimeDisplay = computed(() => {
+  if (!simulatedTime.value) return '--';
+  const d = new Date(simulatedTime.value);
+  return d.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+});
+
+async function fetchSimulatedTime() {
+  try {
+    const data = await MarketInstanceService.getTime(props.marketInstanceId);
+    simulatedTime.value = data.simulatedTime;
+  } catch (_) {
+    simulatedTime.value = null;
+  }
+}
+
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('zh-CN').format(amount);
 };
@@ -93,13 +132,63 @@ const formatTime = (date: Date | string) => {
   const d = new Date(date);
   return d.toLocaleString('zh-CN');
 };
+
+onMounted(() => {
+  fetchSimulatedTime();
+  timePollTimer = setInterval(fetchSimulatedTime, 1000);
+});
+
+onUnmounted(() => {
+  if (timePollTimer) {
+    clearInterval(timePollTimer);
+    timePollTimer = null;
+  }
+});
 </script>
 
 <style scoped>
-.overview-tab {
+.market-instance-overview-tab {
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.time-card {
+  border-radius: 8px;
+}
+
+.time-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.time-icon {
+  font-size: 28px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ecf5ff;
+  border-radius: 50%;
+}
+
+.time-body {
+  flex: 1;
+}
+
+.time-label {
+  font-size: 14px;
+  color: #7f8c8d;
+  margin-bottom: 4px;
+}
+
+.time-value {
+  font-size: 22px;
+  font-weight: 600;
+  color: #2c3e50;
+  font-variant-numeric: tabular-nums;
 }
 
 .stats-row {

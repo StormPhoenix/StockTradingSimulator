@@ -366,6 +366,15 @@ export class StockInstance implements GameObject {
   }
 
   /**
+   * 当日涨幅（百分比）：(当前价 - 发行价) / 发行价 * 100
+   * 由 StockInstance 计算，Controller 仅负责获取。
+   */
+  public getDailyChangePercent(): number {
+    if (this.issuePrice === 0) return 0;
+    return ((this.currentPrice - this.issuePrice) / this.issuePrice) * 100;
+  }
+
+  /**
    * 转换为 JSON 对象（用于序列化）
    */
   public toJSON(): {
@@ -378,6 +387,7 @@ export class StockInstance implements GameObject {
     issuePrice: number;
     totalShares: number;
     marketCap: number;
+    dailyChangePercent: number;
     createdAt: string;
     lastUpdateAt: string;
   } {
@@ -391,6 +401,7 @@ export class StockInstance implements GameObject {
       issuePrice: this.issuePrice,
       totalShares: this.totalShares,
       marketCap: this.getMarketCap(),
+      dailyChangePercent: this.getDailyChangePercent(),
       createdAt: this.createdAt.toISOString(),
       lastUpdateAt: this.lastUpdateAt.toISOString()
     };

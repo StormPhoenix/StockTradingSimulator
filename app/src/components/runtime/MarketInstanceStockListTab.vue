@@ -1,5 +1,5 @@
 <template>
-  <div class="stocks-tab">
+  <div class="market-instance-stock-list-tab">
     <div class="section-header">
       <h4>股票列表 ({{ stocks.length }})</h4>
     </div>
@@ -99,7 +99,7 @@ function handleViewStock(symbol: string) {
 </script>
 
 <style scoped>
-.stocks-tab {
+.market-instance-stock-list-tab {
   padding: 0;
 }
 

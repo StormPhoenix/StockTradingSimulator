@@ -276,6 +276,26 @@ export class MarketInstanceApiClient {
   }
 
   /**
+   * 获取交易所实例模拟时间（供总览页时间显示与轮询）
+   */
+  public async getMarketInstanceTime(marketInstanceId: string): Promise<{ simulatedTime: string }> {
+    try {
+      const response: AxiosResponse<ApiResponse<{ simulatedTime: string }>> = await this.api.get(
+        `/market-instances/${marketInstanceId}/time`
+      );
+
+      if (!response.data.success) {
+        throw new Error(response.data.error?.message || 'Failed to get simulated time');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Failed to get simulated time:', error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
    * 导出市场实例状态
    */
   public async exportMarketInstance(marketInstanceId: string, format: 'json' = 'json'): Promise<MarketInstanceExport> {
@@ -492,5 +512,12 @@ export const MarketInstanceService = {
    */
   async download(marketInstanceId: string) {
     return marketInstanceApi.downloadMarketInstanceExport(marketInstanceId);
+  },
+
+  /**
+   * 获取交易所实例模拟时间（供总览页时间显示与轮询）
+   */
+  async getTime(marketInstanceId: string) {
+    return marketInstanceApi.getMarketInstanceTime(marketInstanceId);
   }
 };
