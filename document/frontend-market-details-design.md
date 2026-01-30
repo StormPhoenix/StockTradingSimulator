@@ -8,7 +8,7 @@
 
 ### 2.1 整体布局（Tab 页签形式）
 
-**重要说明：** `MarketInstanceDetails.vue` 将被**完全重构**为 **Tab 页签**形式。内容区域由**两个顶层页签**组成，用户通过点击页签在两种视图之间切换。
+**重要说明：** `MarketInstanceDetails.vue` 将被**完全重构**为 **Tab 页签**形式。内容区域由**两个页签**组成：「市场总览页面」与「股票列表页面」。**股票详情页面**为**独立页面**，从股票列表页签中点击某只股票的「查看」按钮进入，用于展示 K 线等信息。
 
 ```
 MarketInstanceDetails.vue
@@ -17,60 +17,58 @@ MarketInstanceDetails.vue
 │   ├── 标题和描述
 │   └── 操作按钮（刷新、导出、删除）
 │
-└── 内容区域：顶层 Tab 页签容器
-    ├── 页签一：市场详情视图（默认）
-    │   └── 内层页签容器
-    │       ├── 市场总览页签（默认）
-    │       └── 股票列表页签
+└── 内容区域：Tab 页签容器
+    ├── 页签一：市场总览页面（默认）
+    │   └── 市场总览内容（核心指标、成交量趋势、基本信息等）
     │
-    └── 页签二：股票详情视图
-        └── 股票详情组件
-            ├── 股票选择/查询参数（?stock=SYMBOL）
-            ├── 股票基本信息
-            └── K线图表
+    └── 页签二：股票列表页面
+        └── 股票列表表格（每行含「查看」按钮，点击进入股票详情页面）
+```
+
+**股票详情页面**（独立路由，独立组件）：
+```
+股票详情页面（如 StockDetail.vue，路由：/market-instances/:id/stocks/:symbol）
+├── 页面头部（返回按钮 → 返回市场详情页的股票列表页签）
+├── 股票基本信息
+└── K线图表等
 ```
 
 ### 2.2 页面切换逻辑
 
-**顶层切换方式：** 使用 Tab 组件，两个页签为「市场详情视图」与「股票详情视图」。可选：进入「股票详情视图」时可通过路由查询参数 `?stock=SYMBOL` 指定当前展示的股票，或在该视图内提供股票选择器。
+**Tab 切换方式：** 在 `MarketInstanceDetails.vue` 内使用 Tab 组件，两个页签为「市场总览页面」与「股票列表页面」，仅在此两页签间切换。
 
 **逻辑流程：**
 ```
 用户访问 /market-instances/:id
   ↓
-内容区域显示两个顶层 Tab
-  ├── 市场详情视图（默认选中）
-  │   ├── 显示内层页签：市场总览 | 股票列表
+内容区域显示两个 Tab
+  ├── 市场总览页面（默认选中）
   │   └── 建立 WebSocket 连接订阅市场总览数据
   │
-  └── 股票详情视图（用户点击该页签时选中）
-      ├── 显示股票详情组件（股票可由 ?stock= 或视图内选择器决定）
-      └── 建立 WebSocket 连接订阅K线数据
+  └── 股票列表页面（用户点击该页签时选中）
+      └── 展示股票列表，每行有「查看」按钮
 ```
 
-**从股票列表跳转到股票详情：** 可切换至「股票详情视图」页签并带上 `?stock=SYMBOL`，或仅切换页签并在视图内选择股票。
+**从股票列表进入股票详情：** 股票详情为**独立页面**，通过路由跳转进入。
 ```typescript
 // 在股票列表的"查看"按钮点击事件中
 const handleViewStock = (symbol: string) => {
   router.push({
-    path: `/market-instances/${marketInstanceId}`,
-    query: { stock: symbol }
+    path: `/market-instances/${marketInstanceId}/stocks/${symbol}`
   });
-  // 并切换到「股票详情视图」页签（通过 Tab 的 activeName 或等价方式）
 };
 ```
 
-**从股票详情返回市场详情：** 用户点击「市场详情视图」页签即可返回；或保留返回按钮，清除 `stock` 查询参数并切回市场详情页签。
+**从股票详情返回：** 用户点击返回按钮，导航回市场详情页（建议回到股票列表页签，即 `/market-instances/:id`，并可将 Tab 激活为「股票列表」）。
 
 ### 2.3 页签结构
 
-**顶层页签（两个，Tab 形式）：**
-- **市场详情视图** (`market`) - 默认页签，展示市场总览与股票列表
-- **股票详情视图** (`stock`) - 展示单只股票详情与 K 线
+**MarketInstanceDetails.vue 内页签（两个，Tab 形式）：**
+- **市场总览页面** (`overview`) - 默认页签，展示核心指标、成交量趋势、基本信息等
+- **股票列表页面** (`stocks`) - 展示股票列表表格，每行提供「查看」按钮进入股票详情页面
 
-**市场详情视图下的内层页签：**
-- **市场总览** (`overview`) - 默认
-- **股票列表** (`stocks`)
+**独立页面（非 Tab）：**
+- **股票详情页面** - 独立路由（如 `/market-instances/:id/stocks/:symbol`），独立组件，用于展示单只股票详情与 K 线；从股票列表页签的「查看」进入
 
 **移除的页签：**
 - 交易员页签（可考虑后续在其他位置展示）
@@ -208,33 +206,31 @@ const handleViewStock = (symbol: string) => {
 - 文字：`查看`
 
 **点击行为：**
-- 跳转到股票详情页面
-- 路由：`/market-instances/:id/stocks/:symbol`
+- 跳转到**独立**的股票详情页面（新路由）
+- 路由：`/market-instances/:id/stocks/:symbol`（从股票列表页签进入）
 
 ## 5. 股票详情界面设计
 
+**说明：** 股票详情为**独立页面**，从市场详情页的「股票列表」页签中，点击某只股票的「查看」按钮进入，用于预览 K 线等信息。
+
 ### 5.1 路由设计
 
-**路由路径：** `/market-instances/:id`（与市场详情页面相同）
+**路由路径：** `/market-instances/:id/stocks/:symbol`（股票详情为独立路由，与市场详情页分离）
 
 **路由参数：**
 - `id`: 市场实例ID
-
-**查询参数：**
-- `stock`: 股票代码（可选）
-  - 如果提供：显示股票详情界面
-  - 如果不提供：显示市场详情界面（默认）
+- `symbol`: 股票代码
 
 **示例：**
-- 市场详情：`/market-instances/123`
-- 股票详情：`/market-instances/123?stock=AAPL`
+- 市场详情（Tab：市场总览 / 股票列表）：`/market-instances/123`
+- 股票详情（独立页面）：`/market-instances/123/stocks/AAPL`
 
 ### 5.2 页面结构
 
 ```
-股票详情页面（StockDetail.vue）
+股票详情页面（StockDetail.vue，独立路由 /market-instances/:id/stocks/:symbol）
 ├── 页面头部
-│   ├── 返回按钮（返回市场详情页）
+│   ├── 返回按钮（返回市场详情页，建议回到股票列表页签）
 │   ├── 股票基本信息
 │   │   ├── 代码、名称
 │   │   ├── 行业
@@ -370,8 +366,8 @@ interface KLineMetadata {
 
 **WebSocket 连接：**
 - 连接地址：`ws://host/api/v1/market-instances/:id/ws`
-- 连接时机：进入市场详情页面时建立连接
-- 断开时机：离开页面时断开连接
+- 连接时机：进入股票详情页面时建立连接（用于 K 线推送）；市场总览数据在市场详情页建立连接
+- 断开时机：离开对应页面时断开连接
 
 **推送消息类型：**
 1. **市场总览更新** (`market_overview_update`)
@@ -1060,16 +1056,17 @@ setInterval(() => {
 
 ```
 app/src/components/runtime/
-├── MarketInstanceDetails.vue（重构）
-│   ├── 市场总览页签组件
+├── MarketInstanceDetails.vue（重构：仅含两个 Tab 页签）
+│   ├── 市场总览页签
 │   │   ├── OverviewTab.vue（新建）
 │   │   │   ├── StatisticsCards.vue（新建）
 │   │   │   └── VolumeTrendChart.vue（新建）
 │   │   │
-│   └── 股票列表页签组件
+│   └── 股票列表页签
 │       └── StocksTab.vue（新建）
+│           └── 每行「查看」按钮 → 跳转至股票详情页面（独立路由）
 │
-└── StockDetail.vue（新建）
+└── StockDetail.vue（新建，独立页面，路由：/market-instances/:id/stocks/:symbol）
     ├── StockInfoCard.vue（新建）
     └── KLineChart.vue（新建）
 ```
@@ -1270,23 +1267,25 @@ const cleanupKLineWebSocket = () => {
 
 #### 8.4.4 路由参数处理
 
-**MarketInstanceDetails.vue：**
+**MarketInstanceDetails.vue：** 仅管理两个 Tab（市场总览、股票列表），不处理 `stock` 参数。股票列表内「查看」按钮跳转至股票详情独立页面。
 ```typescript
-import { useRoute } from 'vue-router';
+// 股票列表「查看」按钮
+const handleViewStock = (symbol: string) => {
+  router.push({ path: `/market-instances/${marketInstanceId}/stocks/${symbol}` });
+};
+```
 
+**StockDetail.vue（独立页面）：** 通过路由参数获取当前股票，建立 K 线 WebSocket 订阅。
+```typescript
 const route = useRoute();
-const stockSymbol = computed(() => route.query.stock as string | undefined);
+const symbol = computed(() => route.params.symbol as string);
 
-// 监听路由参数变化
-watch(() => route.query.stock, (newSymbol) => {
+watch(symbol, (newSymbol) => {
   if (newSymbol) {
-    // 显示股票详情界面
-    showStockDetail(newSymbol);
-  } else {
-    // 显示市场详情界面
-    showMarketOverview();
+    loadKLineData(newSymbol);
+    wsService.subscribeKLine(newSymbol, granularity.value);
   }
-});
+}, { immediate: true });
 ```
 
 ### 8.5 ECharts集成
@@ -1488,7 +1487,7 @@ MarketInstanceDetails.vue 挂载
 ### 9.3 K线数据流
 
 ```
-用户进入股票详情页面（通过查询参数 ?stock=SYMBOL）
+用户从股票列表点击「查看」进入股票详情页面（路由 /market-instances/:id/stocks/:symbol）
   ↓
 调用 MarketInstanceService.getKLineData()（全量，HTTP）
   ↓
@@ -1703,13 +1702,13 @@ import { ElVirtualList } from 'element-plus';
 
 ### 13.2 前端实现
 
-- [ ] 重构 `MarketInstanceDetails.vue`，只保留两个页签
-- [ ] 实现路由参数处理（查询参数 `?stock=SYMBOL`）
+- [ ] 重构 `MarketInstanceDetails.vue`，改为两个 Tab 页签（市场总览、股票列表）
+- [ ] 配置股票详情独立路由（`/market-instances/:id/stocks/:symbol`）
 - [ ] 创建 `OverviewTab.vue` 组件
 - [ ] 创建 `StatisticsCards.vue` 组件
 - [ ] 创建 `VolumeTrendChart.vue` 组件
-- [ ] 创建 `StocksTab.vue` 组件
-- [ ] 创建 `StockDetail.vue` 组件（在同一页面内切换显示）
+- [ ] 创建 `StocksTab.vue` 组件（每行「查看」按钮跳转至股票详情页）
+- [ ] 创建 `StockDetail.vue` 组件（独立页面，用于股票详情与 K 线展示）
 - [ ] 创建 `KLineChart.vue` 组件
 - [ ] 扩展 `MarketInstanceService` API方法
 - [ ] 创建 `WebSocketService` 类
@@ -1829,40 +1828,27 @@ class WebSocketService {
 **Vue Router 配置：**
 ```typescript
 // router/index.ts
+// 市场详情页（Tab：市场总览 | 股票列表）
 {
   path: '/market-instances/:id',
   component: MarketInstanceDetails,
+  props: (route) => ({ id: route.params.id })
+}
+
+// 股票详情页（独立页面，从股票列表「查看」进入）
+{
+  path: '/market-instances/:id/stocks/:symbol',
+  component: StockDetail,
   props: (route) => ({
     id: route.params.id,
-    stock: route.query.stock // 传递查询参数
+    symbol: route.params.symbol
   })
 }
 ```
 
 **组件内处理：**
-```typescript
-// MarketInstanceDetails.vue
-const route = useRoute();
-const stockSymbol = computed(() => route.query.stock as string | undefined);
-
-// 监听查询参数变化
-watch(stockSymbol, (newSymbol, oldSymbol) => {
-  if (oldSymbol && newSymbol !== oldSymbol) {
-    // 切换股票，取消旧订阅，订阅新股票
-    wsService.unsubscribeKLine(oldSymbol, granularity.value);
-  }
-  
-  if (newSymbol) {
-    // 显示股票详情
-    showStockDetail(newSymbol);
-    wsService.subscribeKLine(newSymbol, granularity.value);
-  } else {
-    // 显示市场详情
-    showMarketOverview();
-    wsService.subscribeMarketOverview();
-  }
-});
-```
+- **MarketInstanceDetails.vue**：仅管理两个 Tab（市场总览、股票列表），无 `stock` 查询参数；股票列表内「查看」使用 `router.push({ path: \`/market-instances/${id}/stocks/${symbol}\` })` 跳转。
+- **StockDetail.vue**：通过 `route.params.symbol` 获取当前股票，建立 WebSocket 订阅 K 线；返回时 `router.push({ path: \`/market-instances/${id}\` })` 可带 query 指定默认激活「股票列表」页签（可选）。
 
 ## 15. 注意事项
 
@@ -1878,10 +1864,10 @@ watch(stockSymbol, (newSymbol, oldSymbol) => {
    - 包含元数据：股票代码、名称、市场类型、前收盘价等
 
 3. **路由设计**：
-   - 股票详情通过查询参数 `?stock=SYMBOL` 切换
-   - 保持在同一路由下，避免页面跳转
-   - 需要处理浏览器前进/后退按钮
-   - 使用 `router.push()` 更新查询参数，而不是直接修改 URL
+   - 市场详情页：`/market-instances/:id`，内含两个 Tab（市场总览、股票列表）
+   - 股票详情页：独立路由 `/market-instances/:id/stocks/:symbol`，从股票列表「查看」按钮进入
+   - 需处理浏览器前进/后退（返回按钮可 `router.back()` 或 `router.push` 回市场详情页）
+   - 股票列表「查看」使用 `router.push({ path: \`/market-instances/${id}/stocks/${symbol}\` })` 跳转
 
 4. **WebSocket 实时更新**：
    - 注意连接管理，避免内存泄漏
@@ -1913,6 +1899,6 @@ watch(stockSymbol, (newSymbol, oldSymbol) => {
 
 ---
 
-**文档版本**：1.0  
+**文档版本**：1.1  
 **创建日期**：2026-01-27  
-**最后更新**：2026-01-27
+**最后更新**：2026-01-27（需求调整：MarketInstanceDetails 仅含「市场总览」「股票列表」两 Tab；股票详情改为独立页面，由股票列表「查看」进入）
