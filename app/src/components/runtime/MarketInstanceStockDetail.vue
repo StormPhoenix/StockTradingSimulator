@@ -46,14 +46,41 @@
           </el-card>
         </div>
 
-        <!-- K线图表区（占位，待后端 K 线 API 接入） -->
+        <!-- K线图表区：HTTP 全量 + WebSocket 增量 -->
         <el-card class="kline-card" shadow="hover">
           <template #header>
-            <span class="card-title">K 线图</span>
-            <el-tag size="small" type="info">开发中：待后端 K 线数据接口</el-tag>
+            <div class="kline-header">
+              <span class="card-title">K 线图</span>
+              <el-select
+                v-model="granularity"
+                size="small"
+                class="granularity-select"
+                @change="onGranularityChange"
+              >
+                <el-option label="1 分钟" value="1m" />
+                <el-option label="5 分钟" value="5m" />
+                <el-option label="15 分钟" value="15m" />
+                <el-option label="30 分钟" value="30m" />
+                <el-option label="60 分钟" value="60m" />
+                <el-option label="日 K" value="1d" />
+                <el-option label="周 K" value="1w" />
+                <el-option label="月 K" value="1M" />
+              </el-select>
+            </div>
           </template>
-          <div class="kline-placeholder">
-            <el-empty description="K 线数据接口接入后可在此展示图表" :image-size="80" />
+          <div v-loading="klineState.loading" class="kline-body">
+            <div v-if="klineState.error" class="kline-error">
+              <el-alert type="error" :title="klineState.error" show-icon />
+            </div>
+            <div v-else-if="klineState.data.length === 0 && !klineState.loading" class="kline-placeholder">
+              <el-empty description="暂无 K 线数据" :image-size="80" />
+            </div>
+            <div v-else class="kline-info">
+              <p class="kline-count">共 {{ klineState.data.length }} 条 K 线（实时更新）</p>
+              <div class="kline-placeholder-chart">
+                <el-empty description="图表组件接入后可在此展示 ECharts K 线" :image-size="60" />
+              </div>
+            </div>
           </div>
         </el-card>
       </template>
@@ -70,11 +97,13 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, computed, watch, onMounted } from 'vue';
+import { reactive, computed, watch, onMounted, onBeforeUnmount, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import type { StockInfo } from '@/types/environment';
+import type { KLinePoint, KLineMetadata } from '@/types/kline';
 import { MarketInstanceService } from '@/services/marketInstanceApi';
+import { marketInstanceWsService } from '@/services/marketInstanceWs';
 
 const route = useRoute();
 const router = useRouter();
@@ -86,6 +115,23 @@ const state = reactive<{
   stock: null,
   isLoading: false,
 });
+
+const klineState = reactive<{
+  data: KLinePoint[];
+  metadata: KLineMetadata | null;
+  loading: boolean;
+  error: string | null;
+}>({
+  data: [],
+  metadata: null,
+  loading: false,
+  error: null
+});
+
+const granularity = ref<string>('1m');
+const lastGranularity = ref<string>('1m');
+const unsubMessage = ref<(() => void) | null>(null);
+const unsubError = ref<(() => void) | null>(null);
 
 const marketInstanceId = computed(() => route.params.id as string);
 const symbol = computed(() => route.params.symbol as string);
@@ -137,16 +183,106 @@ async function loadStock() {
   }
 }
 
+/** 加载 K 线数据（HTTP 全量） */
+async function loadKLineData() {
+  if (!marketInstanceId.value || !symbol.value) return;
+  try {
+    klineState.loading = true;
+    klineState.error = null;
+    const result = await MarketInstanceService.getKLineData(marketInstanceId.value, symbol.value, {
+      granularity: granularity.value,
+      limit: 500
+    });
+    klineState.data = result.data ?? [];
+    klineState.metadata = result.metadata ?? null;
+  } catch (error) {
+    console.error('Failed to load kline:', error);
+    klineState.error = error instanceof Error ? error.message : '加载 K 线失败';
+    klineState.data = [];
+    klineState.metadata = null;
+  } finally {
+    klineState.loading = false;
+  }
+}
+
+/** 合并 WebSocket 推送的 K 线增量到本地数据（按 timestamp 去重，追加或更新） */
+function mergeKLineUpdate(payload: { symbol: string; granularity: string; data: KLinePoint[] }) {
+  if (payload.symbol !== symbol.value || payload.granularity !== granularity.value) return;
+  if (!payload.data?.length) return;
+  const tsKey = (p: KLinePoint) => (typeof p.timestamp === 'string' ? p.timestamp : (p.timestamp as Date).toISOString());
+  const existing = new Set(klineState.data.map(tsKey));
+  const toAppend: KLinePoint[] = [];
+  payload.data.forEach(p => {
+    const key = tsKey(p);
+    if (!existing.has(key)) {
+      existing.add(key);
+      toAppend.push(p);
+    }
+  });
+  if (toAppend.length) {
+    klineState.data = [...klineState.data, ...toAppend].sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+  }
+}
+
+function setupKLineWebSocket() {
+  if (!marketInstanceId.value || !symbol.value) return;
+  marketInstanceWsService.connect(marketInstanceId.value);
+  marketInstanceWsService.subscribeKLine(symbol.value, granularity.value);
+  unsubMessage.value = marketInstanceWsService.onMessage(msg => {
+    if (msg.type === 'kline_update' && msg.data) mergeKLineUpdate(msg.data);
+  });
+  unsubError.value = marketInstanceWsService.onError(() => {
+    ElMessage.warning('K 线实时连接异常，将使用已加载数据');
+  });
+}
+
+function cleanupKLineWebSocket() {
+  if (symbol.value) marketInstanceWsService.unsubscribeKLine(symbol.value, lastGranularity.value);
+  unsubMessage.value?.();
+  unsubMessage.value = null;
+  unsubError.value?.();
+  unsubError.value = null;
+  marketInstanceWsService.disconnect();
+}
+
 function handleGoBack() {
   router.push({ path: `/market-instances/${marketInstanceId.value}` });
+}
+
+function onGranularityChange() {
+  if (symbol.value) marketInstanceWsService.unsubscribeKLine(symbol.value, lastGranularity.value);
+  lastGranularity.value = granularity.value;
+  loadKLineData().then(() => {
+    if (symbol.value) marketInstanceWsService.subscribeKLine(symbol.value, granularity.value);
+  });
 }
 
 watch([marketInstanceId, symbol], () => {
   loadStock();
 }, { immediate: false });
 
-onMounted(() => {
-  loadStock();
+watch(symbol, (newSymbol, oldSymbol) => {
+  if (!marketInstanceId.value) return;
+  if (oldSymbol) marketInstanceWsService.unsubscribeKLine(oldSymbol, lastGranularity.value);
+  loadKLineData();
+  if (newSymbol) {
+    if (!marketInstanceWsService.isConnected()) marketInstanceWsService.connect(marketInstanceId.value);
+    marketInstanceWsService.subscribeKLine(newSymbol, granularity.value);
+  }
+}, { immediate: false });
+
+onMounted(async () => {
+  await loadStock();
+  if (marketInstanceId.value && symbol.value) {
+    await loadKLineData();
+    setupKLineWebSocket();
+  }
+});
+
+onBeforeUnmount(() => {
+  cleanupKLineWebSocket();
 });
 </script>
 
@@ -234,14 +370,46 @@ onMounted(() => {
   border-radius: 8px;
 }
 
+.kline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .kline-card .card-title {
   font-size: 16px;
   font-weight: 600;
   color: #2c3e50;
 }
 
-.kline-placeholder {
-  min-height: 320px;
+.granularity-select {
+  width: 120px;
+}
+
+.kline-body {
+  min-height: 280px;
+}
+
+.kline-error {
+  margin-bottom: 12px;
+}
+
+.kline-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kline-count {
+  font-size: 14px;
+  color: #7f8c8d;
+  margin: 0;
+}
+
+.kline-placeholder,
+.kline-placeholder-chart {
+  min-height: 240px;
   display: flex;
   align-items: center;
   justify-content: center;

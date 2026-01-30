@@ -15,6 +15,7 @@ import type {
   MarketTemplate,
   CreationProgress
 } from '../types/environment';
+import type { KLineDataResult } from '../types/kline';
 
 /**
  * API 响应基础接口
@@ -276,6 +277,37 @@ export class MarketInstanceApiClient {
   }
 
   /**
+   * 获取单只股票 K 线数据
+   * GET /api/v1/market-instances/:id/stocks/:symbol/kline
+   */
+  public async getKLineData(
+    marketInstanceId: string,
+    symbol: string,
+    options: {
+      granularity: string;
+      startTime?: string;
+      endTime?: string;
+      limit?: number;
+    }
+  ): Promise<KLineDataResult> {
+    try {
+      const response: AxiosResponse<ApiResponse<KLineDataResult>> = await this.api.get(
+        `/market-instances/${marketInstanceId}/stocks/${symbol}/kline`,
+        { params: options }
+      );
+
+      if (!response.data.success) {
+        throw new Error(response.data.error?.message || 'Failed to get kline data');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Failed to get kline data:', error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
    * 获取交易所实例模拟时间（供总览页时间显示与轮询）
    */
   public async getMarketInstanceTime(marketInstanceId: string): Promise<{ simulatedTime: string }> {
@@ -519,5 +551,16 @@ export const MarketInstanceService = {
    */
   async getTime(marketInstanceId: string) {
     return marketInstanceApi.getMarketInstanceTime(marketInstanceId);
+  },
+
+  /**
+   * 获取单只股票 K 线数据
+   */
+  async getKLineData(
+    marketInstanceId: string,
+    symbol: string,
+    options: { granularity: string; startTime?: string; endTime?: string; limit?: number }
+  ) {
+    return marketInstanceApi.getKLineData(marketInstanceId, symbol, options);
   }
 };
