@@ -308,11 +308,14 @@ export class MarketInstanceApiClient {
   }
 
   /**
-   * 获取交易所实例模拟时间（供总览页时间显示与轮询）
+   * 获取交易所实例模拟时间与倍速（供总览页显示与轮询，倍速可能被其他地方修改故需实时刷新）
    */
-  public async getMarketInstanceTime(marketInstanceId: string): Promise<{ simulatedTime: string }> {
+  public async getMarketInstanceTime(marketInstanceId: string): Promise<{
+    simulatedTime: string;
+    timeAcceleration: number;
+  }> {
     try {
-      const response: AxiosResponse<ApiResponse<{ simulatedTime: string }>> = await this.api.get(
+      const response: AxiosResponse<ApiResponse<{ simulatedTime: string; timeAcceleration: number }>> = await this.api.get(
         `/market-instances/${marketInstanceId}/time`
       );
 
@@ -323,6 +326,30 @@ export class MarketInstanceApiClient {
       return response.data.data;
     } catch (error) {
       console.error('Failed to get simulated time:', error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
+   * 设置交易所时间模拟倍速（0.1 - 1000）
+   */
+  public async setTimeAcceleration(
+    marketInstanceId: string,
+    timeAcceleration: number
+  ): Promise<{ simulatedTime: string; timeAcceleration: number }> {
+    try {
+      const response: AxiosResponse<ApiResponse<{ simulatedTime: string; timeAcceleration: number }>> = await this.api.patch(
+        `/market-instances/${marketInstanceId}/time`,
+        { timeAcceleration }
+      );
+
+      if (!response.data.success) {
+        throw new Error(response.data.error?.message || 'Failed to set time acceleration');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Failed to set time acceleration:', error);
       throw this.handleApiError(error);
     }
   }
@@ -547,10 +574,17 @@ export const MarketInstanceService = {
   },
 
   /**
-   * 获取交易所实例模拟时间（供总览页时间显示与轮询）
+   * 获取交易所实例模拟时间与倍速（供总览页显示与轮询）
    */
   async getTime(marketInstanceId: string) {
     return marketInstanceApi.getMarketInstanceTime(marketInstanceId);
+  },
+
+  /**
+   * 设置交易所时间模拟倍速（0.1 - 1000）
+   */
+  async setTimeAcceleration(marketInstanceId: string, timeAcceleration: number) {
+    return marketInstanceApi.setTimeAcceleration(marketInstanceId, timeAcceleration);
   },
 
   /**

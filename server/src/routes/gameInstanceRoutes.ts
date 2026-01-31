@@ -216,7 +216,7 @@ idRouter.get('/stocks/:symbol', async (req: Request, res: Response) => {
 });
 
 /**
- * 获取交易所实例模拟时间（供总览页时间显示与轮询）
+ * 获取交易所实例模拟时间与倍速（供总览页显示与轮询，倍速可被其他地方修改故需实时刷新）
  * GET /api/v1/market-instances/:environmentId/time
  */
 idRouter.get('/time', async (req: Request, res: Response) => {
@@ -231,15 +231,64 @@ idRouter.get('/time', async (req: Request, res: Response) => {
       });
     }
     const simulatedTime = exchange.getSimulatedTime();
+    const timeAcceleration = exchange.getTimeAcceleration();
     res.json({
       success: true,
-      data: { simulatedTime: simulatedTime.toISOString() }
+      data: {
+        simulatedTime: simulatedTime.toISOString(),
+        timeAcceleration
+      }
     });
   } catch (error) {
     console.error('Failed to get simulated time:', error);
     res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Failed to retrieve simulated time' }
+    });
+  }
+});
+
+/**
+ * 设置交易所时间模拟倍速（0.1 - 1000）
+ * PATCH /api/v1/market-instances/:environmentId/time
+ * Body: { timeAcceleration: number }
+ */
+idRouter.patch('/time', async (req: Request, res: Response) => {
+  try {
+    const environmentId = req.params.environmentId as string;
+    const userId = req.user?.id || 'default-user';
+    const exchange = gameInstanceController.getExchangeInstance(environmentId, userId);
+    if (!exchange) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'MARKET_INSTANCE_NOT_FOUND', message: 'Market instance not found' }
+      });
+    }
+    const value = req.body?.timeAcceleration;
+    const timeAcceleration = typeof value === 'number' ? value : parseFloat(value);
+    if (isNaN(timeAcceleration) || timeAcceleration < 0.1 || timeAcceleration > 1000) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'timeAcceleration must be a number between 0.1 and 1000'
+        }
+      });
+    }
+    exchange.setTimeAcceleration(timeAcceleration);
+    const simulatedTime = exchange.getSimulatedTime();
+    res.json({
+      success: true,
+      data: {
+        simulatedTime: simulatedTime.toISOString(),
+        timeAcceleration: exchange.getTimeAcceleration()
+      }
+    });
+  } catch (error) {
+    console.error('Failed to set time acceleration:', error);
+    res.status(500).json({
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to set time acceleration' }
     });
   }
 });

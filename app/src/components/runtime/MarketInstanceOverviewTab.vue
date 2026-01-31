@@ -1,12 +1,28 @@
 <template>
   <div class="market-instance-overview-tab">
-    <!-- 交易所模拟时间显示 -->
+    <!-- 交易所模拟时间与倍速（同一张卡片，倍速由轮询实时刷新） -->
     <el-card class="time-card" shadow="hover">
       <div class="time-content">
         <span class="time-icon">🕐</span>
         <div class="time-body">
           <div class="time-label">交易时间（交易所模拟）</div>
           <div class="time-value">{{ simulatedTimeDisplay }}</div>
+          <div class="time-acceleration-row">
+            <span class="time-acceleration-label">时间倍速：</span>
+            <span class="time-acceleration-value">{{ timeAccelerationDisplay }}</span>
+            <div class="time-acceleration-buttons">
+              <el-button
+                v-for="preset in timeAccelerationPresets"
+                :key="preset"
+                size="small"
+                :type="timeAcceleration === preset ? 'primary' : 'default'"
+                @click="handleSetTimeAcceleration(preset)"
+                :loading="settingAcceleration && timeAccelerationPending === preset"
+              >
+                {{ preset }}x
+              </el-button>
+            </div>
+          </div>
         </div>
       </div>
     </el-card>
@@ -80,6 +96,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ElMessage } from 'element-plus';
 import { MarketInstanceService } from '@/services/marketInstanceApi';
 
 const props = defineProps<{
@@ -99,7 +116,12 @@ const props = defineProps<{
 }>();
 
 const simulatedTime = ref<string | null>(null);
+const timeAcceleration = ref<number>(1);
+const settingAcceleration = ref(false);
+const timeAccelerationPending = ref<number | null>(null);
 let timePollTimer: ReturnType<typeof setInterval> | null = null;
+
+const timeAccelerationPresets = [1, 2, 5, 10, 50, 100];
 
 const simulatedTimeDisplay = computed(() => {
   if (!simulatedTime.value) return '--';
@@ -115,12 +137,33 @@ const simulatedTimeDisplay = computed(() => {
   });
 });
 
+const timeAccelerationDisplay = computed(() => {
+  const v = timeAcceleration.value;
+  if (v == null || Number.isNaN(v)) return '--';
+  return Number.isInteger(v) ? `${v}x` : `${v.toFixed(1)}x`;
+});
+
 async function fetchSimulatedTime() {
   try {
     const data = await MarketInstanceService.getTime(props.marketInstanceId);
     simulatedTime.value = data.simulatedTime;
+    timeAcceleration.value = data.timeAcceleration ?? 1;
   } catch (_) {
     simulatedTime.value = null;
+  }
+}
+
+async function handleSetTimeAcceleration(value: number) {
+  try {
+    settingAcceleration.value = true;
+    timeAccelerationPending.value = value;
+    await MarketInstanceService.setTimeAcceleration(props.marketInstanceId, value);
+    timeAcceleration.value = value;
+  } catch (_) {
+    ElMessage.error('设置倍速失败');
+  } finally {
+    settingAcceleration.value = false;
+    timeAccelerationPending.value = null;
   }
 }
 
@@ -189,6 +232,34 @@ onUnmounted(() => {
   font-weight: 600;
   color: #2c3e50;
   font-variant-numeric: tabular-nums;
+}
+
+.time-acceleration-row {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #ebeef5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.time-acceleration-label {
+  font-size: 14px;
+  color: #7f8c8d;
+}
+
+.time-acceleration-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  min-width: 40px;
+}
+
+.time-acceleration-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .stats-row {
