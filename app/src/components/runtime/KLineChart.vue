@@ -1,5 +1,5 @@
 <template>
-  <div class="kline-chart-wrapper">
+  <div ref="wrapperRef" class="kline-chart-wrapper">
     <div
       ref="chartRef"
       class="kline-chart-container"
@@ -40,6 +40,7 @@ const props = withDefaults(
 /** 单根 K 线/柱子占位宽度（barMaxWidth 30 + 间隙 2），使 K 线紧邻排布 */
 const BAR_SLOT_PX = 32;
 
+const wrapperRef = ref<HTMLElement | null>(null);
 const chartRef = ref<HTMLElement | null>(null);
 let chartInstance: ReturnType<typeof echarts.init> | null = null;
 let resizeObserver: ResizeObserver | null = null;
@@ -68,10 +69,7 @@ function toVolumeData(data: KLinePoint[]): number[] {
   return data.map((p) => p.volume);
 }
 
-/** 判定为「正在看最右侧」的 dataZoom end 阈值（>= 即视为跟尾） */
-const DATA_ZOOM_AT_END_THRESHOLD = 98;
-
-function getOption(stickToEnd: boolean = false) {
+function getOption() {
   const { data, granularity } = props;
   if (!data.length) {
     return { title: { text: '暂无数据', left: 'center' } };
@@ -79,11 +77,6 @@ function getOption(stickToEnd: boolean = false) {
   const xAxisData = data.map((p) => formatTimeLabel(p.timestamp));
   const candlestickData = toCandlestickData(data);
   const volumeData = toVolumeData(data);
-
-  const n = data.length;
-  const defaultStart = Math.max(0, 100 - 6000 / Math.max(n, 1));
-  const zoomStart = stickToEnd ? Math.max(0, 100 - 4000 / Math.max(n, 1)) : defaultStart;
-  const zoomEnd = 100;
 
   return {
     animation: false,
@@ -138,16 +131,9 @@ function getOption(stickToEnd: boolean = false) {
       {
         type: 'inside',
         xAxisIndex: [0, 1],
-        start: zoomStart,
-        end: zoomEnd,
-      },
-      {
-        show: true,
-        xAxisIndex: [0, 1],
-        type: 'slider',
-        top: '92%',
-        start: zoomStart,
-        end: zoomEnd,
+        start: Math.max(0, 100 - 6000 / Math.max(data.length, 1)),
+        end: 100,
+        zoomOnMouseWheel: false,
       },
     ],
     tooltip: {
@@ -198,20 +184,29 @@ function getOption(stickToEnd: boolean = false) {
   };
 }
 
-function isDataZoomAtEnd(): boolean {
-  if (!chartInstance) return false;
-  const opt = chartInstance.getOption();
-  const dataZoom = opt?.dataZoom as Array<{ start?: number; end?: number }> | undefined;
-  if (!Array.isArray(dataZoom) || dataZoom.length === 0) return false;
-  const slider = dataZoom.find((d) => d.type === 'slider') ?? dataZoom[dataZoom.length - 1];
-  const end = slider?.end;
-  return typeof end === 'number' && end >= DATA_ZOOM_AT_END_THRESHOLD;
+/** 将横向滚动容器滚到最右，使用户看到最新 K 线（图表画布很宽，可视区在 wrapper 内） */
+function scrollWrapperToRight() {
+  const el = wrapperRef.value;
+  if (!el) return;
+  el.scrollLeft = el.scrollWidth - el.clientWidth;
 }
 
 function updateChart() {
   if (!chartInstance) return;
-  const stickToEnd = isDataZoomAtEnd();
-  chartInstance.setOption(getOption(stickToEnd), { replaceMerge: ['series'] });
+  const dataLength = props.data.length;
+  if (dataLength === 0) return;
+  const start = Math.max(0, 100 - 6000 / dataLength);
+  const end = 100;
+
+  chartInstance.setOption(getOption());
+  chartInstance.dispatchAction({
+    type: 'dataZoom',
+    dataZoomIndex: 0,
+    start,
+    end,
+  });
+  // 图表画布宽度 = data.length * 32，可视区在 wrapper 内；刷新后滚到最右以展示最新 K 线
+  nextTick(scrollWrapperToRight);
 }
 
 function initChart() {
