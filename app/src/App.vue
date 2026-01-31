@@ -29,9 +29,9 @@ import { useRoute } from 'vue-router';
 
 const route = useRoute();
 
-// 计算是否显示导航栏
+// 计算是否显示导航栏（游玩窗口 /gameplay 不显示 nav）
 const showNavigation = computed(() => {
-  // 在某些页面隐藏导航栏
+  if (route.path.startsWith('/gameplay')) return false;
   const hideNavRoutes = ['NotFound'];
   return !hideNavRoutes.includes(route.name as string);
 });

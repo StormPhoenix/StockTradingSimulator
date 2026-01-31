@@ -2,13 +2,6 @@
   <div class="market-instance-details">
     <div class="page-header">
       <div class="header-left">
-        <el-button
-          icon="ArrowLeft"
-          @click="handleGoBack"
-          class="back-button"
-        >
-          返回列表
-        </el-button>
         <div class="title-section">
           <h1 class="page-title">{{ marketInstance?.name || '市场实例详情' }}</h1>
           <p class="page-description">{{ marketInstance?.description }}</p>
@@ -39,14 +32,6 @@
             :loading="isExporting"
           >
             导出市场实例
-          </el-button>
-          <el-button
-            type="danger"
-            icon="Delete"
-            @click="handleDeleteMarketInstance"
-            :loading="isDeleting"
-          >
-            删除市场实例
           </el-button>
         </div>
       </div>
@@ -99,13 +84,7 @@
           icon="warning"
           title="市场实例不存在"
           sub-title="请检查市场实例ID是否正确"
-        >
-          <template #extra>
-            <el-button type="primary" @click="handleGoBack">
-              返回列表
-            </el-button>
-          </template>
-        </el-result>
+        />
       </div>
     </div>
   </div>
@@ -113,8 +92,8 @@
 
 <script setup lang="ts">
 import { reactive, onMounted, onUnmounted, ref, computed, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { useRoute } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import type { 
   MarketInstanceDetailsState,
   MarketInstanceStatus
@@ -124,7 +103,6 @@ import MarketInstanceOverviewTab from './MarketInstanceOverviewTab.vue';
 import MarketInstanceStockListTab from './MarketInstanceStockListTab.vue';
 
 const route = useRoute();
-const router = useRouter();
 
 // 响应式状态
 const state = reactive<MarketInstanceDetailsState>({
@@ -133,7 +111,6 @@ const state = reactive<MarketInstanceDetailsState>({
   activeTab: 'overview'
 });
 
-const isDeleting = ref(false);
 const isExporting = ref(false);
 const isRefreshing = ref(false);
 const autoRefreshInterval = ref<NodeJS.Timeout | null>(null);
@@ -189,38 +166,6 @@ const stopAutoRefresh = () => {
   if (autoRefreshInterval.value) {
     clearInterval(autoRefreshInterval.value);
     autoRefreshInterval.value = null;
-  }
-};
-
-const handleGoBack = () => {
-  router.push('/market-instances');
-};
-
-const handleDeleteMarketInstance = async () => {
-  if (!state.marketInstance) return;
-
-  try {
-    await ElMessageBox.confirm(
-      '确定要删除这个市场实例吗？此操作不可恢复。',
-      '确认删除',
-      {
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    );
-
-    isDeleting.value = true;
-    await MarketInstanceService.destroy(state.marketInstance.exchangeId);
-    ElMessage.success('市场实例删除成功');
-    router.push('/market-instances');
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('Failed to delete market instance:', error);
-      ElMessage.error('删除市场实例失败');
-    }
-  } finally {
-    isDeleting.value = false;
   }
 };
 

@@ -93,7 +93,8 @@ const formatCurrency = (amount: number) => {
 
 function handleViewStock(symbol: string) {
   router.push({
-    path: `/market-instances/${props.marketInstanceId}/stocks/${symbol}`,
+    name: 'GameplayStockDetail',
+    params: { id: props.marketInstanceId, symbol },
   });
 }
 </script>

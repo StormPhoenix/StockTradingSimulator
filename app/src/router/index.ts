@@ -73,22 +73,30 @@ const routes: RouteRecordRaw[] = [
           icon: 'Grid',
         } as RouteMeta,
       },
-      {
-        path: ':id/stocks/:symbol',
-        name: 'StockDetail',
-        component: () => import('@/components/runtime/MarketInstanceStockDetail.vue'),
-        meta: {
-          title: '股票详情',
-          icon: 'TrendCharts',
-        } as RouteMeta,
-      },
+    ],
+  },
+  {
+    path: '/gameplay',
+    component: () => import('@/layouts/GameplayLayout.vue'),
+    meta: { layout: 'gameplay' } as RouteMeta,
+    redirect: '/market-instances',
+    children: [
       {
         path: ':id',
-        name: 'MarketInstanceDetails',
+        name: 'GameplayDetails',
         component: () => import('@/components/runtime/MarketInstanceDetails.vue'),
         meta: {
           title: '市场实例详情',
           icon: 'View',
+        } as RouteMeta,
+      },
+      {
+        path: ':id/stocks/:symbol',
+        name: 'GameplayStockDetail',
+        component: () => import('@/components/runtime/MarketInstanceStockDetail.vue'),
+        meta: {
+          title: '股票详情',
+          icon: 'TrendCharts',
         } as RouteMeta,
       },
     ],

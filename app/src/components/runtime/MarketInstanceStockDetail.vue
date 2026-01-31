@@ -3,7 +3,7 @@
     <div class="page-header">
       <div class="header-left">
         <el-button icon="ArrowLeft" @click="handleGoBack" class="back-button">
-          返回股票列表
+          返回市场详情
         </el-button>
         <div class="title-section" v-if="stock">
           <h1 class="page-title">{{ stock.symbol }} {{ stock.companyName }}</h1>
@@ -248,7 +248,7 @@ function cleanupKLineWebSocket() {
 }
 
 function handleGoBack() {
-  router.push({ path: `/market-instances/${marketInstanceId.value}` });
+  router.push({ name: 'GameplayDetails', params: { id: marketInstanceId.value } });
 }
 
 function onGranularityChange() {

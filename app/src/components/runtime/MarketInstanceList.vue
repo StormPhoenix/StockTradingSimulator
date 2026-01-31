@@ -552,7 +552,8 @@ const resetCreateForm = () => {
 };
 
 const handleViewMarketInstance = (marketInstanceId: string) => {
-  router.push(`/market-instances/${marketInstanceId}`);
+  const url = router.resolve({ name: 'GameplayDetails', params: { id: marketInstanceId } }).href;
+  window.open(url, 'gameplay', 'width=1200,height=800');
 };
 
 const handleDeleteMarketInstance = async (marketInstanceId: string) => {
