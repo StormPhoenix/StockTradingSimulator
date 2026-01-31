@@ -25,6 +25,7 @@ export default defineConfig(() => {
         '/api': {
           target: apiBaseUrl,
           changeOrigin: true,
+          ws: true, // 转发 WebSocket upgrade，否则 /api/v1/market-instances/:id/ws 无法收到服务端推送
         },
       },
     },

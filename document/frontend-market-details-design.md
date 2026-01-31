@@ -1292,9 +1292,9 @@ watch(symbol, (newSymbol) => {
 
 #### 8.5.1 安装依赖
 
-```bash
-npm install echarts vue-echarts
-```
+- 安装 ECharts：`npm install echarts`（如 ^5.x）。
+- **按需引入**：使用 ECharts 子路径（如 `echarts/core`、`echarts/charts`）仅注册所需模块，实现 Tree-shaking，详见 **8.6 K线图表实现方案（定稿）**。
+- `vue-echarts` 可选；可直接在组件内 `echarts.init(container)` 使用。
 
 #### 8.5.2 K线图表组件
 
@@ -1449,6 +1449,60 @@ const chartOption = computed(() => {
   };
 });
 ```
+
+### 8.6 K线图表实现方案（定稿）
+
+本节为 K 线图表**前端实现**的定稿方案，用于指导 `KLineChart.vue` 与 ECharts 集成开发。
+
+#### 8.6.1 方案结论
+
+| 项目 | 决策 | 说明 |
+|------|------|------|
+| **组件形式** | **方案 B：独立 KLineChart.vue** | 抽离为独立组件，由 `MarketInstanceStockDetail.vue` 传入 `data`（及可选 `granularity`），便于复用与单测。 |
+| **ECharts 引入** | **按需引入（Tree-shaking）** | 仅注册 candlestick、bar、grid、tooltip、dataZoom、axis 等所需模块，减小打包体积。 |
+| **副图** | **必须带成交量** | 主图 K 线（Candlestick）+ 副图成交量柱状图（Bar），与 5.3 节设计一致。 |
+
+#### 8.6.2 组件职责
+
+- **KLineChart.vue**
+  - **Props**：`data: KLinePoint[]`（必填）、`granularity?: string`（可选，用于标题等）。
+  - **职责**：接收 K 线数据，转换为 ECharts 所需格式；初始化/更新/销毁图表实例；主图 K 线 + 副图成交量；容器 resize 时调用 `chart.resize()`。
+  - **不负责**：请求 API、WebSocket 订阅（由父组件 `MarketInstanceStockDetail.vue` 负责）。
+
+- **MarketInstanceStockDetail.vue**
+  - 保留现有 K 线数据逻辑：`loadKLineData`、`mergeKLineUpdate`、WebSocket 订阅/退订。
+  - 将 `klineState.data` 传入 `<KLineChart :data="klineState.data" :granularity="granularity" />`；无数据或 loading 时可不渲染 KLineChart 或传空数组。
+
+#### 8.6.3 ECharts 按需引入
+
+- 使用 `echarts/core` + `echarts/charts` + `echarts/components` 等子路径，仅 `use()` 所需模块，例如：
+  - **渲染**：`CanvasRenderer`
+  - **图表**：`CandlestickChart`、`BarChart`
+  - **组件**：`GridComponent`、`TooltipComponent`、`DataZoomComponent`、`TitleComponent`（可选）等
+- 不在入口全量 `import echarts from 'echarts'`，以保证打包时 Tree-shaking 生效。
+
+#### 8.6.4 数据转换
+
+- **KLinePoint**（前端/接口）与 ECharts candlestick 约定：
+  - 单条 K 线：`[open, close, low, high]`（注意 ECharts candlestick 为 [open, close, low, high] 顺序）。
+  - X 轴：时间轴使用 `timestamp` 转成 ECharts 可识别的时间（如 `new Date(timestamp).getTime()` 或格式化字符串，与 xAxis type 一致）。
+- **成交量**：副图 bar 的 `data` 与主图一一对应，柱状图颜色可按 `close >= open` 区分为涨/跌色（如 #26a69a / #ef5350）。
+
+#### 8.6.5 副图（成交量）要求
+
+- 副图**必须**为成交量柱状图，与主图 K 线共用时间轴（xAxis 联动）。
+- 使用 `grid` 上下分两段：主图在上、副图在下；`dataZoom` 同时作用主图与副图。
+- 成交量柱颜色与 K 线涨跌一致，便于阅读。
+
+#### 8.6.6 实现检查清单
+
+- [ ] 安装依赖：`echarts`（如 ^5.x），按需不强制安装 `vue-echarts`。
+- [ ] 新建 `app/src/components/runtime/KLineChart.vue`，按上述 props 与职责实现。
+- [ ] 在 KLineChart 内按需 `use()` ECharts 模块并 `echarts.init(container)`，在 `onMounted`/`onBeforeUnmount` 中管理生命周期。
+- [ ] 实现 `KLinePoint[]` → ECharts candlestick + volume 的数据转换函数。
+- [ ] 配置 option：主图 candlestick、副图 bar、双 grid、dataZoom、tooltip；涨跌色与 8.5.3 一致。
+- [ ] 监听 `data` 变化（watch）更新 `chart.setOption()`；容器 resize 时调用 `chart.resize()`。
+- [ ] 在 `MarketInstanceStockDetail.vue` 中引入 KLineChart，将 `klineState.data` 与 `granularity` 传入，无数据时处理占位或空数组。
 
 ## 9. 数据流设计
 

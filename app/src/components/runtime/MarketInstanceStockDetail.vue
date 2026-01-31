@@ -77,9 +77,7 @@
             </div>
             <div v-else class="kline-info">
               <p class="kline-count">共 {{ klineState.data.length }} 条 K 线（实时更新）</p>
-              <div class="kline-placeholder-chart">
-                <el-empty description="图表组件接入后可在此展示 ECharts K 线" :image-size="60" />
-              </div>
+              <KLineChart :data="klineState.data" :granularity="granularity" />
             </div>
           </div>
         </el-card>
@@ -104,6 +102,7 @@ import type { StockInfo } from '@/types/environment';
 import type { KLinePoint, KLineMetadata } from '@/types/kline';
 import { MarketInstanceService } from '@/services/marketInstanceApi';
 import { marketInstanceWsService } from '@/services/marketInstanceWs';
+import KLineChart from './KLineChart.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -231,7 +230,9 @@ function setupKLineWebSocket() {
   marketInstanceWsService.connect(marketInstanceId.value);
   marketInstanceWsService.subscribeKLine(symbol.value, granularity.value);
   unsubMessage.value = marketInstanceWsService.onMessage(msg => {
-    if (msg.type === 'kline_update' && msg.data) mergeKLineUpdate(msg.data);
+    if (msg.type === 'kline_update' && msg.data && 'symbol' in msg.data && 'data' in msg.data) {
+      mergeKLineUpdate(msg.data);
+    }
   });
   unsubError.value = marketInstanceWsService.onError(() => {
     ElMessage.warning('K 线实时连接异常，将使用已加载数据');
